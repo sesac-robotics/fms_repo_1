@@ -37,7 +37,11 @@ class SecurityConfiguration {
     "/api/health", "/api/auth/google/config", "/api/auth/csrf"
   };
   private static final String[] PUBLIC_WRITES = {
-    "/api/auth/login", "/api/auth/register", "/api/auth/register/admin", "/api/auth/google"
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/register/admin",
+    "/api/auth/google",
+    "/api/auth/desktop/token"
   };
   private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS", "TRACE");
 
@@ -80,6 +84,8 @@ class SecurityConfiguration {
                         "/api/operations",
                         "/api/operations/requests/{requestId}/route",
                         "/api/menu")
+                    .hasAnyRole("ADMIN", "OPERATOR")
+                    .requestMatchers(HttpMethod.POST, "/api/auth/desktop/authorize")
                     .hasAnyRole("ADMIN", "OPERATOR")
                     .requestMatchers("/api/admin/**")
                     .hasRole("ADMIN")

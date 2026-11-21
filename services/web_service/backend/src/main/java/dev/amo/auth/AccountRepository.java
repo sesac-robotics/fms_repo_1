@@ -34,6 +34,18 @@ class AccountRepository {
         .optional();
   }
 
+  Optional<Account> lockActiveStaff(long id) {
+    return db.sql(
+            """
+        SELECT * FROM amo_accounts
+        WHERE id = ? AND status = 'ACTIVE' AND role IN ('ADMIN', 'OPERATOR')
+        FOR UPDATE
+        """)
+        .param(id)
+        .query(AccountRepository::account)
+        .optional();
+  }
+
   Optional<Account> findGoogle(String subject) {
     return db.sql(
             """

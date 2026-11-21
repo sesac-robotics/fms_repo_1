@@ -40,6 +40,20 @@ class SessionRepository {
         .optional();
   }
 
+  boolean lockActive(UUID sessionId, long accountId) {
+    return db.sql(
+            """
+        SELECT id FROM amo_sessions
+        WHERE id = ? AND account_id = ? AND revoked_at IS NULL AND expires_at > clock_timestamp()
+        FOR UPDATE
+        """)
+        .param(sessionId)
+        .param(accountId)
+        .query(UUID.class)
+        .optional()
+        .isPresent();
+  }
+
   void revoke(UUID sessionId, long accountId) {
     db.sql(
             """

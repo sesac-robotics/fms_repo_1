@@ -1,0 +1,33 @@
+package dev.amo.control.domain;
+
+import java.time.Instant;
+import java.util.List;
+
+/** Snapshot data returned to authorized operations clients. */
+public record Operations(
+    List<Vehicle> vehicles,
+    List<Request> requests,
+    List<Event> events,
+    List<Trial> tests,
+    boolean demo) {
+  /** Latest stored vehicle data. Coordinates are in map meters, yaw in radians, speed in m/s. */
+  public record Vehicle(
+      long id,
+      String vehicleNo,
+      String status,
+      Double batteryPercent,
+      String connection,
+      Double xM,
+      Double yM,
+      Double yawRad,
+      Double speedMps,
+      String stopReason,
+      boolean dispatchEnabled) {}
+
+  public record Request(long id, String pickup, String destination, String status) {}
+
+  public record Event(
+      long id, Instant time, String type, String vehicle, String detail, Long requestId) {}
+
+  public record Trial(String name, int pass, int total, int latencyMs) {}
+}

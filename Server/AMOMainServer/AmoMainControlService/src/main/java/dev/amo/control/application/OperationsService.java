@@ -1,0 +1,49 @@
+package dev.amo.control.application;
+
+import dev.amo.control.domain.Operations;
+import dev.amo.control.domain.RecordedRoute;
+import java.util.Optional;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Presents a consistent single-transaction operations snapshot. */
+@Service
+public class OperationsService {
+  private final OperationsStore repository;
+  private final RecordedRouteStore routes;
+
+  private final boolean demo;
+
+  OperationsService(
+      OperationsStore repository, RecordedRouteStore routes, Environment environment) {
+    this.repository = repository;
+    this.routes = routes;
+    this.demo = environment.acceptsProfiles(Profiles.of("demo"));
+  }
+
+  public boolean ready() {
+    return repository.ready();
+  }
+
+  /** Returns stored positions for a known request's most recent started trip. */
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Optional<RecordedRoute> recordedRoute(long requestId) {
+    if (requestId <= 0 || !routes.requestExists(requestId)) {
+      return Optional.empty();
+    }
+    return Optional.of(RecordedRoute.from(requestId, routes.samples(requestId)));
+  }
+
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Operations snapshot() {
+    return new Operations(
+        repository.vehicles(),
+        repository.requests(),
+        repository.events(),
+        repository.tests(),
+        demo);
+  }
+}

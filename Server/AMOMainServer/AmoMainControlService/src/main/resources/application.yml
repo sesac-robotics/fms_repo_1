@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: ${AMO_DB_URL}
+    username: ${AMO_DB_USER}
+    password: ${AMO_DB_PASSWORD:}
+  flyway:
+    schemas: public
+    locations: classpath:db/migration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+server:
+  address: 127.0.0.1
+  port: ${AMO_CONTROL_HTTP_PORT:0}
+  error:
+    include-message: never
+    include-stacktrace: never
+amo:
+  jwt-key: ${AMO_JWT_KEY:}
+  google-client-id: ${AMO_GOOGLE_CLIENT_ID:}
+  google-allowed-audiences: ${AMO_GOOGLE_ALLOWED_AUDIENCES:}
+  cookie-secure: ${AMO_COOKIE_SECURE:true}
+  tcp:
+    web-port: ${AMO_WEB_TCP_PORT:18086}
+    admin-port: ${AMO_FMS_TCP_PORT:18087}

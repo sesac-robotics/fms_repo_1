@@ -1,0 +1,21 @@
+{
+  "name": "amo-admin-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "node --test test/*.test.js",
+    "format": "prettier --write src test vite.config.js index.html",
+    "check": "prettier --check src test vite.config.js index.html"
+  },
+  "dependencies": {
+    "vue": "3.5.46"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "6.0.1",
+    "prettier": "3.6.2",
+    "vite": "7.3.8"
+  }
+}

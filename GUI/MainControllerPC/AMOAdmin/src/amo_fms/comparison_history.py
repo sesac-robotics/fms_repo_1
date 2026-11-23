@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .api import PreviewApi
+from .comparison_route import RouteDialog
 
 FIELDS = {
     'trip-history': ('id', 'serviceType', 'status', 'receivedAt'),
@@ -35,11 +36,14 @@ PAGE_SIZE = 50
 class HistoryPanel(QWidget):
     """Read page-sized staff history without interrupting IF-03 polling."""
 
-    def __init__(self, api: PreviewApi, resource: str, parent: QWidget) -> None:
+    def __init__(
+        self, api: PreviewApi, resource: str, parent: QWidget, *, asset: str = ''
+    ) -> None:
         """Use a staff session and a known operations history path."""
         super().__init__(parent)
         self._api = api
         self._resource = resource
+        self._asset = asset
         self._reply: QNetworkReply | None = None
         self._offset = 0
         self._filters: dict[str, str] = {}
@@ -77,6 +81,15 @@ class HistoryPanel(QWidget):
         self._table.setHorizontalHeaderLabels(HEADERS[resource])
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         body.addWidget(self._table)
+        if resource == 'trip-history':
+            route = QPushButton('Open selected recorded route')
+            route.clicked.connect(self._route)
+            body.addWidget(route)
+
+    def _route(self) -> None:
+        item = self._table.item(self._table.currentRow(), 0)
+        if item is not None and item.text().isdigit():
+            RouteDialog(self._api, int(item.text()), self._asset, self).show()
 
     def search(self) -> None:
         """Apply search and half-open UTC date filters starting on the first page."""

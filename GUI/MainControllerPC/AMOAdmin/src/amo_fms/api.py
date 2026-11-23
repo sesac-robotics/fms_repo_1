@@ -13,7 +13,7 @@ from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkReques
 from .measurement import observe
 from .models import Operator, Snapshot, object_value, string_field
 from .operations_tcp import OperationsTcpRequest
-from .web_transport import web_request
+from .web_transport import trace_admin_reply, web_request
 
 
 class PreviewApi(QObject):
@@ -50,7 +50,7 @@ class PreviewApi(QObject):
             self._endpoint + path, self._token if authenticated else ''
         )
         if data is None:
-            return self._network.get(request)
+            return trace_admin_reply(self._network.get(request), path)
         request.setHeader(
             QNetworkRequest.KnownHeaders.ContentTypeHeader, 'application/json'
         )

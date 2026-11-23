@@ -29,7 +29,11 @@ class ComparisonApplication(Application):
         tabs = QTabWidget(panel)
         if self._operator.role == 'ADMIN':
             tabs.addTab(MembersPanel(self._api, tabs), 'Members and roles')
-        tabs.addTab(HistoryPanel(self._api, 'trip-history', tabs), 'Trip history')
+        map_asset = self._config.asset('map', self._prefs.language, self._prefs.theme)
+        tabs.addTab(
+            HistoryPanel(self._api, 'trip-history', tabs, asset=str(map_asset)),
+            'Trip history',
+        )
         tabs.addTab(HistoryPanel(self._api, 'test-history', tabs), 'Test results')
         operations = OperationTabs(self.tr, self._settings)
         tabs.addTab(operations.overview, 'Overview')

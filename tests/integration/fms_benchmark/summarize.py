@@ -58,7 +58,10 @@ def summarize(run: Path) -> dict:
     times: dict[str, list[int]] = defaultdict(list)
     api: dict[str, list[float]] = defaultdict(list)
     failed_api = 0
-    for row in trace:
+    admin_trace = read_lines(run / 'admin.jsonl')
+    if any(row['event'].startswith('poll_') for row in admin_trace):
+        raise ValueError('The independent admin process attempted a fleet poll.')
+    for row in trace + admin_trace:
         event = row['event']
         if event == 'poll_started':
             in_flight = row['monotonic_ns']

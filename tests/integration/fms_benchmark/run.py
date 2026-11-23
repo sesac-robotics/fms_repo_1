@@ -1,4 +1,4 @@
-"""Run the three native FMS comparisons against a prepared synthetic database."""
+"""Run the desktop FMS comparisons against a prepared synthetic database."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from uuid import uuid4
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-MODES = ('baseline', 'web', 'combined')
+MODES = ('baseline', 'web', 'standalone', 'combined')
 
 
 def tick(mark: float) -> None:
@@ -72,23 +72,27 @@ def run_trial(mode: str, directory: Path, psql: list[str], duration: int) -> Non
     env = dict(os.environ, AMO_FMS_TRACE=str(directory / 'qt.jsonl'))
     qt_mode = 'combined' if mode == 'combined' else 'baseline'
     qt_dir = ROOT / 'GUI/MainControllerPC/AMOAdmin'
-    drivers = [
-        (
-            'qt',
+
+    def qt_driver(name: str, role: str) -> tuple[str, list[str], Path]:
+        return (
+            name,
             [
                 'uv',
                 'run',
                 '--locked',
                 'python',
                 str(HERE / 'qt_driver.py'),
-                qt_mode,
+                role,
                 str(directory),
                 str(start),
                 str(duration),
             ],
             qt_dir,
         )
-    ]
+
+    drivers = [qt_driver('qt', qt_mode)]
+    if mode == 'standalone':
+        drivers.append(qt_driver('admin', 'admin'))
     if mode == 'web':
         drivers.append(
             (
@@ -110,7 +114,13 @@ def run_trial(mode: str, directory: Path, psql: list[str], duration: int) -> Non
             with (directory / f'{name}.log').open('wb') as log:
                 children.append(
                     subprocess.Popen(
-                        args, env=env, cwd=cwd, stdout=log, stderr=subprocess.STDOUT
+                        args,
+                        env=dict(env, AMO_FMS_TRACE=str(directory / f'{name}.jsonl'))
+                        if name == 'admin'
+                        else env,
+                        cwd=cwd,
+                        stdout=log,
+                        stderr=subprocess.STDOUT,
                     )
                 )
         with (
@@ -175,7 +185,7 @@ def main() -> None:
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     for index in range(args.start_repetition, args.start_repetition + args.repeats):
-        for step in range(3):
+        for step in range(len(MODES)):
             mode = MODES[(index + step) % len(MODES)]
             target = output / f'r{index + 1}-{mode}'
             print(target, flush=True)

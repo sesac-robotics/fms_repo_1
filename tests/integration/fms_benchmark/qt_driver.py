@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from time import time
 
+from amo_fms.admin import AdminApplication
 from amo_fms.comparison import ComparisonApplication
 from amo_fms.comparison_history import HistoryPanel
 from amo_fms.comparison_members import MembersPanel
@@ -19,19 +20,27 @@ SEARCHES = ('bench-passenger-999', 'ONE_WAY', 'Benchmark')
 
 
 def main() -> int:
-    """Open a visible baseline or combined window and run the timed schedule."""
+    """Open a visible fleet, combined, or independent admin window and run the timed schedule."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=('baseline', 'combined'))
+    parser.add_argument('mode', choices=('baseline', 'combined', 'admin'))
     parser.add_argument('directory', type=Path)
     parser.add_argument('start', type=float)
     parser.add_argument('duration', type=float)
     args = parser.parse_args()
     app = QApplication([])
-    settings = QSettings(str(args.directory / 'qt.ini'), QSettings.Format.IniFormat)
+    settings = QSettings(
+        str(args.directory / f'{args.mode}.ini'), QSettings.Format.IniFormat
+    )
     settings.setValue('walkthrough/enabled', False)
     settings.setValue('language', 'en')
-    client = ComparisonApplication if args.mode == 'combined' else Application
-    window = client(Config.from_environment(), Preferences(settings))
+    client = {
+        'baseline': Application,
+        'combined': ComparisonApplication,
+        'admin': AdminApplication,
+    }[args.mode]
+    window = client(
+        Config.from_environment(fleet=args.mode != 'admin'), Preferences(settings)
+    )
     window.resize(1650 if args.mode == 'combined' else 990, 800)
     window.show()
 
@@ -53,7 +62,7 @@ def main() -> int:
 
     def begin() -> None:
         window._api.login('admin@amo.test', os.environ['AMO_BENCH_DEMO_PASSWORD'])
-        if args.mode == 'combined':
+        if args.mode != 'baseline':
             for slot in range(6 if args.duration >= 42 else 3):
                 index = slot % 3
                 offset = 3000 + slot * 7000

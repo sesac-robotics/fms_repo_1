@@ -9,7 +9,9 @@ from pathlib import Path
 
 def build_table(data: dict, repeats: int) -> str:
     """Validate all expected runs and return ranges across repetitions."""
-    modes = ('baseline', 'web', 'combined')
+    modes = ('baseline', 'web', 'standalone', 'combined')
+    if not any(key.endswith('-standalone') for key in data):
+        modes = ('baseline', 'web', 'combined')
     expected = {f'r{index}-{mode}' for index in range(1, repeats + 1) for mode in modes}
     if set(data) != expected:
         raise ValueError(f'Expected {sorted(expected)}, got {sorted(data)}.')
@@ -49,8 +51,10 @@ def build_table(data: dict, repeats: int) -> str:
     lines.extend(
         [
             '',
-            '| Search endpoint | Web p95 range (ms) | Integrated PyQt p95 range (ms) |',
-            '| --- | ---: | ---: |',
+            '| Search endpoint | '
+            + ' | '.join(f'{mode} p95 range (ms)' for mode in modes[1:])
+            + ' |',
+            '| --- |' + ' ---: |' * (len(modes) - 1),
         ]
     )
     endpoints = (
@@ -60,7 +64,7 @@ def build_table(data: dict, repeats: int) -> str:
     )
     for endpoint in endpoints:
         values = []
-        for mode in ('web', 'combined'):
+        for mode in modes[1:]:
             durations = [
                 data[f'r{i}-{mode}']['admin_ms'][endpoint]
                 for i in range(1, repeats + 1)
@@ -68,7 +72,7 @@ def build_table(data: dict, repeats: int) -> str:
             values.append(
                 span([{'elapsed': duration} for duration in durations], 'elapsed')
             )
-        lines.append(f'| `{endpoint}` | {values[0]} | {values[1]} |')
+        lines.append(f'| `{endpoint}` | ' + ' | '.join(values) + ' |')
     return '\n'.join(lines)
 
 

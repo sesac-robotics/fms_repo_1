@@ -22,7 +22,11 @@ public record Operations(
       Double yawRad,
       Double speedMps,
       String stopReason,
-      boolean dispatchEnabled) {}
+      boolean dispatchEnabled,
+      Sample sample) {}
+
+  /** Identity and UTC server reception time of the telemetry used in a vehicle row. */
+  public record Sample(String epoch, long sequence, Instant receivedAt) {}
 
   public record Request(long id, String pickup, String destination, String status) {}
 

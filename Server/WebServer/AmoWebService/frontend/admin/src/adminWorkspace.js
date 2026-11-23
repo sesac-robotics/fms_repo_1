@@ -17,6 +17,7 @@ export function useAdminWorkspace() {
   const operations = ref({});
   const menus = ref([]);
   const members = ref([]);
+  const memberPage = ref({ q: "", offset: 0, newest: false, hasMore: false });
   const tutorial = ref(false);
   const basicKeys = ["overview", "trips", "logs", "tests", "codes"];
   const adminKeys = ["members", "menu"];
@@ -67,8 +68,13 @@ export function useAdminWorkspace() {
   async function refresh() {
     if (!user.value) return;
     if (view.value === "members" && admin.value) {
-      const data = await request("/admin/members");
-      if (data) members.value = data;
+      const { q, offset, newest } = memberPage.value;
+      const query = new URLSearchParams({ q, offset, newest, limit: 50 });
+      const data = await request("/admin/members/page?" + query);
+      if (data) {
+        members.value = data.items;
+        memberPage.value.hasMore = data.hasMore;
+      }
     } else if (view.value === "menu" && admin.value) {
       const data = await request("/admin/menu");
       if (data) menus.value = data;
@@ -76,6 +82,11 @@ export function useAdminWorkspace() {
       const data = await request("/operations");
       if (data) operations.value = data;
     }
+  }
+
+  function browseMembers(filters) {
+    memberPage.value = { ...memberPage.value, ...filters };
+    return refresh();
   }
 
   function clearAccount() {
@@ -86,6 +97,7 @@ export function useAdminWorkspace() {
     user.value = null;
     operations.value = {};
     members.value = [];
+    memberPage.value = { q: "", offset: 0, newest: false, hasMore: false };
     menus.value = [];
   }
 
@@ -154,6 +166,8 @@ export function useAdminWorkspace() {
     operations,
     menus,
     members,
+    memberPage,
+    browseMembers,
     tutorial,
     admin,
     menuItems,

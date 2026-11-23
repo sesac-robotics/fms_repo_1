@@ -19,6 +19,8 @@ const {
   operations,
   menus,
   members,
+  memberPage,
+  browseMembers,
   tutorial,
   admin,
   menuItems,
@@ -81,6 +83,9 @@ const {
         <MembersView
           v-else-if="view === 'members' && admin"
           :items="members"
+          :page="memberPage"
+          :loading="busy"
+          @browse="browseMembers"
           @changed="refresh"
         />
         <OperationsView

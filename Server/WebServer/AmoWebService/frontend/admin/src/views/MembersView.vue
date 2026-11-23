@@ -3,10 +3,23 @@ import { ref } from "vue";
 import { api } from "../api";
 import { t } from "../i18n";
 
-defineProps({ items: { type: Array, required: true } });
-const emit = defineEmits(["changed"]);
+defineProps({
+  items: { type: Array, required: true },
+  page: { type: Object, required: true },
+  loading: Boolean,
+});
+const emit = defineEmits(["changed", "browse"]);
 const pending = ref(null);
 const message = ref("");
+
+function search(event) {
+  const data = new FormData(event.currentTarget);
+  emit("browse", {
+    q: String(data.get("q")).trim(),
+    newest: data.get("order") === "newest",
+    offset: 0,
+  });
+}
 
 async function review(id, approved, role) {
   pending.value = id;
@@ -33,6 +46,36 @@ function approve(id, event) {
 <template>
   <section class="panel">
     <h2>{{ t("members") }}</h2>
+    <form class="actions" @submit.prevent="search">
+      <label
+        >{{ t("memberSearch") }}
+        <input name="q" maxlength="100" :value="page.q"
+      /></label>
+      <label
+        >{{ t("order") }}
+        <select name="order" :value="page.newest ? 'newest' : 'oldest'">
+          <option value="oldest">{{ t("oldestFirst") }}</option>
+          <option value="newest">{{ t("newestFirst") }}</option>
+        </select>
+      </label>
+      <button :disabled="loading">{{ t("memberSearch") }}</button>
+    </form>
+    <div class="actions">
+      <button
+        type="button"
+        :disabled="loading || page.offset === 0"
+        @click="$emit('browse', { offset: Math.max(0, page.offset - 50) })"
+      >
+        {{ t("previousPage") }}
+      </button>
+      <button
+        type="button"
+        :disabled="loading || !page.hasMore"
+        @click="$emit('browse', { offset: page.offset + 50 })"
+      >
+        {{ t("next") }}
+      </button>
+    </div>
     <p v-if="message" role="status">{{ t(message) }}</p>
     <p v-if="!items.length">{{ t("empty") }}</p>
     <div v-else class="table-scroll">

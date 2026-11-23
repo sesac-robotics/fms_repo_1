@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Lists local members and approves or suspends staff accounts. */
@@ -28,6 +29,16 @@ class MembersController {
   @GetMapping
   List<Member> members() {
     return staff.members();
+  }
+
+  @GetMapping("/page")
+  ReadPage<Member> page(
+      @RequestParam(defaultValue = "") String q,
+      @RequestParam(defaultValue = "0") int offset,
+      @RequestParam(defaultValue = "50") int limit,
+      @RequestParam(defaultValue = "false") boolean newest) {
+    ReadPage.validate(offset, limit, q);
+    return ReadPage.from(staff.memberPage(q.strip(), offset, limit + 1, newest), offset, limit);
   }
 
   @PutMapping("/{id}/approval")

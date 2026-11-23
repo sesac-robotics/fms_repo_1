@@ -26,9 +26,12 @@ final class ControlHttpAdapter {
       Set.of(
           "/api/health",
           "/api/operations",
+          "/api/operations/trip-history",
+          "/api/operations/test-history",
           "/api/menu",
           "/api/admin/menu",
           "/api/admin/members",
+          "/api/admin/members/page",
           "/api/auth/me",
           "/api/auth/csrf",
           "/api/auth/google/config",

@@ -82,6 +82,8 @@ class SecurityConfiguration {
                     .requestMatchers(
                         HttpMethod.GET,
                         "/api/operations",
+                        "/api/operations/trip-history",
+                        "/api/operations/test-history",
                         "/api/operations/requests/{requestId}/route",
                         "/api/menu")
                     .hasAnyRole("ADMIN", "OPERATOR")

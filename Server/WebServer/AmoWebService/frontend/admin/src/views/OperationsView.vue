@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import TripHistoryView from "./TripHistoryView.vue";
 import OperationMap from "./OperationMap.vue";
+import HistoryBrowse from "./HistoryBrowse.vue";
 import TestResults from "./TestResults.vue";
 import { t, timeOf } from "../i18n";
 const props = defineProps({
@@ -37,6 +38,16 @@ function eventKind(kind) {
 
 <template>
   <div class="stack">
+    <HistoryBrowse
+      v-if="view === 'trips'"
+      key="trip-history"
+      resource="trip-history"
+    />
+    <HistoryBrowse
+      v-if="view === 'tests'"
+      key="test-history"
+      resource="test-history"
+    />
     <TripHistoryView v-if="view === 'trips'" :data="data" />
     <template v-if="view === 'overview'">
       <div class="operation-grid">

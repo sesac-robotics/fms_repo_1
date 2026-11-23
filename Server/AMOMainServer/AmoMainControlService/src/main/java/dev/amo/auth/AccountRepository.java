@@ -107,6 +107,24 @@ class AccountRepository {
         .toList();
   }
 
+  List<Member> memberPage(String search, int offset, int rows, boolean newest) {
+    var order = newest ? "DESC" : "ASC";
+    return db.sql(
+            """
+            SELECT id, name, email, role, status
+            FROM amo_accounts
+            WHERE :search = '' OR strpos(lower(name), lower(:search)) > 0
+                OR strpos(email, lower(:search)) > 0
+            ORDER BY id %s LIMIT :rows OFFSET :offset
+            """
+                .formatted(order))
+        .param("search", search)
+        .param("rows", rows)
+        .param("offset", offset)
+        .query(AccountRepository::member)
+        .list();
+  }
+
   void lockActiveAdmins() {
     db.sql(
             "SELECT id FROM amo_accounts WHERE role = 'ADMIN' AND status = 'ACTIVE' ORDER BY id FOR UPDATE")
@@ -138,13 +156,17 @@ class AccountRepository {
 
   static Account account(ResultSet row, int unused) throws SQLException {
     return new Account(
-        new Member(
-            row.getLong("id"),
-            row.getString("name"),
-            row.getString("email"),
-            Role.valueOf(row.getString("role")),
-            Status.valueOf(row.getString("status"))),
+        member(row, unused),
         row.getString("password_hash"),
         row.getObject("profile_user_id", Long.class));
+  }
+
+  private static Member member(ResultSet row, int unused) throws SQLException {
+    return new Member(
+        row.getLong("id"),
+        row.getString("name"),
+        row.getString("email"),
+        Role.valueOf(row.getString("role")),
+        Status.valueOf(row.getString("status")));
   }
 }

@@ -3,6 +3,7 @@ package dev.amo.control.adapters.persistence;
 import dev.amo.control.application.OperationsStore;
 import dev.amo.control.domain.Operations.Event;
 import dev.amo.control.domain.Operations.Request;
+import dev.amo.control.domain.Operations.Sample;
 import dev.amo.control.domain.Operations.Trial;
 import dev.amo.control.domain.Operations.Vehicle;
 import java.time.OffsetDateTime;
@@ -35,12 +36,13 @@ class OperationsRepository implements OperationsStore {
     return jdbc.sql(
             """
         SELECT v.id, v.vehicle_no, v.dispatch_enabled, t.battery_pct, t.x_m, t.y_m,
-          t.yaw_rad, t.speed_mps, e.details->>'stopReason' AS stop_reason,
+          t.yaw_rad, t.speed_mps, t.source_epoch, t.sample_seq, t.received_at,
+          e.details->>'stopReason' AS stop_reason,
           COALESCE(e.details->>'vehicleStatus', 'UNKNOWN') AS state,
           COALESCE(e.details->>'connection', 'UNKNOWN') AS connection
         FROM vehicles v
         LEFT JOIN LATERAL (
-          SELECT battery_pct, x_m, y_m, yaw_rad, speed_mps
+          SELECT battery_pct, x_m, y_m, yaw_rad, speed_mps, source_epoch, sample_seq, received_at
           FROM telemetry_samples WHERE vehicle_id = v.id
           ORDER BY received_at DESC, id DESC LIMIT 1
         ) t ON TRUE
@@ -65,7 +67,13 @@ class OperationsRepository implements OperationsStore {
                     row.getObject("yaw_rad", Double.class),
                     row.getObject("speed_mps", Double.class),
                     row.getString("stop_reason"),
-                    row.getBoolean("dispatch_enabled")))
+                    row.getBoolean("dispatch_enabled"),
+                    row.getString("source_epoch") == null
+                        ? null
+                        : new Sample(
+                            row.getString("source_epoch"),
+                            row.getLong("sample_seq"),
+                            row.getObject("received_at", OffsetDateTime.class).toInstant())))
         .list();
   }
 

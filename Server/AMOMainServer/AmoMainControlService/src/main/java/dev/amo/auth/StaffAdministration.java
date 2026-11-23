@@ -24,6 +24,11 @@ public class StaffAdministration {
     return accounts.members();
   }
 
+  /** Reads bounded member summaries; the HTTP boundary validates paging inputs. */
+  public List<Member> memberPage(String search, int offset, int rows, boolean newest) {
+    return accounts.memberPage(search, offset, rows, newest);
+  }
+
   @Transactional
   public Member approve(long actorId, long memberId, boolean approved, Role requested) {
     if (actorId == memberId || requested == Role.PASSENGER) {

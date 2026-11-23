@@ -5,6 +5,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = ["PyQt6==6.9.1"]
 
 [project.scripts]
+amo-admin = "amo_fms.admin_entry:main"
 amo-fms = "amo_fms.main:main"
 amo-fms-comparison = "amo_fms.comparison:main"
 

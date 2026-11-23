@@ -41,17 +41,26 @@ class StaffApi(QObject):
         put: bool = False,
     ) -> QNetworkReply:
         """Start a Web GET, JSON POST, or JSON PUT; the caller owns completion and deletion."""
-        request = web_request(
-            self._endpoint + path, self._token if authenticated else ''
-        )
+        token = self._token if authenticated else ''
+        request = web_request(self._endpoint + path, token)
         if data is None:
-            return trace_admin_reply(self._network.get(request), path)
+            reply = trace_admin_reply(self._network.get(request), path)
+            if token:
+                reply.finished.connect(lambda: self._check_session(reply, token))
+            return reply
         request.setHeader(
             QNetworkRequest.KnownHeaders.ContentTypeHeader, 'application/json'
         )
         payload = QByteArray(json.dumps(data).encode())
         send = self._network.put if put else self._network.post
-        return send(request, payload)
+        reply = send(request, payload)
+        if token:
+            reply.finished.connect(lambda: self._check_session(reply, token))
+        return reply
+
+    def _check_session(self, reply: QNetworkReply, token: str) -> None:
+        if self._token == token and self._status(reply) == 401:
+            self._expire_session()
 
     def login(self, email: str, password: str) -> None:
         """Authenticate directly for protocol integration tests."""

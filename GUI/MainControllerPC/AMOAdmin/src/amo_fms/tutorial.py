@@ -19,12 +19,22 @@ STEPS = (
 class Walkthrough(QDialog):
     """Show a bounded tutorial with back, next, skip, and dismissal."""
 
-    def __init__(self, tr: Text, preferences: Preferences, parent: QWidget) -> None:
-        """Initialize four locale-specific introductions to the operator workspace."""
+    def __init__(
+        self,
+        tr: Text,
+        preferences: Preferences,
+        parent: QWidget,
+        *,
+        steps: tuple[tuple[str, str], ...] = STEPS,
+    ) -> None:
+        """Show a nonempty sequence of localized titles and descriptions."""
+        if not steps:
+            raise ValueError('A walkthrough requires at least one step.')
         super().__init__(parent)
         self._tr = tr
         self._preferences = preferences
         self._index = 0
+        self._steps = steps
         self.setWindowTitle(tr('tutorial'))
         self.setMinimumWidth(430)
         layout = QVBoxLayout(self)
@@ -51,19 +61,21 @@ class Walkthrough(QDialog):
 
     def _move(self, step: int) -> None:
         index = self._index + step
-        if index == len(STEPS):
+        if index == len(self._steps):
             self.accept()
         elif index >= 0:
             self._index = index
             self._render()
 
     def _render(self) -> None:
-        title, body = STEPS[self._index]
-        self._heading.setText(f'{self._index + 1}/{len(STEPS)} · {self._tr(title)}')
+        title, body = self._steps[self._index]
+        self._heading.setText(
+            f'{self._index + 1}/{len(self._steps)} · {self._tr(title)}'
+        )
         self._detail.setText(self._tr(body))
         self._previous.setEnabled(self._index > 0)
         self._next.setText(
-            self._tr('finish' if self._index == len(STEPS) - 1 else 'next')
+            self._tr('finish' if self._index == len(self._steps) - 1 else 'next')
         )
 
     def _seen(self, _result: int) -> None:

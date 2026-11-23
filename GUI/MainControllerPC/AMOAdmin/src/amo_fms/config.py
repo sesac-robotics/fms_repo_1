@@ -47,9 +47,11 @@ class Config:
     operations_port: int = DEFAULT_IF03_PORT
 
     @classmethod
-    def from_environment(cls) -> Config:
-        """Read runtime overrides without resolving or storing user credentials."""
-        port = int(os.environ.get('AMO_FMS_TCP_PORT', str(DEFAULT_IF03_PORT)))
+    def from_environment(cls, *, fleet: bool = True) -> Config:
+        """Read Web settings and optionally use the fleet TCP port override."""
+        port = DEFAULT_IF03_PORT
+        if fleet:
+            port = int(os.environ.get('AMO_FMS_TCP_PORT', str(port)))
         if not 1 <= port <= 65535:
             raise ValueError('AMO_FMS_TCP_PORT must be a valid TCP port.')
         return cls(

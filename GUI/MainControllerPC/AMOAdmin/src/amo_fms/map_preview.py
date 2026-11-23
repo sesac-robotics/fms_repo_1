@@ -5,6 +5,7 @@ from __future__ import annotations
 from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QColor, QPainter, QPaintEvent, QPen, QRegion
 
+from .measurement import observe
 from .models import Vehicle
 from .widgets import FitImage
 
@@ -54,6 +55,7 @@ class MapPreview(FitImage):
 
     _vehicles: tuple[Vehicle, ...] = ()
     _selected: str = ''
+    _painted: tuple[tuple[str, tuple[str, int, str]], ...] = ()
 
     def show_samples(self, vehicles: tuple[Vehicle, ...], selected: str) -> None:
         """Replace plotted vehicles and update the highlighted sample."""
@@ -84,6 +86,7 @@ class MapPreview(FitImage):
         font = painter.font()
         font.setBold(True)
         painter.setFont(font)
+        samples = []
         for vehicle in self._vehicles:
             if vehicle.position_m is None:
                 continue
@@ -102,6 +105,8 @@ class MapPreview(FitImage):
                 )
             )
             painter.drawEllipse(anchor, 3, 3)
+            if vehicle.sample is not None:
+                samples.append((vehicle.id, vehicle.sample))
             if bounds is None:
                 continue
             used.append(bounds)
@@ -114,3 +119,6 @@ class MapPreview(FitImage):
                 badge,
             )
         painter.end()
+        if tuple(samples) != self._painted:
+            self._painted = tuple(samples)
+            observe('map_painted', samples=samples)

@@ -15,6 +15,7 @@ from .config import Config, Preferences
 from .desktop_sign_in import DesktopSignIn
 from .i18n import Text
 from .login_page import LoginPage
+from .measurement import observe
 from .models import Operator, Snapshot
 from .preferences_dialog import PreferenceDialog
 from .theme import palette, stylesheet
@@ -139,6 +140,10 @@ class Application(QMainWindow):
             self._workspace.show_snapshot(self._snapshot, self._selected_id)
 
     def _received(self, snapshot: Snapshot) -> None:
+        observe(
+            'snapshot_received',
+            samples=[(v.id, v.sample) for v in snapshot.vehicles if v.sample],
+        )
         self._snapshot = snapshot
         if not any(v.id == self._selected_id for v in snapshot.vehicles):
             self._selected_id = snapshot.vehicles[0].id if snapshot.vehicles else ''

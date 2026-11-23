@@ -7,11 +7,13 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from PyQt6.QtCore import QByteArray, QObject, QTimer, QUrl, pyqtSignal
+from PyQt6.QtCore import QByteArray, QObject, QTimer, pyqtSignal
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
+from .measurement import observe
 from .models import Operator, Snapshot, object_value, string_field
 from .operations_tcp import OperationsTcpRequest
+from .web_transport import web_request
 
 
 class PreviewApi(QObject):
@@ -35,33 +37,26 @@ class PreviewApi(QObject):
         self._expiration.setSingleShot(True)
         self._expiration.timeout.connect(self._expire_session)
 
-    def _post(
+    def web_request(
         self,
         path: str,
-        data: dict[str, Any],
+        data: dict[str, Any] | None = None,
+        *,
         authenticated: bool = False,
+        put: bool = False,
     ) -> QNetworkReply:
-        request = QNetworkRequest(QUrl(f'{self._endpoint}{path}'))
-        request.setTransferTimeout(10_000)
-        request.setAttribute(
-            QNetworkRequest.Attribute.RedirectPolicyAttribute,
-            QNetworkRequest.RedirectPolicy.ManualRedirectPolicy,
+        """Start a Web GET, JSON POST, or JSON PUT; the caller owns completion and deletion."""
+        request = web_request(
+            self._endpoint + path, self._token if authenticated else ''
         )
-        request.setAttribute(
-            QNetworkRequest.Attribute.CookieLoadControlAttribute,
-            QNetworkRequest.LoadControl.Manual,
-        )
-        request.setAttribute(
-            QNetworkRequest.Attribute.CookieSaveControlAttribute,
-            QNetworkRequest.LoadControl.Manual,
-        )
-        request.setRawHeader(b'Accept', b'application/json')
-        if authenticated and self._token:
-            request.setRawHeader(b'Authorization', f'Bearer {self._token}'.encode())
+        if data is None:
+            return self._network.get(request)
         request.setHeader(
             QNetworkRequest.KnownHeaders.ContentTypeHeader, 'application/json'
         )
-        return self._network.post(request, QByteArray(json.dumps(data).encode()))
+        payload = QByteArray(json.dumps(data).encode())
+        send = self._network.put if put else self._network.post
+        return send(request, payload)
 
     def login(self, email: str, password: str) -> None:
         """Authenticate directly for protocol integration tests."""
@@ -77,7 +72,7 @@ class PreviewApi(QObject):
     def _authenticate(self, path: str, data: dict[str, str | int]) -> None:
         if self._login_reply is not None:
             return
-        reply = self._post(path, data)
+        reply = self.web_request(path, data)
         self._login_reply = reply
         reply.finished.connect(lambda: self._finish_login(reply))
 
@@ -139,8 +134,12 @@ class PreviewApi(QObject):
 
     def refresh(self) -> None:
         """Fetch one read-only IF-03 snapshot without any Web HTTP fallback."""
-        if not self._token or self._operations is not None:
+        if not self._token:
             return
+        if self._operations is not None:
+            observe('poll_skipped')
+            return
+        observe('poll_started')
         request = OperationsTcpRequest(self._port, self)
         self._operations = request
         request.finished.connect(
@@ -158,6 +157,7 @@ class PreviewApi(QObject):
         if request is not self._operations:
             return
         self._operations = None
+        observe('poll_response', status=status)
         if status in {401, 403}:
             self._expire_session()
             return
@@ -187,7 +187,7 @@ class PreviewApi(QObject):
     def logout(self) -> None:
         """End the local session immediately and request server-side logout."""
         if self._token:
-            reply = self._post('/api/auth/logout', {}, authenticated=True)
+            reply = self.web_request('/api/auth/logout', {}, authenticated=True)
             completed: Callable[[], None] = reply.deleteLater
             reply.finished.connect(completed)
         self._clear()

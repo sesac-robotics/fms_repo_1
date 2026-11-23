@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from math import isfinite
 from typing import Any
 
+from .measurement import sample_identity
+
 OPERATORS = frozenset({'ADMIN', 'OPERATOR'})
 
 
@@ -95,6 +97,7 @@ class Vehicle:
     yaw_rad: float | None
     speed_mps: float | None
     dispatch_enabled: bool | None
+    sample: tuple[str, int, str] | None = None
 
     @classmethod
     def parse(cls, value: dict[str, Any]) -> Vehicle:
@@ -115,6 +118,7 @@ class Vehicle:
             optional_number(value, 'yawRad'),
             optional_number(value, 'speedMps'),
             dispatch if isinstance(dispatch, bool) else None,
+            sample_identity(value.get('sample')),
         )
 
     @property

@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .api import PreviewApi
+from .staff_api import StaffApi
 
 
 class MenuPanel(QWidget):
@@ -26,7 +26,7 @@ class MenuPanel(QWidget):
 
     changed = pyqtSignal()
 
-    def __init__(self, api: PreviewApi, parent: QWidget) -> None:
+    def __init__(self, api: StaffApi, parent: QWidget) -> None:
         """Use the current bearer session for bounded menu requests."""
         super().__init__(parent)
         self._api = api

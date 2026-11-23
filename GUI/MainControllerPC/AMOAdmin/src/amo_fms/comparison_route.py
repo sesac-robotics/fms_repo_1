@@ -17,8 +17,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .api import PreviewApi
 from .map_preview import map_fraction
+from .staff_api import StaffApi
 
 
 def segments(payload: dict[str, Any]) -> list[list[tuple[float, float]]]:
@@ -37,7 +37,7 @@ class RouteDialog(QDialog):
     """Read a selected request route asynchronously and show stored positions."""
 
     def __init__(
-        self, api: PreviewApi, request_id: int, asset: str, parent: QWidget
+        self, api: StaffApi, request_id: int, asset: str, parent: QWidget
     ) -> None:
         """Open an independent route view with a stable request ID."""
         super().__init__(parent)

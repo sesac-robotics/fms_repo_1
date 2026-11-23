@@ -19,8 +19,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .api import PreviewApi
 from .comparison_route import RouteDialog
+from .staff_api import StaffApi
 
 FIELDS = {
     'trip-history': ('id', 'serviceType', 'status', 'receivedAt'),
@@ -37,7 +37,7 @@ class HistoryPanel(QWidget):
     """Read page-sized staff history without interrupting IF-03 polling."""
 
     def __init__(
-        self, api: PreviewApi, resource: str, parent: QWidget, *, asset: str = ''
+        self, api: StaffApi, resource: str, parent: QWidget, *, asset: str = ''
     ) -> None:
         """Use a staff session and a known operations history path."""
         super().__init__(parent)

@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .api import PreviewApi
+from .staff_api import StaffApi
 
 PAGE_SIZE = 50
 
@@ -28,7 +28,7 @@ PAGE_SIZE = 50
 class MembersPanel(QWidget):
     """Show a single page of member summaries beside the fleet monitor."""
 
-    def __init__(self, api: PreviewApi, parent: QWidget) -> None:
+    def __init__(self, api: StaffApi, parent: QWidget) -> None:
         """Use the signed-in FMS session for cancellable asynchronous requests."""
         super().__init__(parent)
         self._api = api

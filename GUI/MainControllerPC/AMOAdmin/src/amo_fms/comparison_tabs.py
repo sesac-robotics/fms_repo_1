@@ -9,14 +9,14 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtNetwork import QNetworkReply
 from PyQt6.QtWidgets import QTabWidget, QWidget
 
-from .api import PreviewApi
+from .staff_api import StaffApi
 
 
 class ComparisonTabs(QTabWidget):
     """Retain tab widgets while updating labels, order, and visibility."""
 
     def __init__(
-        self, api: PreviewApi, role: str, language: str, parent: QWidget
+        self, api: StaffApi, role: str, language: str, parent: QWidget
     ) -> None:
         """Use the same menu endpoint as Web for the current staff role."""
         super().__init__(parent)

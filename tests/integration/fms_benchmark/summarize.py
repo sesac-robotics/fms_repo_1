@@ -65,7 +65,7 @@ def summarize(run: Path) -> dict:
         elif event == 'poll_response' and in_flight is not None:
             poll_rtt.append((row['monotonic_ns'] - in_flight) / 1_000_000)
             in_flight = None
-        if event == 'admin_response':
+        if event == 'admin_response' and row['endpoint'] != '/api/admin/menu':
             endpoint = row['endpoint']
             if row['status'] == 200:
                 api[endpoint].append(row['elapsed_ms'])

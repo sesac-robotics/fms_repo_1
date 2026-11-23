@@ -5,12 +5,13 @@ from __future__ import annotations
 import sys
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication, QSplitter, QTabWidget
+from PyQt6.QtWidgets import QApplication, QSplitter
 
 from .comparison_history import HistoryPanel
 from .comparison_members import MembersPanel
 from .comparison_menus import MenuPanel
 from .comparison_operations import OperationTabs
+from .comparison_tabs import ComparisonTabs
 from .config import Config, Preferences
 from .main import Application
 from .models import Snapshot
@@ -26,28 +27,36 @@ class ComparisonApplication(Application):
             return
         panel = QSplitter(Qt.Orientation.Horizontal)
         panel.addWidget(self.takeCentralWidget())
-        tabs = QTabWidget(panel)
+        tabs = ComparisonTabs(
+            self._api, self._operator.role, self._prefs.language, panel
+        )
         if self._operator.role == 'ADMIN':
-            tabs.addTab(MembersPanel(self._api, tabs), 'Members and roles')
+            tabs.add_menu('members', MembersPanel(self._api, tabs), 'Members and roles')
         map_asset = self._config.asset('map', self._prefs.language, self._prefs.theme)
-        tabs.addTab(
+        tabs.add_menu(
+            'trips',
             HistoryPanel(self._api, 'trip-history', tabs, asset=str(map_asset)),
             'Trip history',
         )
-        tabs.addTab(HistoryPanel(self._api, 'test-history', tabs), 'Test results')
+        tabs.add_menu(
+            'tests', HistoryPanel(self._api, 'test-history', tabs), 'Test results'
+        )
         operations = OperationTabs(self.tr, self._settings)
-        tabs.addTab(operations.overview, 'Overview')
-        tabs.addTab(operations.logs, 'Operations log')
-        tabs.addTab(operations.codes, 'Operation codes')
+        tabs.add_menu('overview', operations.overview, 'Overview')
+        tabs.add_menu('logs', operations.logs, 'Operations log')
+        tabs.add_menu('codes', operations.codes, 'Operation codes')
         if self._operator.role == 'ADMIN':
-            tabs.addTab(MenuPanel(self._api, tabs), 'Menu management')
-        tabs.addTab(operations.settings, 'Settings')
+            menu = MenuPanel(self._api, tabs)
+            menu.changed.connect(tabs.load)
+            tabs.add_menu('menu', menu, 'Menu management')
+        tabs.add_menu('settings', operations.settings, 'Settings')
         self._admin_operations = operations
         operations.present(self._snapshot)
         panel.addWidget(tabs)
         panel.setStretchFactor(0, 3)
         panel.setStretchFactor(1, 2)
         self.setCentralWidget(panel)
+        tabs.load()
 
     def _received(self, snapshot: Snapshot) -> None:
         super()._received(snapshot)

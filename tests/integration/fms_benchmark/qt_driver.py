@@ -39,8 +39,11 @@ def main() -> int:
         tabs = window.centralWidget().findChild(QTabWidget)
         if tabs is None:
             raise RuntimeError('Comparison workspace was not created.')
-        tabs.setCurrentIndex(index)
-        panel = tabs.currentWidget()
+        key = ('members', 'trips', 'tests')[index]
+        navigation = tabs.tabBar()
+        position = next(i for i in range(tabs.count()) if navigation.tabData(i) == key)
+        tabs.setCurrentIndex(position)
+        panel = tabs.widget(position)
         if isinstance(panel, MembersPanel):
             panel._search.setText(SEARCHES[index])
             panel._start()

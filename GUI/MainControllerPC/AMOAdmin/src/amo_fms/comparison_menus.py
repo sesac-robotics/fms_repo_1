@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from urllib.parse import quote
 
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtNetwork import QNetworkReply
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -22,6 +23,8 @@ from .api import PreviewApi
 
 class MenuPanel(QWidget):
     """List and edit labels, display order, and visibility for one menu at a time."""
+
+    changed = pyqtSignal()
 
     def __init__(self, api: PreviewApi, parent: QWidget) -> None:
         """Use the current bearer session for bounded menu requests."""
@@ -78,6 +81,7 @@ class MenuPanel(QWidget):
             return
         if saved:
             self._status.setText('Saved.')
+            self.changed.emit()
             self.load()
             return
         try:

@@ -50,10 +50,12 @@ def main() -> int:
     window.show()
     state = 'load-members'
     original = ''
+    originally_visible = True
+    original_position = 0
     marker = 'Benchmark overview'
 
     def exercise() -> None:
-        nonlocal state, original
+        nonlocal state, original, originally_visible, original_position
         tabs = window.centralWidget().findChild(QTabWidget)
         if tabs is None:
             return
@@ -83,21 +85,47 @@ def main() -> int:
         elif state == 'edit-menu' and menus._rows and not menus._pending:
             menus._items.setCurrentText('overview')
             original = menus._labels['labelEn'].text()
+            originally_visible = menus._visible.isChecked()
+            original_position = menus._position.value()
             menus._labels['labelEn'].setText(marker)
+            menus._visible.setChecked(False)
+            menus._position.setValue(999)
             menus._save()
             state = 'restore-menu'
         elif state == 'restore-menu' and not menus._pending:
             menus._items.setCurrentText('overview')
             if menus._labels['labelEn'].text() != marker:
                 raise ValueError('Saved menu label did not persist.')
+            index = next(
+                i for i in range(tabs.count()) if tabs.tabBar().tabData(i) == 'overview'
+            )
+            if (
+                tabs.isTabVisible(index)
+                or tabs.widget(index) is None
+                or index != tabs.count() - 1
+            ):
+                return
             menus._labels['labelEn'].setText(original)
+            menus._visible.setChecked(originally_visible)
+            menus._position.setValue(original_position)
             menus._save()
             state = 'confirm-restore'
         elif state == 'confirm-restore' and not menus._pending:
             menus._items.setCurrentText('overview')
             if menus._labels['labelEn'].text() != original:
                 raise ValueError('Original label was not restored.')
-            print('Menu update and original-label restoration read back.', flush=True)
+            index = next(
+                i for i in range(tabs.count()) if tabs.tabBar().tabData(i) == 'overview'
+            )
+            if (
+                tabs.isTabVisible(index) != originally_visible
+                or index == tabs.count() - 1
+            ):
+                return
+            print(
+                'Menu label, position and visibility saved, applied, and restored.',
+                flush=True,
+            )
             app.quit()
 
     def tick() -> None:

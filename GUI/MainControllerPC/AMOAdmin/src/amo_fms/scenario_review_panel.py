@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QWidget
 
 from .i18n import Text
@@ -16,6 +17,8 @@ from .staff_api import StaffApi
 
 class ScenarioReviewPanel(ReviewView):
     """Show the expected result and actual evidence without simulating client screens locally."""
+
+    replay_requested = pyqtSignal()
 
     def __init__(
         self, api: StaffApi, tr: Text, open_ride: Callable[[int], None], parent: QWidget
@@ -151,6 +154,7 @@ class ScenarioReviewPanel(ReviewView):
             return
         if step := self._selected_step(plan):
             self._notice_text = ''
+            self.replay_requested.emit()
             self._session.play_on_map(
                 plan,
                 step,
@@ -161,6 +165,7 @@ class ScenarioReviewPanel(ReviewView):
         plan = self._selected_plan()
         if plan is not None and (step := self._selected_step(plan)) and self._run(plan):
             self._notice_text = ''
+            self.replay_requested.emit()
             self._session.play(
                 step, manual=self._manual.isChecked() and step in plan.manual_steps
             )

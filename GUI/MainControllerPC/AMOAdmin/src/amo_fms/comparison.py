@@ -32,6 +32,7 @@ class ComparisonApplication(Application):
             self._settings,
             panel,
         )
+        tabs.replay_requested.connect(self._show_replay_map)
         self._admin_operations = tabs.operations
         tabs.operations.present(self._snapshot)
         panel.addWidget(tabs)
@@ -39,6 +40,10 @@ class ComparisonApplication(Application):
         panel.setStretchFactor(1, 2)
         self.setCentralWidget(panel)
         tabs.load()
+
+    def _show_replay_map(self) -> None:
+        if self._workspace is not None:
+            self._workspace.navigate('monitor')
 
     def _received(self, snapshot: Snapshot) -> None:
         super()._received(snapshot)

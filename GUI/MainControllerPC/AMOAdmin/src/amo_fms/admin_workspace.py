@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QWidget
 
 from .comparison_history import HistoryPanel
@@ -19,6 +20,8 @@ from .staff_api import StaffApi
 
 class AdminWorkspace(ComparisonTabs):
     """Share staff tabs while leaving snapshot delivery to the owning window."""
+
+    replay_requested = pyqtSignal()
 
     def __init__(
         self,
@@ -50,6 +53,7 @@ class AdminWorkspace(ComparisonTabs):
         if role == 'ADMIN' and config.scenario_review:
             tr = Text(prefs.language)
             review = ScenarioReviewPanel(api, tr, self._review_history, self)
+            review.replay_requested.connect(self.replay_requested)
             self.add_menu('scenario-review', review, tr('review_tab'))
 
     def _review_history(self, request_id: int) -> None:

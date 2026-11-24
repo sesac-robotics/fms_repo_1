@@ -226,6 +226,9 @@ __marimo__/
 .env.*
 !.env.example
 .pgpass
+compose.env
+google-login.compose.yaml
+client_secret.json
 client_secret_*.json
 google-services.json
 *.jks

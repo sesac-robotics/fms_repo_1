@@ -24,7 +24,11 @@
 **/*.pem
 **/*.jks
 **/*.p12
+**/compose.env
+**/google-login.compose.yaml
+**/client_secret.json
 **/client_secret_*.json
+**/google-services.json
 **/.git
 **/target
 **/build

@@ -224,5 +224,6 @@
   "review_expect_return_vacate": "记录离位并结束设施使用周期。",
   "review_delta": "差额（最小货币单位）",
   "review_distance": "预计距离（米）",
-  "review_duration": "预计时间（秒）"
+  "review_duration": "预计时间（秒）",
+  "review_evidence_only": "点击时只查看已保存记录"
 }

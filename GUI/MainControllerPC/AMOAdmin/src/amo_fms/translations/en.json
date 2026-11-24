@@ -224,5 +224,6 @@
   "review_expect_return_vacate": "Record departure and close the facility cycle.",
   "review_delta": "Difference (minor units)",
   "review_distance": "Estimated distance (m)",
-  "review_duration": "Estimated duration (s)"
+  "review_duration": "Estimated duration (s)",
+  "review_evidence_only": "Only inspect saved records on click"
 }

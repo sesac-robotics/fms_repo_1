@@ -224,5 +224,6 @@
   "review_expect_return_vacate": "이탈 증거가 기록되고 같은 시설 사용이 종료된다.",
   "review_delta": "차액 (소액 단위)",
   "review_distance": "예상 거리 (m)",
-  "review_duration": "예상 시간 (초)"
+  "review_duration": "예상 시간 (초)",
+  "review_evidence_only": "단계를 클릭해 기록만 보기"
 }

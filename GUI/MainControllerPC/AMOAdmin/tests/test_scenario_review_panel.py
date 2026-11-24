@@ -57,12 +57,7 @@ class ScenarioReviewPanelTest(unittest.TestCase):
                 run = review._session.run
                 assert run is not None
                 self.assertEqual(len(run.completed), row)
-                item = review._list.item(row)
-                review._list.scrollToItem(item)
-                point = review._list.visualItemRect(item).center()
-                QTest.mouseClick(
-                    review._list.viewport(), Qt.MouseButton.LeftButton, pos=point
-                )
+                self.click_step(review, row)
                 self.wait(lambda: self.ready(review, 'DESTINATION_STOP'))
                 self.assertIn('DEMO_ROUTE_FAILED', review._observed.toPlainText())
                 self.assertIn('Effective stop · S2', review._observed.toPlainText())
@@ -78,9 +73,36 @@ class ScenarioReviewPanelTest(unittest.TestCase):
                 self.wait(lambda: table is not None and table.rowCount() > 0)
                 assert table is not None
                 self.assertEqual(table.item(0, 0).text(), str(run.request_id))
+                window._workspace.setCurrentWidget(review)
+                move_row = plan.steps.index('RETURN_ARRIVAL')
+                review._evidence_only.setChecked(True)
+                self.click_step(review, move_row)
+                self.assertTrue(self.ready(review, 'DESTINATION_STOP'))
+
+                review._evidence_only.setChecked(False)
+                self.click_step(review, move_row)
+                self.wait(lambda: self.ready(review, 'RETURN_OCCUPY'))
+                moved = review._session.run
+                assert moved is not None
+                self.assertNotEqual(moved.id, run.id)
+                self.assertIn(
+                    'DEMO_DEPOT_RETURN_ARRIVAL', review._observed.toPlainText()
+                )
+
             finally:
                 window.close()
                 app.processEvents()
+
+    @staticmethod
+    def click_step(panel: ScenarioReviewPanel, row: int) -> None:
+        """Click a visible list item using the same signal as the reviewer."""
+        item = panel._list.item(row)
+        panel._list.scrollToItem(item)
+        QTest.mouseClick(
+            panel._list.viewport(),
+            Qt.MouseButton.LeftButton,
+            pos=panel._list.visualItemRect(item).center(),
+        )
 
     @staticmethod
     def ready(panel: ScenarioReviewPanel, target: str) -> bool:

@@ -30,7 +30,7 @@ class ScenarioReviewPanel(ReviewView):
         self._notice_text = ''
         self._plan.currentIndexChanged.connect(self._plan_changed)
         self._list.currentRowChanged.connect(self._details)
-        self._list.itemClicked.connect(lambda _: self._play_step())
+        self._list.itemClicked.connect(lambda _: self._play_clicked_step())
         self._start.clicked.connect(lambda: self._start_run(False))
         self._jump.clicked.connect(lambda: self._start_run(True))
         self._reload.clicked.connect(self._load)
@@ -105,10 +105,12 @@ class ScenarioReviewPanel(ReviewView):
         step = self._selected_step(plan)
         ready = not self._session.busy
         self._plan.setEnabled(ready)
+        self._list.setEnabled(ready)
         self._start.setEnabled(ready and plan is not None)
         self._jump.setEnabled(ready and step is not None)
         self._reload.setEnabled(ready)
         self._manual.setEnabled(ready)
+        self._evidence_only.setEnabled(ready)
         self._play.setEnabled(
             ready and run is not None and run.next_step == step and step is not None
         )
@@ -142,6 +144,18 @@ class ScenarioReviewPanel(ReviewView):
         if plan := self._selected_plan():
             self._notice_text = ''
             self._session.start(plan, self._selected_step(plan) if jump else None)
+
+    def _play_clicked_step(self) -> None:
+        plan = self._selected_plan()
+        if self._evidence_only.isChecked() or plan is None:
+            return
+        if step := self._selected_step(plan):
+            self._notice_text = ''
+            self._session.play_on_map(
+                plan,
+                step,
+                manual=self._manual.isChecked() and step in plan.manual_steps,
+            )
 
     def _play_step(self) -> None:
         plan = self._selected_plan()

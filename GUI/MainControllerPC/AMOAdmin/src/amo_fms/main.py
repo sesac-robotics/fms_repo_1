@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -52,9 +51,7 @@ class Application(QMainWindow):
         self._browser.ready.connect(self._redeem_browser_code)
         self._browser.failed.connect(self._tell_login)
         self._timer = QTimer(self)
-        self._timer.setInterval(
-            750 if os.getenv('AMO_SCENARIO_REVIEW') == '1' else 7500
-        )
+        self._timer.setInterval(750 if config.scenario_review else 7500)
         self._timer.timeout.connect(self._api.refresh)
         self.setMinimumSize(920, 650)
         self.resize(1220, 855)

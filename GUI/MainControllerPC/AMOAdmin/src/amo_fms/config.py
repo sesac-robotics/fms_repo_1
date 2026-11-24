@@ -62,7 +62,7 @@ class Config:
             Path(os.environ.get('AMO_MAP_DIR', str(DEFAULT_MAP_ROOT))).expanduser(),
             preview_endpoint(os.environ.get('AMO_ADMIN_WEB_URL', DEFAULT_ADMIN_WEB)),
             port,
-            not fleet and local and os.environ.get('AMO_SCENARIO_REVIEW') == '1',
+            local and os.environ.get('AMO_SCENARIO_REVIEW') == '1',
         )
 
     def asset(self, base: str, language: str, theme: str) -> Path:

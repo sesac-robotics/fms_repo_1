@@ -35,25 +35,48 @@ class ReplayAssignments {
             SELECT d.vehicle_id, d.id AS dispatch_id, t.id AS trip_id, t.status
             FROM dispatches d
             JOIN trips t ON t.dispatch_id = d.id
-            JOIN vehicles v ON v.id = d.vehicle_id
-            WHERE d.request_id = ? AND v.vehicle_no = 'DEMO-REPLAY-01'
+            WHERE d.request_id = ? AND d.vehicle_id = ?
             ORDER BY d.id DESC LIMIT 1
             """)
-        .param(requestId)
+        .params(requestId, vehicleFor(requestId))
         .query(
             (row, index) ->
                 new Assignment(row.getLong(1), row.getLong(2), row.getLong(3), row.getString(4)))
         .optional();
   }
 
-  long lockVehicle() {
-    return jdbc.sql("SELECT id FROM vehicles WHERE vehicle_no = 'DEMO-REPLAY-01' FOR UPDATE")
+  private long vehicleFor(long requestId) {
+    return jdbc.sql(
+            """
+            SELECT COALESCE(
+                (SELECT vehicle_id FROM demo_scenario_runs WHERE request_id = ?),
+                (SELECT id FROM vehicles WHERE vehicle_no = 'DEMO-REPLAY-01'))
+            """)
+        .param(requestId)
+        .query(Long.class)
+        .single();
+  }
+
+  long lockVehicle(Long scopedVehicle) {
+    if (scopedVehicle == null) {
+      return jdbc.sql("SELECT id FROM vehicles WHERE vehicle_no = 'DEMO-REPLAY-01' FOR UPDATE")
+          .query(Long.class)
+          .single();
+    }
+    return jdbc.sql(
+            """
+            SELECT v.id FROM vehicles v WHERE v.id = ?
+              AND (v.vehicle_no = 'DEMO-REPLAY-01' OR EXISTS (
+                SELECT 1 FROM demo_scenario_runs WHERE vehicle_id = v.id))
+            FOR UPDATE OF v
+            """)
+        .param(scopedVehicle)
         .query(Long.class)
         .single();
   }
 
   Optional<Assignment> create(long requestId) {
-    long vehicleId = lockVehicle();
+    long vehicleId = lockVehicle(vehicleFor(requestId));
     boolean eligible =
         jdbc.sql(
                 """

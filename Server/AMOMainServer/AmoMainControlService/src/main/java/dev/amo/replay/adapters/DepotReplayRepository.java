@@ -27,8 +27,8 @@ class DepotReplayRepository implements DepotReplayStore {
   }
 
   @Override
-  public long lockVehicle() {
-    return assignments.lockVehicle();
+  public long lockVehicle(Long vehicleId) {
+    return assignments.lockVehicle(vehicleId);
   }
 
   @Override

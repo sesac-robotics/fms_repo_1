@@ -25,11 +25,22 @@ public class DepotReplayService {
   /** Accepts an initial or post-trip observation once, without publishing to a device. */
   @Transactional
   public Result observe(Long requestId, Observation observation) {
+    Assignment trip = requestId == null ? null : completedTrip(requestId);
+    return record(requestId, trip, trip == null ? null : trip.vehicleId(), observation);
+  }
+
+  /** Applies initial evidence for a vehicle allocated to a local review run. */
+  @Transactional
+  public Result observeInitial(long reviewVehicleId, Observation observation) {
+    return record(null, null, reviewVehicleId, observation);
+  }
+
+  private Result record(
+      Long requestId, Assignment trip, Long scopedVehicle, Observation observation) {
     if (!observation.valid()) {
       throw new ReplayFailure("DEMO_DEPOT_OBSERVATION_INVALID");
     }
-    Assignment trip = requestId == null ? null : completedTrip(requestId);
-    long vehicleId = depot.lockVehicle();
+    long vehicleId = depot.lockVehicle(scopedVehicle);
     var cycle = depot.cycle(vehicleId, requestId).orElse(null);
     if (cycle != null) {
       var prior = depot.prior(cycle.id(), observation.key());

@@ -4,6 +4,7 @@ import dev.amo.ApiError;
 import dev.amo.fares.application.FareFailure;
 import dev.amo.maincontrol.MainControlFailure;
 import dev.amo.replay.application.TripReplayService.ReplayFailure;
+import dev.amo.scenarios.application.ScenarioRejected;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -44,6 +45,13 @@ class ApiExceptionHandler {
   @ExceptionHandler(ReplayFailure.class)
   ResponseEntity<ErrorBody> replayRejected(ReplayFailure failure) {
     return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorBody(failure.getMessage()));
+  }
+
+  @ExceptionHandler(ScenarioRejected.class)
+  ResponseEntity<ErrorBody> reviewRejected(ScenarioRejected failure) {
+    String code = failure.getMessage();
+    var status = "SCENARIO_RUN_NOT_FOUND".equals(code) ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
+    return ResponseEntity.status(status).body(new ErrorBody(code));
   }
 
   @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})

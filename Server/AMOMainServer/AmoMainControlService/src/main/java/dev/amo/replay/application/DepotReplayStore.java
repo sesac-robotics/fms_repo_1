@@ -7,8 +7,8 @@ import java.util.Optional;
 
 /** Persists replay evidence with the isolated vehicle locked for the whole transaction. */
 public interface DepotReplayStore {
-  /** Locks the isolated synthetic vehicle and returns its internal ID. */
-  long lockVehicle();
+  /** Locks the scoped synthetic vehicle, or the original fixture when the ID is null. */
+  long lockVehicle(Long vehicleId);
 
   /** Finds a cycle for the supplied request, or the initial facility cycle if requestId is null. */
   Optional<Cycle> cycle(long vehicleId, Long requestId);

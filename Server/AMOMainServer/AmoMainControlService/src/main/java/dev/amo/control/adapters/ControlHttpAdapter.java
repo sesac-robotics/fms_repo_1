@@ -18,6 +18,8 @@ import java.util.Set;
 /** Adapts development TCP exchanges to the service's existing private API and authorization. */
 final class ControlHttpAdapter {
   private static final int MAX_BODY = 768_000;
+  private static final String REVIEW = "/api/admin/demo/scenarios";
+  private static final String REVIEW_RUN = REVIEW + "/runs/[0-9a-fA-F-]{36}";
   private static final Set<String> REQUEST_HEADERS =
       Set.of("accept", "authorization", "content-type", "cookie", "origin", "x-xsrf-token");
   private static final Set<String> RESPONSE_HEADERS =
@@ -139,10 +141,14 @@ final class ControlHttpAdapter {
     return switch (method) {
       case "GET" ->
           READ_PATHS.contains(path)
+              || path.equals(REVIEW)
+              || path.matches(REVIEW_RUN)
               || path.matches("/api/operations/requests/[0-9]+/route")
               || path.matches("/api/rides/[0-9]+/(fare|route-change)");
       case "POST" ->
           WRITE_PATHS.contains(path)
+              || path.equals(REVIEW + "/runs")
+              || path.matches(REVIEW_RUN + "/steps/[A-Z_]+")
               || path.matches(
                   "/api/rides/[0-9]+/mock-(quote|prepayment|change-accept|change-propose)")
               || path.matches(

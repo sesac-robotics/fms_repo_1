@@ -30,7 +30,7 @@ class DemoAccounts implements ApplicationRunner {
         VALUES ('admin@amo.test', 'Demo Administrator', ?, 'ADMIN', 'ACTIVE', NULL),
                ('operator@amo.test', 'Demo Operator', ?, 'OPERATOR', 'ACTIVE', NULL),
                ('passenger@amo.test', 'Demo Passenger', ?, 'PASSENGER', 'ACTIVE', 1)
-        ON CONFLICT (email) DO NOTHING
+        ON CONFLICT DO NOTHING
         """)
         .param(hash)
         .param(hash)

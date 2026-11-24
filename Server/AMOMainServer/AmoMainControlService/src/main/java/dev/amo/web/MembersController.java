@@ -49,5 +49,10 @@ class MembersController {
     return staff.approve(Long.parseLong(actor.getSubject()), id, body.approved(), body.role());
   }
 
+  @PutMapping("/{id}/google-operator")
+  Member addGoogleOperator(@AuthenticationPrincipal Jwt actor, @PathVariable long id) {
+    return staff.addGoogleOperator(Long.parseLong(actor.getSubject()), id);
+  }
+
   record Approval(@NotNull Boolean approved, Role role) {}
 }

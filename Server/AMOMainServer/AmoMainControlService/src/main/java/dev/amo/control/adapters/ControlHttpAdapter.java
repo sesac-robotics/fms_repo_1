@@ -153,7 +153,9 @@ final class ControlHttpAdapter {
                   "/api/rides/[0-9]+/mock-(quote|prepayment|change-accept|change-propose)")
               || path.matches(
                   "/api/admin/demo/rides/[0-9]+/(observe|route/(propose|issue|report))");
-      case "PUT" -> path.matches("/api/admin/(?:members/[0-9]+/approval|menu/[a-zA-Z0-9_-]+)");
+      case "PUT" ->
+          path.matches(
+              "/api/admin/(?:members/[0-9]+/(?:approval|google-operator)|menu/[a-zA-Z0-9_-]+)");
       default -> false;
     };
   }

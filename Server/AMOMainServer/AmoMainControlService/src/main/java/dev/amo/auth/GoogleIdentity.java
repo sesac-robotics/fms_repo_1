@@ -68,11 +68,26 @@ class GoogleIdentity {
   }
 
   VerifiedGoogle verify(String token) {
-    if (audiences.isEmpty()) {
+    return verify(token, false);
+  }
+
+  /** Accept only the Web client as the authorized presenter for a new staff session. */
+  VerifiedGoogle verifyStaff(String token) {
+    return verify(token, true);
+  }
+
+  private VerifiedGoogle verify(String token, boolean staff) {
+    if (audiences.isEmpty() || (staff && webClientId.isBlank())) {
       throw new ApiError(HttpStatus.SERVICE_UNAVAILABLE, "GOOGLE_LOGIN_NOT_CONFIGURED");
     }
     try {
       Jwt jwt = decoder.decode(token);
+      String presenter = jwt.getClaimAsString("azp");
+      if (staff
+          && (!jwt.getAudience().contains(webClientId)
+              || (presenter != null && !webClientId.equals(presenter)))) {
+        throw new ApiError(HttpStatus.UNAUTHORIZED, "INVALID_GOOGLE_IDENTITY");
+      }
       String subject = jwt.getSubject();
       String email = jwt.getClaimAsString("email");
       String name = jwt.getClaimAsString("name");

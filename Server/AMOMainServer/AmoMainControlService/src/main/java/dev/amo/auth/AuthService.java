@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthService {
   private final AccountRepository accounts;
+  private final GoogleOperators operators;
   private final SessionRepository sessions;
   private final AmoJwt jwt;
   private final GoogleIdentity google;
@@ -26,11 +27,13 @@ public class AuthService {
 
   AuthService(
       AccountRepository accounts,
+      GoogleOperators operators,
       SessionRepository sessions,
       AmoJwt jwt,
       GoogleIdentity google,
       PasswordEncoder passwords) {
     this.accounts = accounts;
+    this.operators = operators;
     this.sessions = sessions;
     this.jwt = jwt;
     this.google = google;
@@ -92,6 +95,21 @@ public class AuthService {
     return activate(account);
   }
 
+  /** Sign in with an existing staff provider link or an explicitly approved operator binding. */
+  @Transactional
+  public Access loginStaffGoogle(String credential) {
+    var identity = google.verifyStaff(credential);
+    var email = Registration.email(identity.email());
+    var operator = operators.staffIdentity(identity.subject(), email);
+    if (operator.isPresent()) {
+      return activate(operator.get());
+    }
+    if (accounts.findByEmail(email).filter(a -> a.member().role() != Role.PASSENGER).isPresent()) {
+      throw new ApiError(HttpStatus.CONFLICT, "SIGN_IN_AND_LINK_GOOGLE");
+    }
+    throw new ApiError(HttpStatus.FORBIDDEN, "STAFF_ACCOUNT_REQUIRED");
+  }
+
   @Transactional
   public void linkGoogle(long accountId, String credential) {
     GoogleIdentity.VerifiedGoogle identity = google.verify(credential);
@@ -104,6 +122,15 @@ public class AuthService {
         .map(existing -> existing.member().id() == accountId)
         .orElse(false)) {
       return;
+    }
+    if (operators.isCompanion(accountId)) {
+      if (operators
+          .staffIdentity(identity.subject(), account.member().email())
+          .map(a -> a.member().id() == accountId)
+          .orElse(false)) {
+        return;
+      }
+      throw new ApiError(HttpStatus.CONFLICT, "GOOGLE_ALREADY_LINKED");
     }
     link(accountId, identity.subject());
   }

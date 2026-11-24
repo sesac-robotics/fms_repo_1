@@ -31,11 +31,17 @@ class AuthServiceGoogleTest {
       new Account(new Member(1, "Admin", STAFF_EMAIL, Role.ADMIN, Status.ACTIVE), "hash", null);
 
   private final AccountRepository accounts = mock(AccountRepository.class);
+  private final GoogleOperators operators = mock(GoogleOperators.class);
   private final AmoJwt jwt = mock(AmoJwt.class);
   private final GoogleIdentity google = mock(GoogleIdentity.class);
   private final AuthService auth =
       new AuthService(
-          accounts, mock(SessionRepository.class), jwt, google, mock(PasswordEncoder.class));
+          accounts,
+          operators,
+          mock(SessionRepository.class),
+          jwt,
+          google,
+          mock(PasswordEncoder.class));
 
   @Test
   void aVerifiedNewGoogleIdentityReceivesPassengerAccessOnly() {
@@ -107,6 +113,35 @@ class AuthServiceGoogleTest {
     assertEquals("SESSION_INACTIVE", linkFailure.code());
     assertEquals("ACCOUNT_SUSPENDED", loginFailure.code());
     verify(accounts, never()).linkGoogle(anyLong(), anyString());
+    verifyNoInteractions(jwt);
+  }
+
+  @Test
+  void oneGoogleIdentityKeepsSeparatePassengerAndOperatorSessions() {
+    var passenger =
+        new Account(new Member(5, "Rider", STAFF_EMAIL, Role.PASSENGER, Status.ACTIVE), null, 91L);
+    var operator =
+        new Account(new Member(6, "Rider", STAFF_EMAIL, Role.OPERATOR, Status.ACTIVE), null, null);
+    verifiedIdentity(STAFF_EMAIL, "Rider");
+    when(google.verifyStaff(CREDENTIAL))
+        .thenReturn(new VerifiedGoogle(SUBJECT, STAFF_EMAIL, "Rider"));
+    when(accounts.findGoogle(SUBJECT)).thenReturn(Optional.of(passenger));
+    when(operators.staffIdentity(SUBJECT, STAFF_EMAIL)).thenReturn(Optional.of(operator));
+    when(jwt.issue(passenger)).thenReturn(new Access("rider", Instant.EPOCH, passenger.user()));
+    when(jwt.issue(operator)).thenReturn(new Access("operator", Instant.EPOCH, operator.user()));
+
+    assertEquals(passenger.user(), auth.loginGoogle(CREDENTIAL).user());
+    assertEquals(operator.user(), auth.loginStaffGoogle(CREDENTIAL).user());
+  }
+
+  @Test
+  void aVerifiedGooglePassengerWithoutStaffApprovalCannotGetAStaffSession() {
+    when(google.verifyStaff(CREDENTIAL))
+        .thenReturn(new VerifiedGoogle(SUBJECT, STAFF_EMAIL, "Rider"));
+
+    var failure = assertThrows(ApiError.class, () -> auth.loginStaffGoogle(CREDENTIAL));
+
+    assertEquals("STAFF_ACCOUNT_REQUIRED", failure.code());
     verifyNoInteractions(jwt);
   }
 

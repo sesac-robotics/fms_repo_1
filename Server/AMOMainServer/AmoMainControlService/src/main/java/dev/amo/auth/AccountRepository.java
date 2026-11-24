@@ -21,7 +21,7 @@ class AccountRepository {
   }
 
   Optional<Account> findByEmail(String email) {
-    return db.sql("SELECT * FROM amo_accounts WHERE email = ?")
+    return db.sql("SELECT * FROM amo_accounts WHERE email = ? AND google_passenger_id IS NULL")
         .param(email)
         .query(AccountRepository::account)
         .optional();

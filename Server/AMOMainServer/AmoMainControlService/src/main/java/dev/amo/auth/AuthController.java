@@ -60,7 +60,11 @@ class AuthController {
 
   @PostMapping("/google")
   ResponseEntity<Access> google(@Valid @RequestBody GoogleToken body) {
-    return signedIn(auth.loginGoogle(body.credential()), HttpStatus.OK);
+    var access =
+        body.staff()
+            ? auth.loginStaffGoogle(body.credential())
+            : auth.loginGoogle(body.credential());
+    return signedIn(access, HttpStatus.OK);
   }
 
   @PostMapping("/google/link")
@@ -112,5 +116,5 @@ class AuthController {
       @NotBlank @Email @Size(max = 254) String email,
       @NotBlank @Size(min = 10, max = 72) String password) {}
 
-  record GoogleToken(@NotBlank @Size(max = 8192) String credential) {}
+  record GoogleToken(@NotBlank @Size(max = 8192) String credential, boolean staff) {}
 }

@@ -1,0 +1,53 @@
+name: amo-fms-dev
+
+x-local-service: &local-service
+  network_mode: host
+  init: true
+
+services:
+  main-control:
+    <<: *local-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: main-control
+    environment:
+      AMO_DB_URL: ${AMO_DB_URL:?Set an external test PostgreSQL JDBC URL}
+      AMO_DB_USER: ${AMO_DB_USER:?Set the external test database user}
+      AMO_WEB_TCP_PORT: ${AMO_WEB_TCP_PORT:-18086}
+      AMO_FMS_TCP_PORT: ${AMO_FMS_TCP_PORT:-18087}
+      SPRING_PROFILES_ACTIVE: ${AMO_PROFILE:-demo}
+      SPRING_CONFIG_IMPORT: configtree:/run/secrets/
+    secrets:
+      - source: postgres_password
+        target: spring.datasource.password
+      - source: jwt_key
+        target: amo.jwt-key
+  gateway:
+    <<: *local-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: gateway
+    environment:
+      SERVER_PORT: ${AMO_GATEWAY_PORT:-18085}
+      AMO_WEB_TCP_PORT: ${AMO_WEB_TCP_PORT:-18086}
+    depends_on:
+      - main-control
+  admin-web:
+    <<: *local-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: admin-web
+    depends_on:
+      - gateway
+    environment:
+      AMO_API_URL: http://127.0.0.1:${AMO_GATEWAY_PORT:-18085}
+    command: ["npm", "run", "dev", "--", "--port", "${AMO_ADMIN_WEB_PORT:-5175}", "--strictPort"]
+
+secrets:
+  postgres_password:
+    environment: AMO_DB_PASSWORD
+  jwt_key:
+    environment: AMO_JWT_KEY

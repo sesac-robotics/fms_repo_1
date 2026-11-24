@@ -43,6 +43,28 @@ npm run dev -- --port 5175
 
 게이트웨이의 기본 HTTP 포트는 `18085`입니다. 관제 서버의 개발용 IF-02와 IF-03은 `demo` 설정에서 각각 `18086`, `18087`로 열립니다. 가상 계정은 `DemoAccounts.java`에 있습니다. Google 로그인과 계정 연결에는 서버 설정과 OAuth 등록이 필요합니다. [PyQt 실행 방법](GUI/MainControllerPC/AMOAdmin/README.md) · [Android 실행 방법](GUI/UserMobile/AndroidApp/README.md)
 
+## Ubuntu에서 Docker Compose로 실행하기
+
+강의 01~05의 이미지 빌드, 컨테이너 실행·점검, 네트워크 연결을 Main Control, Web 게이트웨이, 브라우저 로그인용 Web에 적용했습니다. Docker Engine과 Compose가 설치된 Ubuntu에서 실행합니다.
+
+1. 호스트나 별도 서버에 빈 개발용 PostgreSQL을 준비합니다. Main Control이 이 DB에 Flyway 마이그레이션을 적용합니다.
+2. Git에서 제외되는 `.env`에 `AMO_DB_URL`(JDBC URL), `AMO_DB_USER`, `AMO_DB_PASSWORD`, `AMO_JWT_KEY`(Base64로 인코딩한 32바이트 이상 키)를 설정합니다. 비밀번호와 키는 Compose 시크릿으로 마운트합니다.
+3. 저장소 루트에서 실행합니다.
+
+```sh
+docker compose config -q
+docker compose up --build -d
+docker compose ps
+curl -fsS http://127.0.0.1:18085/api/health
+docker compose logs main-control gateway
+docker compose exec gateway java -version
+docker compose down
+```
+
+기본 프로필은 `demo`입니다. IF-02 18086과 IF-03 18087의 기존 루프백 연결을 유지하기 위해 Linux 호스트 네트워크를 사용합니다. 게이트웨이는 18085, Web은 5175에서 호스트의 루프백으로 열립니다. 기존 직접 실행과 병행할 때는 `AMO_GATEWAY_PORT`, `AMO_WEB_TCP_PORT`, `AMO_FMS_TCP_PORT`, `AMO_ADMIN_WEB_PORT`로 빈 포트를 지정하고 클라이언트 접속 주소도 맞춥니다. PostgreSQL 데이터는 외부 DB에 남습니다.
+
+FMS와 Admin PyQt는 호스트에서, Android는 기기 또는 에뮬레이터에서 실행합니다. 강의의 X11 권한 변경, 이미지 레지스트리 푸시, 실차 ROS 2 통신은 이 실행 구성의 범위 밖입니다. [PyQt 실행 안내](GUI/MainControllerPC/AMOAdmin/README.md) · [Android 실행 안내](GUI/UserMobile/AndroidApp/README.md)
+
 ## 데모로 어디까지 확인할 수 있나요?
 
 별도 AMO Admin의 **시나리오 검수** 탭에서 Taxi 경로 적용 성공·실패를 단계별로 재생할 수 있습니다. 가상 차량과 호출을 한 실행으로 묶어 FMS와 Android에서 같은 처리를 확인합니다. [시나리오 검수 실행](GUI/MainControllerPC/AMOAdmin/README.md#단계별-시나리오-검수)

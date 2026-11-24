@@ -8,6 +8,7 @@ const props = defineProps({
   vehicles: { type: Array, default: () => [] },
   lines: { type: Array, default: () => [] },
   demo: Boolean,
+  animate: Boolean,
 });
 const imageUrl = computed(
   () => `/amode-map-v02-fms-${preferences.locale}-${preferences.theme}.svg`,
@@ -87,7 +88,10 @@ const markers = computed(() => {
         v-for="marker in markers"
         :key="marker.id"
         class="map-marker"
-        :class="{ 'map-marker-below': marker.placeBelow }"
+        :class="{
+          'map-marker-below': marker.placeBelow,
+          'map-marker-moving': animate,
+        }"
         :style="marker.style"
       >
         <span class="map-marker-name">{{ marker.vehicleNo }}</span>

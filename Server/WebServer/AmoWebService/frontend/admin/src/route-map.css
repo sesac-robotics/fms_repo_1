@@ -164,3 +164,25 @@
 .test-summary > p:last-child {
   margin-top: 0.85rem;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .map-marker-moving {
+    transition:
+      left 1.25s linear,
+      top 1.25s linear;
+  }
+}
+
+.review-steps {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.review-steps button {
+  width: 100%;
+  text-align: start;
+}
+
+.review-steps button[aria-pressed="true"] {
+  outline: 2px solid var(--accent);
+}

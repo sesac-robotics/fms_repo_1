@@ -1,11 +1,25 @@
 import ko from "./locales/ko";
 import en from "./locales/en";
 import zh from "./locales/zh";
+import reviewKo from "./locales/review-ko";
+import reviewEn from "./locales/review-en";
+import reviewZh from "./locales/review-zh";
 import { preferences } from "./preferences";
 
 const dictionary = { ko, en, "zh-Hans": zh };
+const review = { ko: reviewKo, en: reviewEn, "zh-Hans": reviewZh };
+
+export function reviewText(key) {
+  return review[preferences.locale][key] ?? t(key);
+}
+
 export function t(key) {
-  return dictionary[preferences.locale][key] ?? key ?? "—";
+  return (
+    dictionary[preferences.locale][key] ??
+    review[preferences.locale][key] ??
+    key ??
+    "—"
+  );
 }
 
 export function timeOf(value) {

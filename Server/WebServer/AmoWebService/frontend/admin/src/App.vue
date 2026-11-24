@@ -2,6 +2,7 @@
 import { useAdminWorkspace } from "./adminWorkspace";
 import { t } from "./i18n";
 import { preferences } from "./preferences";
+import ScenarioReview from "./views/ScenarioReview.vue";
 import Sidebar from "./views/Sidebar.vue";
 import LoginView from "./views/LoginView.vue";
 import OperationsView from "./views/OperationsView.vue";
@@ -87,6 +88,9 @@ const {
           :loading="busy"
           @browse="browseMembers"
           @changed="refresh"
+        />
+        <ScenarioReview
+          v-else-if="view === 'scenarioReview' && admin && operations.demo"
         />
         <OperationsView
           v-else

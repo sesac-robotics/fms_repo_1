@@ -25,7 +25,13 @@ export function useAdminWorkspace() {
   let workspaceRead = 0;
 
   const menuItems = computed(() => {
-    let keys = [...basicKeys, ...(admin.value ? adminKeys : []), "settings"];
+    const review = admin.value && operations.value.demo === true;
+    let keys = [
+      ...basicKeys,
+      ...(admin.value ? adminKeys : []),
+      ...(review ? ["scenarioReview"] : []),
+      "settings",
+    ];
     const configured = new Map(menus.value.map((item) => [item.key, item]));
     keys = keys.filter(
       (key) => key === "settings" || configured.get(key)?.visible !== false,
@@ -78,7 +84,7 @@ export function useAdminWorkspace() {
     } else if (view.value === "menu" && admin.value) {
       const data = await request("/admin/menu");
       if (data) menus.value = data;
-    } else if (view.value !== "settings") {
+    } else if (!["settings", "scenarioReview"].includes(view.value)) {
       const data = await request("/operations");
       if (data) operations.value = data;
     }
@@ -129,6 +135,11 @@ export function useAdminWorkspace() {
 
   function show(key) {
     if (adminKeys.includes(key) && !admin.value) return;
+    if (
+      key === "scenarioReview" &&
+      (!admin.value || operations.value.demo !== true)
+    )
+      return;
     view.value = key;
   }
 

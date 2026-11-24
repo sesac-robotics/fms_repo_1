@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .i18n import Text, display_time
+from .models import Event, Snapshot
 
 EXPECTED: dict[str, tuple[str, str]] = {
     'INITIAL_OCCUPY': ('SD-07', 'FMS · Admin'),
@@ -80,3 +81,20 @@ def observed_text(tr: Text, evidence: dict[str, Any]) -> str:
             value = value if str(value) == translated else f'{translated} ({value})'
         values.append(f'{tr(label)} · {value}')
     return '\n'.join(values)
+
+
+def latest_review_stage(snapshot: Snapshot) -> Event | None:
+    """Read the latest committed review stage carried by IF-03."""
+    return next((e for e in snapshot.events if e.type.startswith('DEMO_REVIEW_')), None)
+
+
+def review_vehicle(snapshot: Snapshot, selected: str, follow_review: bool) -> str:
+    """Prefer the current demo vehicle in review mode and otherwise keep fleet selection."""
+    stage = latest_review_stage(snapshot) if follow_review else None
+    if stage is not None:
+        selected = next(
+            (v.id for v in snapshot.vehicles if v.number == stage.vehicle), selected
+        )
+    if any(v.id == selected for v in snapshot.vehicles):
+        return selected
+    return snapshot.vehicles[0].id if snapshot.vehicles else ''

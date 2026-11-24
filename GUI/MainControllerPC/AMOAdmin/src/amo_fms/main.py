@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -18,6 +19,7 @@ from .login_page import LoginPage
 from .measurement import observe
 from .models import Operator, Snapshot
 from .preferences_dialog import PreferenceDialog
+from .scenario_review_labels import review_vehicle
 from .theme import palette, stylesheet
 from .tutorial import Walkthrough
 from .workspace import Workspace
@@ -50,7 +52,9 @@ class Application(QMainWindow):
         self._browser.ready.connect(self._redeem_browser_code)
         self._browser.failed.connect(self._tell_login)
         self._timer = QTimer(self)
-        self._timer.setInterval(7500)
+        self._timer.setInterval(
+            750 if os.getenv('AMO_SCENARIO_REVIEW') == '1' else 7500
+        )
         self._timer.timeout.connect(self._api.refresh)
         self.setMinimumSize(920, 650)
         self.resize(1220, 855)
@@ -145,8 +149,9 @@ class Application(QMainWindow):
             samples=[(v.id, v.sample) for v in snapshot.vehicles if v.sample],
         )
         self._snapshot = snapshot
-        if not any(v.id == self._selected_id for v in snapshot.vehicles):
-            self._selected_id = snapshot.vehicles[0].id if snapshot.vehicles else ''
+        self._selected_id = review_vehicle(
+            snapshot, self._selected_id, self._timer.interval() == 750
+        )
         self._seen_at = datetime.now(ZoneInfo('Asia/Seoul')).strftime('%H:%M:%S')
         self._status_key = 'snapshot_at'
         if self._workspace is not None:

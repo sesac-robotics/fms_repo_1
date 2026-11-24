@@ -28,11 +28,17 @@ class ScenarioRepository implements ScenarioStore {
   private final JdbcClient jdbc;
   private final ScenarioFixtures fixtures;
   private final ObjectMapper json;
+  private final ScenarioMapProjection projection;
 
-  ScenarioRepository(JdbcClient jdbc, ScenarioFixtures fixtures, ObjectMapper json) {
+  ScenarioRepository(
+      JdbcClient jdbc,
+      ScenarioFixtures fixtures,
+      ObjectMapper json,
+      ScenarioMapProjection projection) {
     this.jdbc = jdbc;
     this.fixtures = fixtures;
     this.json = json;
+    this.projection = projection;
   }
 
   @Override
@@ -99,6 +105,11 @@ class ScenarioRepository implements ScenarioStore {
             """)
         .params(runId, ordinal, step.name(), encode(evidence))
         .update();
+  }
+
+  @Override
+  public void project(Run run, int ordinal, Step step, ReviewEvidence evidence) {
+    projection.store(run, ordinal, step, evidence);
   }
 
   private static Run run(ResultSet row, int index) throws SQLException {

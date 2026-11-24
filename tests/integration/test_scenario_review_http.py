@@ -53,6 +53,37 @@ class ScenarioReviewHttpTest(unittest.TestCase):
         self.assertEqual(self.evidence(finished, 'RETURN_VACATE')['status'], 'VACATED')
         self.assertEqual(self.play(finished, 'ALIGHT'), finished)
 
+    def test_map_positions_and_current_stage_over_if03(self) -> None:
+        run = self.through(self.start('TAXI_APPLIED'), 'PICKUP_STOP')
+        first = self.vehicle_snapshot(run, 'PICKUP_STOP')
+        self.assertEqual((first['xM'], first['yM']), (0.516, 0.913))
+        moving = self.play(self.play(run, 'BOARD'), 'DEPART')
+        second = self.vehicle_snapshot(moving, 'DEPART')
+        self.assertNotEqual((first['xM'], first['yM']), (second['xM'], second['yM']))
+
+    def vehicle_snapshot(self, run: dict[str, Any], step: str) -> dict[str, object]:
+        """Read the current review stage and map point over the fleet interface."""
+        port = os.environ.get('AMO_DEMO_IF03_PORT')
+        status, snap = (
+            self.http.fms_snapshot(int(port), self.admin)
+            if port
+            else self.http.send('/api/operations', self.admin)
+        )
+        self.assertEqual(status, 200, snap)
+        events = cast(list[dict[str, object]], snap['events'])
+        stage = next(
+            e
+            for e in events
+            if e['vehicle'] == run['vehicleNumber']
+            and str(e['type']).startswith('DEMO_REVIEW_')
+        )
+        self.assertEqual(stage['type'], f'DEMO_REVIEW_{step}')
+        return next(
+            v
+            for v in cast(list[dict[str, object]], snap['vehicles'])
+            if v['vehicleNo'] == run['vehicleNumber']
+        )
+
     def test_paid_failure_and_new_run_keep_separate_vehicle_and_evidence(self) -> None:
         original = self.through(self.start('TAXI_APPLY_FAILED'), 'ROUTE_ACK')
         second = self.through(self.start('TAXI_APPLIED'), 'ASSIGN')

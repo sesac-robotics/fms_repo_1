@@ -27,6 +27,9 @@ public interface ScenarioStore {
   /** Persists an observed step exactly once in the current run transaction. */
   void record(UUID runId, int ordinal, Step step, ReviewEvidence evidence);
 
+  /** Stores a synthetic map checkpoint and an audience-facing stage event. */
+  void project(Run run, int ordinal, Step step, ReviewEvidence evidence);
+
   /** IDs provided by the local fixture. requestId is absent until CALL. */
   record Run(
       UUID id,

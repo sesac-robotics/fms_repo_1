@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import QPointF, QRectF, Qt
+from pathlib import Path
+from time import monotonic
+
+from PyQt6.QtCore import QPointF, QRectF, Qt, QTimer
 from PyQt6.QtGui import QColor, QPainter, QPaintEvent, QPen, QRegion
 
 from .measurement import observe
 from .models import Vehicle
+from .review_motion import ReviewMotion
 from .widgets import FitImage
 
 WIDTH_M = 2.440
@@ -57,8 +61,44 @@ class MapPreview(FitImage):
     _selected: str = ''
     _painted: tuple[tuple[str, tuple[str, int, str]], ...] = ()
 
+    def __init__(self, source: Path, description: str, unavailable: str = '') -> None:
+        """Load the map and start the paint timer only during demo motion."""
+        super().__init__(source, description, unavailable)
+        self._motion: dict[str, ReviewMotion] = {}
+        self._frames = QTimer(self)
+        self._frames.setInterval(32)
+        self._frames.timeout.connect(self._animate)
+
+    def _animate(self) -> None:
+        now = monotonic()
+        self._motion = {
+            key: move
+            for key, move in self._motion.items()
+            if move.position(now) != move.end
+        }
+        if not self._motion:
+            self._frames.stop()
+        self.update()
+
     def show_samples(self, vehicles: tuple[Vehicle, ...], selected: str) -> None:
         """Replace plotted vehicles and update the highlighted sample."""
+        previous = {v.id: v.position_m for v in self._vehicles}
+        now = monotonic()
+        for vehicle in vehicles:
+            old = previous.get(vehicle.id)
+            position = vehicle.position_m
+            if (
+                vehicle.number.startswith('DEMO-REVIEW-')
+                and old
+                and position
+                and old != position
+            ):
+                motion = self._motion.get(vehicle.id)
+                self._motion[vehicle.id] = ReviewMotion(
+                    motion.position(now) if motion else old, position, now
+                )
+        if self._motion:
+            self._frames.start()
         self._vehicles = vehicles
         self._selected = selected
         self.update()
@@ -90,7 +130,10 @@ class MapPreview(FitImage):
         for vehicle in self._vehicles:
             if vehicle.position_m is None:
                 continue
-            point = map_fraction(vehicle.position_m)
+            move = self._motion.get(vehicle.id)
+            point = map_fraction(
+                move.position(monotonic()) if move else vehicle.position_m
+            )
             if point is None:
                 continue
             x, y = left + width * point[0], top + height * point[1]

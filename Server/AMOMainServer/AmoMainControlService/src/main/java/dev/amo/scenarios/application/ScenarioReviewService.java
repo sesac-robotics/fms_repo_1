@@ -71,9 +71,11 @@ public class ScenarioReviewService {
     }
     var evidence = steps.execute(run, step, manual, now.truncatedTo(ChronoUnit.MICROS));
     store.record(id, previous.size(), step, evidence);
+    Run current = owned(owner, id, false);
+    store.project(current, previous.size(), step, evidence);
     var results = new ArrayList<>(previous);
     results.add(new Played(step, evidence));
-    return view(owned(owner, id, false), results);
+    return view(current, results);
   }
 
   private Run owned(long owner, UUID id, boolean lock) {

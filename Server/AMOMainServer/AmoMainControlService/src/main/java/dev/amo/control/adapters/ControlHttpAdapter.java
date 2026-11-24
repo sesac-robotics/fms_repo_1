@@ -39,6 +39,7 @@ final class ControlHttpAdapter {
   private static final Set<String> WRITE_PATHS =
       Set.of(
           "/api/rides",
+          "/api/admin/demo/depot/observe",
           "/api/auth/login",
           "/api/auth/logout",
           "/api/auth/register",

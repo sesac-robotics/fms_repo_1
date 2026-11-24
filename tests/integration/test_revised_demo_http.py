@@ -39,6 +39,33 @@ class RevisedDemoHttpTest(DemoRideCase):
         self.assertEqual(
             self.http.send(self.ride + '/fare', self.passenger)[1]['receipt'], receipt
         )
+        self.verify_return_and_charge()
+
+    def verify_return_and_charge(self) -> None:
+        """Require vehicle arrival, facility occupancy, charge and vacate in order."""
+        ride = self.request_id
+        self.assertEqual(self.depot(ride, 'arrival-early', 'RETURN_ARRIVAL')[0], 409)
+        self.assertEqual(self.depot(ride, 'RETURN_ORDERED', 'RETURN_ORDERED')[0], 200)
+        self.assertEqual(self.depot(ride, 'occupy-early', 'OCCUPIED')[0], 409)
+        self.assertEqual(self.depot(ride, 'RETURN_ARRIVAL', 'RETURN_ARRIVAL')[0], 200)
+        self.assertEqual(self.depot(ride, 'charge-early', 'CHARGE_STARTED')[0], 409)
+        self.assertEqual(self.depot(ride, 'OCCUPIED', 'OCCUPIED')[0], 200)
+        self.assertEqual(self.depot(ride, 'CHARGE_STARTED', 'CHARGE_STARTED')[0], 200)
+        low = self.depot(ride, 'under-threshold', 'BATTERY_REPORTED', 69.9)
+        self.assertEqual(low[0], 200, low[1])
+        self.assertEqual(low[1]['phase'], 'CHARGING')
+        self.assertEqual(
+            self.depot(ride, 'under-threshold', 'BATTERY_REPORTED', 69.9), low
+        )
+        self.assertEqual(
+            self.depot(ride, 'under-threshold', 'BATTERY_REPORTED', 70)[1]['code'],
+            'DEMO_DEPOT_OBSERVATION_CONFLICT',
+        )
+        self.assertEqual(self.depot(ride, 'vacate-early', 'VACATED')[0], 409)
+        status, setting = self.depot(ride, 'threshold', 'BATTERY_REPORTED', 70)
+        self.assertEqual(status, 200, setting)
+        self.assertEqual(setting['phase'], 'WAITING')
+        self.complete_charge(ride)
 
     def test_route_acceptance_application_and_restart_are_distinct(self) -> None:
         self.pay_initial()

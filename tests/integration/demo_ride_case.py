@@ -22,13 +22,15 @@ class DemoRideCase(unittest.TestCase):
         self.passenger = self.http.login('passenger')
         self.admin = self.http.login('admin')
         self.operator = self.http.login('operator')
+        self.complete_charge(None)
         status, ride = self.http.send(
             '/api/rides',
             self.passenger,
             {'pickup': 'S1', 'destination': 'S2', 'idempotencyKey': str(uuid4())},
         )
         self.assertEqual(status, 200, ride)
-        self.ride = f'/api/rides/{ride["id"]}'
+        self.request_id = int(str(ride['id']))
+        self.ride = f'/api/rides/{self.request_id}'
         self.observations = f'/api/admin/demo/rides/{ride["id"]}/observe'
 
     def pay_initial(self) -> dict[str, object]:
@@ -76,6 +78,7 @@ class DemoRideCase(unittest.TestCase):
         )
         status, result = self.observe('ALIGHT')
         self.assertEqual(status, 200, result)
+        self.complete_charge(self.request_id)
         return cast(dict[str, object], result['receipt'])
 
     def route(
@@ -109,3 +112,34 @@ class DemoRideCase(unittest.TestCase):
         return self.http.send(
             self.observations, self.admin, {'step': step, **(values or {})}
         )
+
+    def depot(
+        self, request_id: int | None, key: str, step: str, battery: float | None = None
+    ) -> tuple[int, dict[str, object]]:
+        """Submit an initial or trip-scoped synthetic facility report."""
+        return self.http.send(
+            '/api/admin/demo/depot/observe',
+            self.admin,
+            {
+                'requestId': request_id,
+                'key': key,
+                'step': step,
+                'batteryPercent': battery,
+            },
+        )
+
+    def complete_charge(self, request_id: int | None) -> None:
+        """Replay a complete facility use, including the actual vacating report."""
+        if request_id is not None:
+            for step in ('RETURN_ORDERED', 'RETURN_ARRIVAL'):
+                status, result = self.depot(request_id, step, step)
+                self.assertEqual(status, 200, result)
+        for step in ('OCCUPIED', 'CHARGE_STARTED'):
+            status, result = self.depot(request_id, step, step)
+            self.assertEqual(status, 200, result)
+        status, result = self.depot(request_id, 'threshold', 'BATTERY_REPORTED', 70)
+        self.assertEqual(status, 200, result)
+        self.assertEqual(result['phase'], 'WAITING')
+        status, result = self.depot(request_id, 'vacated', 'VACATED')
+        self.assertEqual(status, 200, result)
+        self.assertEqual(result['phase'], 'VACATED')

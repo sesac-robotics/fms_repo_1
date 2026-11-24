@@ -46,18 +46,29 @@ class ReplayAssignments {
         .optional();
   }
 
+  long lockVehicle() {
+    return jdbc.sql("SELECT id FROM vehicles WHERE vehicle_no = 'DEMO-REPLAY-01' FOR UPDATE")
+        .query(Long.class)
+        .single();
+  }
+
   Optional<Assignment> create(long requestId) {
-    long vehicleId =
-        jdbc.sql("SELECT id FROM vehicles WHERE vehicle_no = 'DEMO-REPLAY-01' FOR UPDATE")
-            .query(Long.class)
-            .single();
-    boolean busy =
+    long vehicleId = lockVehicle();
+    boolean eligible =
         jdbc.sql(
-                "SELECT EXISTS (SELECT 1 FROM dispatches WHERE vehicle_id = ? AND ended_at IS NULL)")
-            .param(vehicleId)
+                """
+                SELECT NOT EXISTS (
+                    SELECT 1 FROM dispatches WHERE vehicle_id = :vehicle AND ended_at IS NULL)
+                  AND EXISTS (
+                    SELECT 1 FROM demo_depot_cycles c
+                    WHERE c.vehicle_id = :vehicle AND c.phase = 'VACATED'
+                      AND c.dispatch_id IS NOT DISTINCT FROM (
+                        SELECT id FROM dispatches WHERE vehicle_id = :vehicle ORDER BY id DESC LIMIT 1))
+                """)
+            .param("vehicle", vehicleId)
             .query(Boolean.class)
             .single();
-    if (busy) {
+    if (!eligible) {
       return Optional.empty();
     }
     long dispatchId =

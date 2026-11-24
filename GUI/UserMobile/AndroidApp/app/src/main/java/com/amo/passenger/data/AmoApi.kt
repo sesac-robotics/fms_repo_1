@@ -10,6 +10,7 @@ import org.json.JSONObject
 /** Translates the passenger API to domain data. Authenticated calls require an AMO access token. */
 internal class AmoApi(base: String) {
     private val http = JsonHttp(base)
+    val fares = PassengerFareApi(http)
 
     suspend fun health() {
         http.send("/api/health")

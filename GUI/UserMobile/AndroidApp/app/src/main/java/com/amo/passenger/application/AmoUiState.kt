@@ -1,6 +1,7 @@
 package com.amo.passenger.application
 
 import com.amo.passenger.domain.Ride
+import com.amo.passenger.domain.RideFares
 import com.amo.passenger.domain.Session
 import com.amo.passenger.domain.Stop
 
@@ -32,6 +33,7 @@ internal data class AmoUiState(
     val screen: Screen = Screen.SIGN_IN,
     val session: Session? = null,
     val trips: List<Ride> = emptyList(),
+    val fare: RideFares? = null,
     val selectedRideId: String? = null,
     val pickup: Stop? = null,
     val destination: Stop? = null,

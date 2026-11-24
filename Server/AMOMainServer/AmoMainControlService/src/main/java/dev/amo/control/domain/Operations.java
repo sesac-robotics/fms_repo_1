@@ -28,7 +28,14 @@ public record Operations(
   /** Identity and UTC server reception time of the telemetry used in a vehicle row. */
   public record Sample(String epoch, long sequence, Instant receivedAt) {}
 
-  public record Request(long id, String pickup, String destination, String status) {}
+  /** Recent call and the latest matched-applied revision, if one exists. */
+  public record Request(
+      long id,
+      String pickup,
+      String destination,
+      String status,
+      String effectiveDestination,
+      Long appliedRevisionId) {}
 
   public record Event(
       long id, Instant time, String type, String vehicle, String detail, Long requestId) {}

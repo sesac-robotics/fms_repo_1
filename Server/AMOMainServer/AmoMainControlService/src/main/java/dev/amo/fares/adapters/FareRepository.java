@@ -125,6 +125,11 @@ class FareRepository implements FareStore {
   }
 
   @Override
+  public void recordHold(long requestId, Long quoteId, PaymentStatus reason) {
+    events.hold(requestId, quoteId, reason.name());
+  }
+
+  @Override
   public Optional<Receipt> receipt(long requestId) {
     return jdbc.sql("SELECT * FROM ride_fare_settlements WHERE request_id = ?")
         .param(requestId)

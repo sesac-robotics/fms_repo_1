@@ -29,6 +29,9 @@ public interface FareStore {
   Attempt saveAttempt(
       Quote quote, String key, String method, long amountMinor, PaymentStatus outcome, Instant now);
 
+  /** Persists the first hold reason in the audit trail without recording a payment attempt. */
+  void recordHold(long requestId, Long quoteId, PaymentStatus reason);
+
   /** Reads a previously issued receipt for the owned request. */
   Optional<Receipt> receipt(long requestId);
 

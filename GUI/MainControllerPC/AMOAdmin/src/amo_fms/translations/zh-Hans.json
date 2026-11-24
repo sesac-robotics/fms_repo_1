@@ -123,5 +123,20 @@
   "detail_demo_completed": "示例车辆已完成行程。",
   "detail_demo_link_lost": "示例车辆连接已断开。",
   "detail_demo_waiting": "示例呼叫正在等待符合条件的车辆。",
-  "detail_passenger_received": "已收到乘客呼叫。"
+  "detail_passenger_received": "已收到乘客呼叫。",
+  "applied_route": "生效路线",
+  "status_mock_prepayment_attempted": "模拟预付尝试",
+  "status_mock_difference_attempted": "模拟差额支付尝试",
+  "status_fare_finalized": "车费已确认",
+  "status_demo_route_issued": "模拟路线指令已发出",
+  "status_demo_route_acknowledged": "模拟路线指令已接收",
+  "status_demo_route_applied": "模拟路线已生效",
+  "status_demo_route_failed": "模拟路线应用失败",
+  "status_demo_if05_redeparted": "模拟重新出发",
+  "status_demo_depot_return_ordered": "模拟返库指令",
+  "status_demo_depot_return_arrival": "模拟返库到达",
+  "status_demo_depot_occupied": "模拟充电位占用",
+  "status_demo_depot_charge_started": "模拟充电开始",
+  "status_demo_depot_battery_reported": "模拟电量报告",
+  "status_demo_depot_vacated": "模拟离开充电位"
 }

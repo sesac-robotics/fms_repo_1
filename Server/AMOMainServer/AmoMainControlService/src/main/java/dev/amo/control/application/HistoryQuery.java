@@ -9,7 +9,21 @@ public record HistoryQuery(
   /** A page and the number of matching records in its read transaction. */
   public record Result<T>(List<T> rows, long matching) {}
 
-  public record Ride(long id, String serviceType, String status, OffsetDateTime receivedAt) {}
+  /** Paged operational view with optional fare, route and depot evidence. */
+  public record Ride(
+      long id,
+      String serviceType,
+      String status,
+      OffsetDateTime receivedAt,
+      String prepaymentStatus,
+      String routeStatus,
+      Long appliedRevisionId,
+      String effectiveDestination,
+      String differenceStatus,
+      Long finalAmountMinor,
+      String currencyCode,
+      String receiptReference,
+      String depotPhase) {}
 
   public record Trial(
       long id, String name, OffsetDateTime recordedAt, int passed, int total, int latencyMs) {}

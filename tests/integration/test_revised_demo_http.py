@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 from typing import cast
+from uuid import uuid4
 
 from demo_ride_case import DemoRideCase
 
@@ -71,7 +73,10 @@ class RevisedDemoHttpTest(DemoRideCase):
         self.pay_initial()
         self.depart()
         self.assertEqual(self.observe('STOP_WAIT')[0], 200)
-        proposal = self.propose('S4')
+        code, proposal = self.http.send(
+            self.ride + '/mock-change-propose', self.passenger, {'destination': 'S4'}
+        )
+        self.assertEqual(code, 200, proposal)
         revision = {'revisionId': proposal['revisionId']}
         self.assertGreater(int(str(proposal['deltaMinor'])), 0)
         self.assertEqual(
@@ -109,6 +114,7 @@ class RevisedDemoHttpTest(DemoRideCase):
             ],
             'S4',
         )
+        self.assert_staff_applied(revision['revisionId'])
         self.assertEqual(self.observe('REDEPART')[0], 200)
         receipt = self.finish()
         self.assertEqual(
@@ -129,3 +135,59 @@ class RevisedDemoHttpTest(DemoRideCase):
         self.assertEqual(change['status'], 'FAILED')
         self.assertEqual(change['paymentStatus'], 'SUCCEEDED')
         self.assertEqual(self.finish()['quoteId'], initial['id'])
+
+    def test_missing_method_and_wrong_owner(self) -> None:
+        status, account = self.http.send(
+            '/api/auth/register',
+            body={
+                'name': 'Fictional missing-payment passenger',
+                'email': f'local-test-{uuid4()}@amo.test',
+                'password': 'AmoDemo!2026',
+            },
+        )
+        self.assertEqual(status, 201, account.get('code'))
+        owner = str(account['token'])
+        status, new_call = self.http.send(
+            '/api/rides',
+            owner,
+            {'pickup': 'S1', 'destination': 'S2', 'idempotencyKey': str(uuid4())},
+        )
+        self.assertEqual(status, 200, new_call)
+        ride_path = f'/api/rides/{new_call["id"]}'
+        self.assertEqual(self.http.send(ride_path + '/fare', self.passenger)[0], 404)
+        status, terms = self.http.send(ride_path + '/mock-quote', owner, {})
+        self.assertEqual(status, 200, terms)
+        quote = cast(dict[str, object], terms['quote'])
+        payload = {'quoteId': quote['id'], 'key': str(uuid4())}
+        status, outcome = self.http.send(ride_path + '/mock-prepayment', owner, payload)
+        self.assertEqual(status, 200, outcome)
+        self.assertEqual(outcome['paymentStatus'], 'METHOD_MISSING')
+        self.assertIsNone(outcome['attempt'])
+        self.assertEqual(
+            self.http.send(ride_path + '/mock-prepayment', owner, payload),
+            (status, outcome),
+        )
+
+    def assert_staff_applied(self, revision: object) -> None:
+        """Read the applied route over the operations snapshot and Web Admin history."""
+        port = os.environ.get('AMO_DEMO_IF03_PORT')
+        status, snapshot = (
+            self.http.fms_snapshot(int(port), self.operator)
+            if port
+            else self.http.send('/api/operations', self.operator)
+        )
+        self.assertEqual(status, 200, snapshot)
+        rows = cast(list[dict[str, object]], snapshot['requests'])
+        call = next(row for row in rows if row['id'] == self.request_id)
+        self.assertEqual(call['destination'], 'S2')
+        self.assertEqual(call['effectiveDestination'], 'S4')
+        self.assertEqual(call['appliedRevisionId'], revision)
+        status, history = self.http.send(
+            f'/api/operations/trip-history?q={self.request_id}', self.admin
+        )
+        self.assertEqual(status, 200, history)
+        entry = cast(list[dict[str, object]], history['rows'])[0]
+        self.assertEqual(entry['prepaymentStatus'], 'SUCCEEDED')
+        self.assertEqual(entry['routeStatus'], 'APPLIED')
+        self.assertEqual(entry['differenceStatus'], 'SUCCEEDED')
+        self.assertEqual(entry['appliedRevisionId'], revision)

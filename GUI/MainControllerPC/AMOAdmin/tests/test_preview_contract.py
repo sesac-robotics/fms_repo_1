@@ -12,11 +12,25 @@ from amo_fms.desktop_loopback import CALLBACK_PATH, callback_code
 from amo_fms.desktop_sign_in import code_challenge, sign_in_url
 from amo_fms.i18n import Text
 from amo_fms.map_preview import _badge_bounds, _label_areas, map_fraction
-from amo_fms.models import Operator, Snapshot
+from amo_fms.models import Operator, RideRequest, Snapshot
 
 
 class PreviewContractTests(unittest.TestCase):
     """Keep operational evidence separate from requests and previews."""
+
+    def test_only_confirmed_revision_changes_route_projection(self) -> None:
+        request = {'id': 12, 'pickup': 'S1', 'destination': 'S2', 'status': 'ON_TRIP'}
+        pending = RideRequest.parse({**request, 'effectiveDestination': 'S4'})
+        self.assertIsNone(pending.applied)
+        applied = RideRequest.parse(
+            {**request, 'effectiveDestination': 'S4', 'appliedRevisionId': 7}
+        )
+        self.assertEqual(applied.destination, 'S2')
+        self.assertIsNotNone(applied.applied)
+        assert applied.applied is not None
+        self.assertEqual(
+            (applied.applied.revision, applied.applied.destination), (7, 'S4')
+        )
 
     def test_nullable_vehicle_in_a_waiting_event(self) -> None:
         snapshot = Snapshot.parse(

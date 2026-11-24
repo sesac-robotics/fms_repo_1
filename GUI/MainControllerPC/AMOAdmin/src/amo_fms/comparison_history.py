@@ -23,11 +23,39 @@ from .comparison_route import RouteDialog
 from .staff_api import StaffApi
 
 FIELDS = {
-    'trip-history': ('id', 'serviceType', 'status', 'receivedAt'),
+    'trip-history': (
+        'id',
+        'serviceType',
+        'status',
+        'receivedAt',
+        'prepaymentStatus',
+        'routeStatus',
+        'effectiveDestination',
+        'appliedRevisionId',
+        'differenceStatus',
+        'finalAmountMinor',
+        'currencyCode',
+        'receiptReference',
+        'depotPhase',
+    ),
     'test-history': ('name', 'recordedAt', 'passed', 'total', 'latencyMs'),
 }
 HEADERS = {
-    'trip-history': ('ID', 'Service', 'Status', 'Received at'),
+    'trip-history': (
+        'ID',
+        'Service',
+        'Status',
+        'Received at',
+        'Mock prepayment',
+        'Route change',
+        'Applied destination',
+        'Applied revision',
+        'Mock difference',
+        'Final fare (minor units)',
+        'Currency',
+        'Receipt',
+        'Depot phase',
+    ),
     'test-history': ('Name', 'Recorded at', 'Passed', 'Total', 'Latency (ms)'),
 }
 PAGE_SIZE = 50
@@ -134,7 +162,9 @@ class HistoryPanel(QWidget):
         self._table.setRowCount(len(rows))
         for index, row in enumerate(rows):
             for column, key in enumerate(FIELDS[self._resource]):
-                item = QTableWidgetItem(str(row.get(key, '')))
+                value = row.get(key)
+                item = QTableWidgetItem('—' if value is None else str(value))
+                item.setToolTip(item.text())
                 item.setTextAlignment(Qt.AlignmentFlag.AlignVCenter)
                 self._table.setItem(index, column, item)
         self._previous.setEnabled(offset > 0)

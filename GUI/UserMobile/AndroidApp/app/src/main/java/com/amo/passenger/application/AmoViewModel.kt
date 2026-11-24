@@ -23,6 +23,7 @@ internal class AmoViewModel : ViewModel() {
     private val api = AmoApi(BuildConfig.API_BASE_URL)
     private val mutable = MutableStateFlow(AmoUiState())
     val state = mutable.asStateFlow()
+    val fares = PassengerFareActions(api.fares, mutable, ::perform)
     private val tracking = TripFeed(api, mutable)
     private val pending = PendingRideRequests()
 
@@ -108,6 +109,7 @@ internal class AmoViewModel : ViewModel() {
                     trips = listOf(ride) + current.trips.filterNot { it.id == ride.id }
                 )
             }
+            fares.refresh(token, ride.id, createQuote = true)
         }
     }
 
@@ -137,6 +139,7 @@ internal class AmoViewModel : ViewModel() {
                 api.signOut(token)
             } finally {
                 pending.clear()
+                fares.clear()
                 mutable.value = AmoUiState(online = mutable.value.online)
             }
         }
@@ -151,6 +154,7 @@ internal class AmoViewModel : ViewModel() {
     private suspend fun loadTrips(token: String) {
         val trips = api.trips(token)
         mutable.update { it.withTrips(trips) }
+        mutable.value.selectedRideId?.let { fares.refresh(token, it, createQuote = false) }
     }
 
     private fun activeSession(): Session? {
@@ -164,6 +168,7 @@ internal class AmoViewModel : ViewModel() {
 
     private fun expire() {
         pending.clear()
+        fares.clear()
         mutable.value = AmoUiState(online = mutable.value.online, issue = UiIssue.EXPIRED)
     }
 

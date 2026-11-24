@@ -58,13 +58,16 @@ public class RouteAcceptance {
       throw new FareFailure(Reason.FARE_PAYMENT_CLOSED);
     }
     if (!current.quote().usableAt(now)) {
+      fares.recordHold(requestId, quoteId, PaymentStatus.QUOTE_EXPIRED);
       return view(request, current, attempt, now);
     }
     if (current.acceptedKey() == null) {
       routes.accept(current, key, now);
       current = current(requestId);
     }
-    if (current.deltaMinor() > 0 && request.method() != null && !request.method().isBlank()) {
+    if (current.deltaMinor() > 0 && (request.method() == null || request.method().isBlank())) {
+      fares.recordHold(requestId, quoteId, PaymentStatus.METHOD_MISSING);
+    } else if (current.deltaMinor() > 0) {
       attempt =
           fares.saveAttempt(
               current.quote(),

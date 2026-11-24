@@ -35,7 +35,7 @@ class OperationsRepository implements OperationsStore {
   public List<Vehicle> vehicles() {
     return jdbc.sql(
             """
-        SELECT v.id, v.vehicle_no, v.dispatch_enabled, t.battery_pct, t.x_m, t.y_m,
+        SELECT v.id, v.vehicle_no, v.dispatch_enabled, COALESCE(t.battery_pct, depot.battery_pct) AS battery_pct, t.x_m, t.y_m,
           t.yaw_rad, t.speed_mps, t.source_epoch, t.sample_seq, t.received_at,
           e.details->>'stopReason' AS stop_reason,
           COALESCE(e.details->>'vehicleStatus', 'UNKNOWN') AS state,
@@ -52,6 +52,10 @@ class OperationsRepository implements OperationsStore {
             AND (jsonb_exists(details, 'vehicleStatus') OR jsonb_exists(details, 'connection'))
           ORDER BY received_at DESC, id DESC LIMIT 1
         ) e ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT battery_pct FROM demo_depot_cycles WHERE vehicle_id = v.id
+          ORDER BY id DESC LIMIT 1
+        ) depot ON TRUE
         ORDER BY v.vehicle_no
         """)
         .query(
@@ -81,18 +85,24 @@ class OperationsRepository implements OperationsStore {
   public List<Request> requests() {
     return jdbc.sql(
             """
-        SELECT r.id, p.place_key AS pickup, d.place_key AS destination, r.status
-        FROM service_requests r JOIN places p ON p.id = r.pickup_place_id
+        SELECT r.id, p.place_key AS pickup, d.place_key AS destination, r.status,
+               COALESCE(applied.target, d.place_key) AS effective_destination,
+               applied.revision_id
+        FROM (SELECT * FROM service_requests ORDER BY received_at DESC, id DESC LIMIT 50) r
+        JOIN places p ON p.id = r.pickup_place_id
         LEFT JOIN places d ON d.id = r.destination_place_id
-        ORDER BY r.received_at DESC, r.id DESC LIMIT 50
-        """)
+        """
+                + RideProgressReads.APPLIED_ROUTE
+                + " ORDER BY r.received_at DESC, r.id DESC")
         .query(
             (row, i) ->
                 new Request(
                     row.getLong("id"),
                     row.getString("pickup"),
                     row.getString("destination"),
-                    row.getString("status")))
+                    row.getString("status"),
+                    row.getString("effective_destination"),
+                    row.getObject("revision_id", Long.class)))
         .list();
   }
 

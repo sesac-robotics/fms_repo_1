@@ -115,9 +115,11 @@ class MainActivity : ComponentActivity() {
                 model::chooseStop,
                 model::requestRide,
                 model::refreshTrips,
-                model::prepareNewRide
+                model::prepareNewRide,
+                model.fares::dispatch
             )
-            Screen.HISTORY -> RidePanels(widgets).history(state, model::refreshTrips)
+            Screen.HISTORY -> RidePanels(widgets)
+                .history(state, model::refreshTrips, model.fares::openRide)
             Screen.PROFILE -> AccountPanel(widgets).profile(
                 state,
                 model::refreshProfile,

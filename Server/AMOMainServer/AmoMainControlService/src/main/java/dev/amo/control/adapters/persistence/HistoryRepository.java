@@ -35,17 +35,42 @@ class HistoryRepository implements HistoryStore {
 
   @Override
   public Result<Ride> rides(HistoryQuery query) {
-    return browse(
-        "id, service_type, status, received_at",
-        RIDES,
-        "received_at",
-        query,
-        (row, index) ->
-            new Ride(
-                row.getLong("id"),
-                row.getString("service_type"),
-                row.getString("status"),
-                row.getObject("received_at", OffsetDateTime.class)));
+    var rows =
+        bind(
+                """
+            SELECT r.*, initial.status AS prepayment, changed.status AS route_status,
+                   changed.payment AS difference, applied.target, applied.revision_id,
+                   fare.amount_minor, fare.currency_code, fare.receipt_ref, depot.phase
+            FROM (
+              SELECT id, service_type, status, received_at
+            """
+                    + RIDES
+                    + " ORDER BY received_at DESC, id DESC LIMIT :rows OFFSET :offset) r "
+                    + RideProgressReads.APPLIED_ROUTE
+                    + RideProgressReads.HISTORY
+                    + " ORDER BY r.received_at DESC, r.id DESC",
+                query)
+            .param("rows", query.rows())
+            .param("offset", query.offset())
+            .query(
+                (row, index) ->
+                    new Ride(
+                        row.getLong("id"),
+                        row.getString("service_type"),
+                        row.getString("status"),
+                        row.getObject("received_at", OffsetDateTime.class),
+                        row.getString("prepayment"),
+                        row.getString("route_status"),
+                        row.getObject("revision_id", Long.class),
+                        row.getString("target"),
+                        row.getString("difference"),
+                        row.getObject("amount_minor", Long.class),
+                        row.getString("currency_code"),
+                        row.getString("receipt_ref"),
+                        row.getString("phase")))
+            .list();
+    long matching = bind("SELECT count(*) " + RIDES, query).query(Long.class).single();
+    return new Result<>(rows, matching);
   }
 
   @Override

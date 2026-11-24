@@ -123,5 +123,20 @@
   "detail_demo_completed": "예시 차량이 운행을 완료했습니다.",
   "detail_demo_link_lost": "예시 차량과의 연결이 끊겼습니다.",
   "detail_demo_waiting": "예시 호출에 배차할 차량을 기다리는 중입니다.",
-  "detail_passenger_received": "승객 호출을 접수했습니다."
+  "detail_passenger_received": "승객 호출을 접수했습니다.",
+  "applied_route": "적용 경로",
+  "status_mock_prepayment_attempted": "모의 선결제 시도",
+  "status_mock_difference_attempted": "모의 차액 결제 시도",
+  "status_fare_finalized": "요금 확정",
+  "status_demo_route_issued": "모의 경로 명령 발행",
+  "status_demo_route_acknowledged": "모의 경로 명령 접수",
+  "status_demo_route_applied": "모의 경로 적용",
+  "status_demo_route_failed": "모의 경로 적용 실패",
+  "status_demo_if05_redeparted": "모의 재출발",
+  "status_demo_depot_return_ordered": "모의 복귀 지시",
+  "status_demo_depot_return_arrival": "모의 복귀 도착",
+  "status_demo_depot_occupied": "모의 충전칸 점유",
+  "status_demo_depot_charge_started": "모의 충전 시작",
+  "status_demo_depot_battery_reported": "모의 배터리 보고",
+  "status_demo_depot_vacated": "모의 충전칸 이탈"
 }

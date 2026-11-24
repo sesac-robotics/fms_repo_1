@@ -38,7 +38,7 @@ class RecordsPage(QWidget):
         self._empty = label(tr('empty'), 'secondary')
         pane.addWidget(self._empty)
         headers = (
-            ('request_id', 'pickup', 'destination', 'status')
+            ('request_id', 'pickup', 'destination', 'applied_route', 'status')
             if mode == 'queue'
             else ('event_time', 'event_type', 'vehicle_no', 'detail')
         )
@@ -63,7 +63,15 @@ class RecordsPage(QWidget):
         tr = self._tr
         if self._mode == 'queue':
             rows = tuple(
-                (r.id, r.pickup, r.destination, tr.status(r.status))
+                (
+                    r.id,
+                    r.pickup,
+                    r.destination,
+                    f'{r.applied.destination} · #{r.applied.revision}'
+                    if r.applied
+                    else '—',
+                    tr.status(r.status),
+                )
                 for r in snapshot.requests
             )
         else:

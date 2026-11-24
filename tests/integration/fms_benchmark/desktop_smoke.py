@@ -44,13 +44,15 @@ def main() -> int:
             app.exit(1)
             return
         tabs = window.centralWidget().findChild(QTabWidget)
-        if tabs is None or tabs.count() != 8 or len(window._snapshot.vehicles) != 4:
+        expected = {f'PINKY-{number:02d}' for number in range(1, 5)}
+        visible = {vehicle.number for vehicle in window._snapshot.vehicles}
+        if tabs is None or tabs.count() != 8 or not expected.issubset(visible):
             return
         if not window.grab().save(str(args.output / 'desktop-comparison.png')):
             app.exit(1)
             return
         print(
-            'Browser sign-in, eight admin tabs, and four IF-03 vehicle rows verified.'
+            'Browser sign-in, eight admin tabs, and four Pinky IF-03 vehicle rows verified.'
         )
         app.quit()
 

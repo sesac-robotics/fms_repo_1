@@ -73,7 +73,7 @@ private fun expiry(obj: JSONObject): Instant {
 private fun JSONObject.optText(field: String): String? =
     if (isNull(field)) null else optString(field).takeIf { it.isNotBlank() }
 
-private inline fun <T> decode(block: () -> T): T = try {
+internal inline fun <T> decode(block: () -> T): T = try {
     block()
 } catch (_: JSONException) {
     throw ContractFailure()

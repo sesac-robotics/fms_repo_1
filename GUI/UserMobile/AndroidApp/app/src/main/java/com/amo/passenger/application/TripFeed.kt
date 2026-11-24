@@ -31,9 +31,10 @@ internal class TripFeed(private val api: AmoApi, private val state: MutableState
 
             try {
                 val trips = api.trips(session.token)
+                val fare = snapshot.selectedRideId?.let { api.fares.load(session.token, it) }
                 state.update { current ->
                     if (current.canApplyPoll(snapshot)) {
-                        current.withTrips(trips).copy(online = true)
+                        current.withTrips(trips).copy(online = true, fare = fare)
                     } else {
                         current
                     }
@@ -65,4 +66,5 @@ internal fun AmoUiState.withTrips(trips: List<Ride>): AmoUiState {
 }
 
 private fun AmoUiState.canApplyPoll(snapshot: AmoUiState): Boolean =
-    session == snapshot.session && !busy && trips === snapshot.trips
+    session == snapshot.session && !busy && selectedRideId == snapshot.selectedRideId &&
+        trips === snapshot.trips && fare === snapshot.fare

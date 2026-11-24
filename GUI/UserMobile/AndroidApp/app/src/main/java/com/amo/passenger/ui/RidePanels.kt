@@ -5,6 +5,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.amo.passenger.R
 import com.amo.passenger.application.AmoUiState
+import com.amo.passenger.application.FareAction
 import com.amo.passenger.domain.Ride
 import com.amo.passenger.domain.RidePhase
 import com.amo.passenger.domain.Stop
@@ -22,7 +23,8 @@ internal class RidePanels(private val widgets: AmoWidgets) {
         choose: (Boolean, Stop) -> Unit,
         request: () -> Unit,
         refresh: () -> Unit,
-        prepare: () -> Unit
+        prepare: () -> Unit,
+        fareAction: (FareAction) -> Unit
     ): LinearLayout = with(widgets) {
         column().apply {
             val current = state.latestRide
@@ -42,22 +44,33 @@ internal class RidePanels(private val widgets: AmoWidgets) {
                         null
                     }
                 )
-                add(rideCard(current, actions), 10)
+                val fare = state.fare?.takeIf { it.rideId == current.id }
+                val destination = fare?.route?.effectiveDestination ?: current.destination
+                add(rideCard(current.copy(destination = destination), actions), 10)
+                fare?.let {
+                    add(FarePanel(widgets).render(it, current, state.busy, fareAction), 12)
+                }
             }
             add(map(language), 14)
         }
     }
 
-    fun history(state: AmoUiState, refresh: () -> Unit): LinearLayout = with(widgets) {
-        column().apply {
-            add(text(string(R.string.history), 28, bold = true))
-            add(refreshButton(state.busy, refresh), 12)
-            if (state.trips.isEmpty() && !state.busy && state.issue == null) {
-                add(text(string(R.string.history_empty), 16, palette.muted), 18)
+    fun history(state: AmoUiState, refresh: () -> Unit, open: (String) -> Unit): LinearLayout =
+        with(widgets) {
+            column().apply {
+                add(text(string(R.string.history), 28, bold = true))
+                add(refreshButton(state.busy, refresh), 12)
+                if (state.trips.isEmpty() && !state.busy && state.issue == null) {
+                    add(text(string(R.string.history_empty), 16, palette.muted), 18)
+                }
+                state.trips.forEach { ride ->
+                    val view = button(string(R.string.open_ride)) { open(ride.id) }.apply {
+                        isEnabled = !state.busy
+                    }
+                    add(rideCard(ride, listOf(view)), 12)
+                }
             }
-            state.trips.forEach { add(rideCard(it), 12) }
         }
-    }
 
     private fun refreshButton(busy: Boolean, refresh: () -> Unit) = with(widgets) {
         button(string(R.string.refresh), action = refresh).apply { isEnabled = !busy }

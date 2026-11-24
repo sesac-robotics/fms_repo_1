@@ -31,6 +31,16 @@ public class RouteReplayService {
     this.routes = routes;
   }
 
+  /** Allows the owner of a local demo trip to propose a supported destination. */
+  @Transactional
+  public void proposeForPassenger(
+      long passengerId, long requestId, String destination, Instant now) {
+    ledger
+        .lock(requestId, passengerId)
+        .orElseThrow(() -> new FareFailure(FareFailure.Reason.RIDE_NOT_FOUND));
+    propose(requestId, destination, now);
+  }
+
   /** Proposes a supported local destination without altering the effective route. */
   @Transactional
   public Proposal propose(long requestId, String destination, Instant now) {

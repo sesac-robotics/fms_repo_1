@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+from base64 import b64decode
+from socket import create_connection
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -46,3 +48,22 @@ class DemoHttp:
         if status != 200 or not isinstance(response.get('token'), str):
             raise RuntimeError(f'Demo login failed for {role}: {status}')
         return str(response['token'])
+
+    def fms_snapshot(self, port: int, token: str) -> tuple[int, dict[str, object]]:
+        """Exchange one bounded read-only IF-03 frame with Main Control."""
+        payload = json.dumps(
+            {
+                'method': 'GET',
+                'path': '/api/operations',
+                'headers': {'Authorization': [f'Bearer {token}']},
+                'body': '',
+            }
+        ).encode()
+        with create_connection(('127.0.0.1', port), timeout=10) as connection:
+            connection.sendall(len(payload).to_bytes(4, 'big') + payload)
+            with connection.makefile('rb') as wire:
+                size = int.from_bytes(wire.read(4), 'big')
+                if not 0 < size <= 1024 * 1024:
+                    raise ValueError('Invalid IF-03 frame size')
+                envelope = json.loads(wire.read(size))
+        return int(envelope['status']), json.loads(b64decode(envelope['body']))

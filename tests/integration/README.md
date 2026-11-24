@@ -133,3 +133,43 @@ PYTHONDONTWRITEBYTECODE=1 ../.venv/bin/mypy --strict --cache-dir=/dev/null tests
 - **SD-12** 촬영 기준과 비교 불가 처리, 오검출 정정 책임과 이미 보낸 알림의 후속 안내, 대상별 재시도 정책, 사진 접근 권한·보존 기간·비식별 처리
 
 [시스템 시나리오](https://k8c1.atlassian.net/wiki/spaces/K8C1sesac/pages/8028678)에서 3단계 시퀀스 검토본을 확인할 수 있습니다.
+
+## 개정 시나리오 로컬 검증
+
+[시스템 시나리오](https://k8c1.atlassian.net/wiki/spaces/K8C1sesac/pages/8028678), [인터페이스 명세](https://k8c1.atlassian.net/wiki/spaces/K8C1sesac/pages/8028663), [State Architecture v17](https://k8c1.atlassian.net/wiki/spaces/K8C1sesac/pages/8192050), [시나리오별 DB 처리](https://k8c1.atlassian.net/wiki/spaces/K8C1sesac/pages/8356422)를 적용합니다. 위의 기존 실행 기록은 당시 모의 검증 결과입니다.
+
+### 서버·DB 통합 실행
+
+비어 있는 별도 개발 PostgreSQL에 [루트 실행 절차](../../README.md#개발-환경에서-실행하기)로 Main Control의 `demo` 프로필과 Web 게이트웨이를 엽니다. 시험은 가상 승객과 관리자만 사용하며 가상 운행과 영수증을 DB에 저장합니다. 포트는 실제 실행 값에 맞춥니다.
+
+```sh
+AMO_DEMO_HTTP=http://127.0.0.1:18085 AMO_DEMO_IF03_PORT=18087 \
+  python3 -m unittest discover -s tests/integration -p test_revised_demo_http.py -v
+```
+
+| 순서 | 검증할 증거 |
+| --- | --- |
+| 초기 충전과 호출 | `DEMO-REPLAY-01`의 점유 → 충전 시작 → 70% 도달과 대기 → 실제 이탈에 해당하는 모의 보고를 저장합니다. 호출 견적에는 거리·시간과 시험 요율 버전을 남깁니다. 같은 결제 시도 키를 동시에 보내 결과와 시각이 일치하는지 확인합니다. |
+| 배차부터 확정까지 | 선결제 없이 배차를 시도해 거절되는지 확인합니다. 같은 배정의 픽업 정차·승차·출발·목적지 정차·하차를 순서대로 기록합니다. 재전송한 하차는 기존 확정 요금과 영수증을 반환합니다. |
+| 경로 변경과 재출발 | 승객 재수락과 필요한 모의 차액 결제 뒤 명령을 발행합니다. 접수 확인, 다른 연결의 적용 보고 거절, 실제 적용에 해당하는 보고, 정차 후 실제 재출발에 해당하는 보고를 각각 확인합니다. 적용 실패 시험에서는 결제 이력과 기존 목적지·요금을 함께 보존합니다. |
+| 복귀·충전과 화면 | 복귀 지시와 차량 도착, 시설 점유, 충전 시작, 배터리 임계치와 시설 이탈을 따로 확인합니다. FMS는 IF-03으로 원래 목적지와 적용 개정을 받고, Admin은 Web API를 통해 견적·결제·요금과 운영 이력을 읽습니다. |
+
+### 2026-11-24 실행 결과
+
+격리 PostgreSQL 16.15와 Web 게이트웨이에서 편도·변경·복귀 통합 4개와 오프라인 회귀 50개가 통과했습니다. Android API 36 에뮬레이터에서 모의 선결제, 변경 견적 수락, 적용 목적지 갱신과 영수증을 확인했습니다. 가상 운행 5만 건으로 별도 PyQt Admin 조회를 실행하는 동안 대조 실행과 병행 실행의 IF-03 응답은 각각 3건 모두 정상입니다. 차량·차고 설비 연동과 운영 규모 성능 검수는 별도 대상입니다.
+
+### 모의 관측 API
+
+아래 경로는 `demo` 프로필에서만 로컬 검증에 사용합니다. 승객이 소유한 요청의 견적·결제 API와 관리자 모의 입력은 각각 인증이 필요합니다.
+
+| 메서드·경로 | 입력 |
+| --- | --- |
+| `POST /api/rides/{id}/mock-quote` | 빈 JSON 객체 |
+| `POST /api/rides/{id}/mock-prepayment` · `POST /api/rides/{id}/mock-change-accept` | `quoteId`, `key` |
+| `GET /api/rides/{id}/fare` · `GET /api/rides/{id}/route-change` | 없음 |
+| `POST /api/rides/{id}/mock-change-propose` | `destination` |
+| `POST /api/admin/demo/rides/{id}/observe` | `step`, 목적지 정차에서는 `distanceMeters`와 `elapsedSeconds` |
+| `POST /api/admin/demo/rides/{id}/route/{propose\|issue\|report}` | `destination`, `revisionId`, 또는 같은 명령의 응답 식별자와 `report` |
+| `POST /api/admin/demo/depot/observe` | `requestId`(초기 충전 생략), `step`, `key`, 배터리 보고 시 `batteryPercent` |
+
+시험 요율은 지도상의 모의 거리·시간을 사용합니다. 운영 요율·결제 실패 재시도와 환불, 차액 결제 뒤 적용 실패 정산, 별도 관리자 권한·운영 범위, 대여·Cargo의 실제 증거와 IF-04·05·10·13 전송 계약은 팀에서 결정합니다. 대여·Cargo 개정 분기는 메모리 검증에서 실행합니다.

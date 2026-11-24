@@ -30,6 +30,19 @@ class FareEvents {
         .update();
   }
 
+  void hold(long requestId, Long quoteId, String reason) {
+    jdbc.sql(
+            """
+            INSERT INTO operation_events
+              (id, request_id, producer, event_key, event_type, result_code, occurred_at, received_at)
+            VALUES (nextval('amo_record_id'), ?, 'MAIN_CONTROL', ?, 'MOCK_FARE_HELD', ?,
+                    statement_timestamp(), statement_timestamp())
+            ON CONFLICT (producer, event_key) DO NOTHING
+            """)
+        .params(requestId, "mock-hold:" + requestId + ":" + quoteId + ":" + reason, reason)
+        .update();
+  }
+
   void append(long requestId, Long dispatchId, String eventKey, String type, String result) {
     jdbc.sql(
             """

@@ -36,6 +36,7 @@ internal fun RidePhase.label(): Int = when (this) {
     RidePhase.PICKUP_CONFIRMED -> R.string.r_pickup
     RidePhase.BOARDED -> R.string.r_boarded
     RidePhase.ON_TRIP -> R.string.r_on_trip
+    RidePhase.STOPPED_WAIT -> R.string.r_stopped_wait
     RidePhase.ARRIVAL_CONFIRMED -> R.string.r_arrived
     RidePhase.COMPLETE -> R.string.r_complete
     RidePhase.CANCELLED -> R.string.r_cancelled

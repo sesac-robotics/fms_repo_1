@@ -7,6 +7,7 @@ from math import isfinite
 from typing import Any
 
 from .measurement import sample_identity
+from .route_projection import AppliedRoute, applied_route
 
 OPERATORS = frozenset({'ADMIN', 'OPERATOR'})
 
@@ -140,6 +141,7 @@ class RideRequest:
     pickup: str
     destination: str
     status: str
+    applied: AppliedRoute | None = None
 
     @classmethod
     def parse(cls, value: dict[str, Any]) -> RideRequest:
@@ -147,8 +149,9 @@ class RideRequest:
         return cls(
             identity(value),
             string_field(value, 'pickup'),
-            string_field(value, 'destination'),
+            optional_string(value, 'destination'),
             string_field(value, 'status'),
+            applied_route(value),
         )
 
 

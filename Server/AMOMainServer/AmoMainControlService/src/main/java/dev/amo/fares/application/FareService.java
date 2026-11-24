@@ -33,7 +33,11 @@ public class FareService {
     if (quote == null && request.estimate() != null && payable(request)) {
       quote = store.saveInitialQuote(requestId, request.estimate(), now);
     }
-    return view(request, quote, now);
+    View current = view(request, quote, now);
+    if (payable(request)) {
+      recordHold(current);
+    }
+    return current;
   }
 
   /** Returns durable fare state without issuing a quote or starting a payment. */
@@ -60,6 +64,7 @@ public class FareService {
       return response(requestId, quote, prior.get());
     }
     View current = view(request, quote, now);
+    recordHold(current);
     if (current.paymentStatus() == PaymentStatus.SUCCEEDED
         || current.paymentStatus() == PaymentStatus.METHOD_MISSING
         || current.paymentStatus() == PaymentStatus.QUOTE_EXPIRED) {
@@ -124,7 +129,9 @@ public class FareService {
 
   private View view(Request request, Quote quote, Instant now) {
     if (quote == null) {
-      return new View(request.id(), null, PaymentStatus.ESTIMATE_MISSING, null, null);
+      var status =
+          request.estimate() == null ? PaymentStatus.ESTIMATE_MISSING : PaymentStatus.UNQUOTED;
+      return new View(request.id(), null, status, null, null);
     }
     Attempt attempt = store.latestAttempt(quote.id()).orElse(null);
     PaymentStatus status = PaymentStatus.QUOTED;
@@ -138,6 +145,17 @@ public class FareService {
       status = attempt.status();
     }
     return new View(request.id(), quote, status, attempt, store.receipt(request.id()).orElse(null));
+  }
+
+  private void recordHold(View view) {
+    switch (view.paymentStatus()) {
+      case ESTIMATE_MISSING, METHOD_MISSING, QUOTE_EXPIRED ->
+          store.recordHold(
+              view.requestId(),
+              view.quote() == null ? null : view.quote().id(),
+              view.paymentStatus());
+      default -> {}
+    }
   }
 
   private View response(long requestId, Quote quote, Attempt attempt) {

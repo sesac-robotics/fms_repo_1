@@ -123,5 +123,20 @@
   "detail_demo_completed": "Demo trip completed.",
   "detail_demo_link_lost": "Demo vehicle connection lost.",
   "detail_demo_waiting": "Demo request awaiting an eligible vehicle.",
-  "detail_passenger_received": "Passenger request received."
+  "detail_passenger_received": "Passenger request received.",
+  "applied_route": "Applied route",
+  "status_mock_prepayment_attempted": "Mock prepayment attempt",
+  "status_mock_difference_attempted": "Mock difference attempt",
+  "status_fare_finalized": "Fare finalized",
+  "status_demo_route_issued": "Demo route command issued",
+  "status_demo_route_acknowledged": "Demo route command acknowledged",
+  "status_demo_route_applied": "Demo route applied",
+  "status_demo_route_failed": "Demo route application failed",
+  "status_demo_if05_redeparted": "Demo redeparture",
+  "status_demo_depot_return_ordered": "Demo return ordered",
+  "status_demo_depot_return_arrival": "Demo return arrival",
+  "status_demo_depot_occupied": "Demo charging bay occupied",
+  "status_demo_depot_charge_started": "Demo charging started",
+  "status_demo_depot_battery_reported": "Demo battery report",
+  "status_demo_depot_vacated": "Demo charging bay vacated"
 }

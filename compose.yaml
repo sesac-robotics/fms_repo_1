@@ -16,6 +16,8 @@ services:
       AMO_DB_USER: ${AMO_DB_USER:?Set the external test database user}
       AMO_WEB_TCP_PORT: ${AMO_WEB_TCP_PORT:-18086}
       AMO_FMS_TCP_PORT: ${AMO_FMS_TCP_PORT:-18087}
+      AMO_GOOGLE_CLIENT_ID: ${AMO_GOOGLE_CLIENT_ID:-}
+      AMO_GOOGLE_ALLOWED_AUDIENCES: ${AMO_GOOGLE_ALLOWED_AUDIENCES:-}
       SPRING_PROFILES_ACTIVE: ${AMO_PROFILE:-demo}
       SPRING_CONFIG_IMPORT: configtree:/run/secrets/
     secrets:

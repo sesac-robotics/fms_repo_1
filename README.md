@@ -65,6 +65,8 @@ docker compose down
 
 FMS와 Admin PyQt는 호스트에서, Android는 기기 또는 에뮬레이터에서 실행합니다. 강의의 X11 권한 변경, 이미지 레지스트리 푸시, 실차 ROS 2 통신은 이 실행 구성의 범위 밖입니다. [PyQt 실행 안내](GUI/MainControllerPC/AMOAdmin/README.md) · [Android 실행 안내](GUI/UserMobile/AndroidApp/README.md)
 
+Google 로그인을 쓰려면 Git에서 제외되는 `.env`에 Google Cloud의 Web 클라이언트 ID를 `AMO_GOOGLE_CLIENT_ID`로 넣습니다. Android도 검수한다면 등록된 Android 클라이언트 ID를 `AMO_GOOGLE_ALLOWED_AUDIENCES`에 넣습니다. 여러 서명은 등록한 ID를 쉼표로 구분합니다. Google Cloud의 Web 클라이언트에 실제 Vue 접속 주소를 JavaScript 원본으로 등록하고, 변경 후 `docker compose up -d main-control`을 실행합니다. 브라우저 기반 로그인을 쓰는 PyQt와 관리자 Web은 승인된 AMO 운영 계정에 같은 이메일의 Google 계정이 연결되어 있어야 합니다.
+
 ## 데모로 어디까지 확인할 수 있나요?
 
 별도 AMO Admin의 **시나리오 검수** 탭에서 Taxi 경로 적용 성공·실패를 단계별로 재생할 수 있습니다. 가상 차량과 호출을 한 실행으로 묶어 FMS와 Android에서 같은 처리를 확인합니다. [시나리오 검수 실행](GUI/MainControllerPC/AMOAdmin/README.md#단계별-시나리오-검수)

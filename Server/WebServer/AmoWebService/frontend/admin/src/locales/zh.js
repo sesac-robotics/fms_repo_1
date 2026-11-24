@@ -1,4 +1,5 @@
 export default {
+  addGoogleOperator: "添加 Google 运营人员",
   admin: "管理端",
   signedAs: "当前账户",
   overview: "运营概览",

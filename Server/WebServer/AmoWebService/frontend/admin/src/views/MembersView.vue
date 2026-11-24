@@ -21,13 +21,13 @@ function search(event) {
   });
 }
 
-async function review(id, approved, role) {
+async function updateMember(id, operation, body) {
   pending.value = id;
   message.value = "";
   try {
-    await api("/admin/members/" + encodeURIComponent(id) + "/approval", {
+    await api("/admin/members/" + encodeURIComponent(id) + "/" + operation, {
       method: "PUT",
-      body: { approved, ...(approved ? { role } : {}) },
+      body,
     });
     message.value = "saved";
     emit("changed");
@@ -36,6 +36,18 @@ async function review(id, approved, role) {
   } finally {
     pending.value = null;
   }
+}
+
+function review(id, approved, role) {
+  return updateMember(id, "approval", {
+    approved,
+    ...(approved ? { role } : {}),
+  });
+}
+
+function addOperator(item) {
+  if (window.confirm(`${t("addGoogleOperator")} · ${item.email}?`))
+    updateMember(item.id, "google-operator");
 }
 
 function approve(id, event) {
@@ -120,6 +132,16 @@ function approve(id, event) {
                   {{ t("reject") }}
                 </button>
               </form>
+              <button
+                v-else-if="
+                  item.status === 'ACTIVE' && item.role === 'PASSENGER'
+                "
+                type="button"
+                :disabled="pending !== null"
+                @click="addOperator(item)"
+              >
+                {{ t("addGoogleOperator") }}
+              </button>
               <span v-else>—</span>
             </td>
           </tr>

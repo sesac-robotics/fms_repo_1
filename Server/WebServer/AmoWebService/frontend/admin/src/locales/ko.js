@@ -1,4 +1,5 @@
 export default {
+  addGoogleOperator: "Google 운영자 추가",
   admin: "관리자 Web",
   signedAs: "로그인 계정",
   overview: "운영 개요",

@@ -1,4 +1,5 @@
 export default {
+  addGoogleOperator: "Add Google operator",
   admin: "Admin Web",
   signedAs: "Signed in as",
   overview: "Operations",

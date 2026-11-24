@@ -67,7 +67,7 @@ async function renderGoogle() {
           await accept(
             await api("/auth/google", {
               method: "POST",
-              body: { credential },
+              body: { credential, staff: true },
             }),
           );
         } catch (error) {

@@ -73,6 +73,9 @@ class MembersPanel(QWidget):
             button = QPushButton(label)
             button.clicked.connect(lambda _, value=approved: self._review(value))
             approval.addWidget(button)
+        add_operator = QPushButton('Add Google operator')
+        add_operator.clicked.connect(self._add_operator)
+        approval.addWidget(add_operator)
         layout.addLayout(approval)
 
     def _cancel(self) -> None:
@@ -146,8 +149,31 @@ class MembersPanel(QWidget):
         body: dict[str, str | bool] = {'approved': approved}
         if approved:
             body['role'] = self._role.currentText()
+        self._update_member(int(row['id']), 'approval', body)
+
+    def _add_operator(self) -> None:
+        if self._reply is not None:
+            return
+        index = self._table.currentRow()
+        if not 0 <= index < len(self._rows):
+            return
+        row = self._rows[index]
+        if row['status'] != 'ACTIVE' or row['role'] != 'PASSENGER':
+            self._status.setText('Select an active Google-linked passenger.')
+            return
+        if (
+            QMessageBox.question(
+                self, 'Add Google operator', f'Add operator access for {row["email"]}?'
+            )
+            == QMessageBox.StandardButton.Yes
+        ):
+            self._update_member(int(row['id']), 'google-operator', {})
+
+    def _update_member(
+        self, member_id: int, action: str, body: dict[str, str | bool]
+    ) -> None:
         reply = self._api.web_request(
-            f'/api/admin/members/{int(row["id"])}/approval',
+            f'/api/admin/members/{member_id}/{action}',
             body,
             authenticated=True,
             put=True,

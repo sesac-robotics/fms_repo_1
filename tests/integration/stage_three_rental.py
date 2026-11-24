@@ -41,6 +41,7 @@ class Rental:
     started_at: int | None = field(default=None, init=False)
     ended_at: int | None = field(default=None, init=False)
     return_reason: str | None = field(default=None, init=False)
+    return_origin: State | None = field(default=None, init=False)
     slot: Slot | None = field(default=None, init=False)
     _command: str | None = field(default=None, init=False)
     _clock: int = field(default=-1, init=False)
@@ -73,7 +74,7 @@ class Rental:
 
     def assign_bay(self, bay: str, *, free: bool) -> bool:
         """Start automatic parking after the stop, using an available bay."""
-        if self.state is not State.STOPPED or not free or not bay:
+        if self.state is not State.STOPPED or self.return_reason or not free or not bay:
             return False
         self.slot = Slot(bay, self.scope.vehicle, Purpose.PARK)
         self.state = State.PARKING
@@ -93,7 +94,7 @@ class Rental:
         return True
 
     def request_return(self, owner: str, tick: int) -> bool:
-        """Enter return wait for a valid manual return; hold until safe evidence."""
+        """Start a direct return from a verified stationary or parked phase."""
         if owner != self.call.owner or tick < self._clock:
             return False
         return self._start_return('manual', tick)
@@ -105,14 +106,22 @@ class Rental:
         return self._start_return('expired', tick)
 
     def _start_return(self, reason: str, tick: int) -> bool:
-        if self.state not in {State.MOVING, State.STOPPED, State.PARKING, State.PARKED}:
+        if self.return_reason or self.state not in {
+            State.MOVING,
+            State.STOPPED,
+            State.PARKED,
+        }:
             return False
+        if self.state is State.MOVING and reason != 'expired':
+            return False
+        self.return_origin = self.state
         self.return_reason = reason
         self._stopped = self.state in {State.STOPPED, State.PARKED}
         assert self.started_at is not None
         self.ended_at = min(tick, self.started_at + self.call.duration)
         self._clock = tick
-        self.state = State.RETURN_WAIT
+        if self.state is State.MOVING:
+            self.state = State.RETURN_WAIT
         self._command = 'return'
         return True
 
@@ -121,7 +130,9 @@ class Rental:
         if scope != self.scope or command != self._command or tick < self._clock:
             return False
         match event, self.state:
-            case 'departed', State.READY | State.STOPPED | State.PARKED:
+            case 'departed', State.READY | State.STOPPED | State.PARKED if (
+                not self.return_reason
+            ):
                 if self.slot is not None and not self.slot.exited:
                     return False
                 if self.started_at is None:
@@ -147,14 +158,14 @@ class Rental:
             scope == self.scope and owner == self.call.owner and tick >= self._clock
         ):
             return False
-        if self.state is not State.RETURN_WAIT or not self._stopped or self._alighted:
+        if not self.return_reason or not self._stopped or self._alighted:
             return False
         self._alighted, self._clock = True, tick
         self._ready_to_return()
         return True
 
     def _ready_to_return(self) -> None:
-        if self.state is State.RETURN_WAIT and self._alighted:
+        if self.return_reason and self._alighted:
             if self.slot is None or self.slot.exited:
                 self.state = State.RETURNING
 

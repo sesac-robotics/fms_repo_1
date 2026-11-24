@@ -112,9 +112,21 @@ class HoldTest(unittest.TestCase):
         self.assertFalse(rental.request_return('other', 110))
         self.assertTrue(rental.request_return(CALL.owner, 110))
         self.assertEqual(rental.return_reason, 'manual')
+        self.assertIs(rental.return_origin, State.PARKED)
         self.assertTrue(rental.confirm_alighting(SCOPE, CALL.owner, 111))
-        self.assertIs(rental.state, State.RETURN_WAIT)
+        self.assertIs(rental.state, State.PARKED)
         self.assertTrue(rental.parking_event(SCOPE, 'bay-a', 'exited'))
+        self.assertIs(rental.state, State.RETURNING)
+
+    def test_sd10_direct_return_stays_stopped_until_alighting(self) -> None:
+        rental = moving()
+        self.assertFalse(rental.request_return(CALL.owner, 103))
+        self.assertTrue(rental.vehicle_event(SCOPE, 'leg-1', 'destination_stop', 105))
+        self.assertTrue(rental.request_return(CALL.owner, 106))
+        self.assertIs(rental.return_origin, State.STOPPED)
+        self.assertIs(rental.state, State.STOPPED)
+        self.assertFalse(rental.vehicle_event(SCOPE, 'return', 'departed', 107))
+        self.assertTrue(rental.confirm_alighting(SCOPE, CALL.owner, 107))
         self.assertIs(rental.state, State.RETURNING)
 
     def test_sd10_returns_then_settles_mock_fare_separately_from_eligibility(

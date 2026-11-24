@@ -7,7 +7,9 @@ from stage_three_cargo import Cargo, CargoAssignment, CargoEvidence, Event, Stat
 from stage_two_vehicle import Scope
 
 SCOPE = Scope('cargo-1', 'assignment-2', 'vehicle-2', 3)
-JOB = CargoAssignment(SCOPE, 'job-1', 'cart-1', 'load', 'handoff', 'uncouple', 'garage')
+JOB = CargoAssignment(
+    SCOPE, 'job-1', 'cart-1', 'load', 'handoff', 'uncouple', 'garage', 'pickup'
+)
 
 
 def event(kind: Event, site: str, sequence: int) -> CargoEvidence:
@@ -24,13 +26,21 @@ def to_coupled() -> Cargo:
     return cargo
 
 
+def pickup_and_board(cargo: Cargo) -> None:
+    """Apply the loaded profile, then require common pickup, C03 and physical departure."""
+    assert cargo.observe('IF-05', event(Event.LOADED_MODE, JOB.origin, 2))
+    assert cargo.observe('IF-05', event(Event.PICKUP_STOP, JOB.pickup, 3))
+    assert cargo.observe('mock_c03', event(Event.BOARDING_CONFIRMED, JOB.pickup, 1))
+    assert cargo.observe('IF-05', event(Event.DEPARTED, JOB.pickup, 4))
+
+
 def to_release() -> Cargo:
     """Reach the designated Cargo return stop with the cart attached."""
     cargo = to_coupled()
-    assert cargo.observe('IF-05', event(Event.LOADED_MODE, JOB.origin, 2))
-    assert cargo.observe('IF-05', event(Event.HANDOFF_STOP, JOB.destination, 3))
+    pickup_and_board(cargo)
+    assert cargo.observe('IF-05', event(Event.HANDOFF_STOP, JOB.destination, 5))
     assert cargo.observe('mock_handoff', event(Event.HANDOFF, JOB.destination, 1))
-    assert cargo.observe('IF-05', event(Event.RELEASE_STOP, JOB.release_site, 4))
+    assert cargo.observe('IF-05', event(Event.RELEASE_STOP, JOB.release_site, 6))
     return cargo
 
 
@@ -40,6 +50,7 @@ class CargoTest(unittest.TestCase):
     def test_sd11_request_requires_pickup_delivery_and_designated_release(self) -> None:
         for assignment in (
             replace(JOB, origin=''),
+            replace(JOB, pickup=''),
             replace(JOB, destination=''),
             replace(JOB, release_site=''),
             replace(JOB, cart=''),
@@ -64,12 +75,29 @@ class CargoTest(unittest.TestCase):
         mode = event(Event.LOADED_MODE, JOB.origin, 2)
         self.assertFalse(cargo.observe('IF-04', mode))
         self.assertTrue(cargo.observe('IF-05', mode))
+        self.assertIs(cargo.state, State.TO_PICKUP)
+        self.assertFalse(cargo.observe_distance(SCOPE, 5, 120))
+        self.assertFalse(
+            cargo.observe('IF-05', event(Event.PICKUP_STOP, JOB.origin, 3))
+        )
+        self.assertTrue(cargo.observe('IF-05', event(Event.PICKUP_STOP, JOB.pickup, 3)))
+        departure = event(Event.DEPARTED, JOB.pickup, 4)
+        self.assertFalse(cargo.observe('IF-05', departure))
+        confirmation = event(Event.BOARDING_CONFIRMED, JOB.pickup, 1)
+        self.assertFalse(cargo.observe('mock_handoff', confirmation))
+        self.assertFalse(
+            cargo.observe(
+                'mock_c03', replace(confirmation, scope=replace(SCOPE, trip='old'))
+            )
+        )
+        self.assertTrue(cargo.observe('mock_c03', confirmation))
+        self.assertTrue(cargo.observe('IF-05', departure))
         self.assertIs(cargo.state, State.TRANSPORT)
         self.assertIsNone(cargo.remaining_m)
-        self.assertFalse(cargo.observe_distance(replace(SCOPE, epoch=2), 3, 120))
-        self.assertFalse(cargo.observe_distance(SCOPE, 3, -1))
-        self.assertTrue(cargo.observe_distance(SCOPE, 3, 120))
-        self.assertFalse(cargo.observe_distance(SCOPE, 2, 10))
+        self.assertFalse(cargo.observe_distance(replace(SCOPE, epoch=2), 5, 120))
+        self.assertFalse(cargo.observe_distance(SCOPE, 5, -1))
+        self.assertTrue(cargo.observe_distance(SCOPE, 5, 120))
+        self.assertFalse(cargo.observe_distance(SCOPE, 4, 10))
         self.assertEqual(cargo.remaining_m, 120)
 
     def test_sd11_rejects_other_carts_jobs_places_connections_and_duplicates(
@@ -92,11 +120,11 @@ class CargoTest(unittest.TestCase):
 
     def test_sd11_recipient_handoff_requires_stop_and_own_confirmation(self) -> None:
         cargo = to_coupled()
-        self.assertTrue(cargo.observe('IF-05', event(Event.LOADED_MODE, JOB.origin, 2)))
+        pickup_and_board(cargo)
         handoff = event(Event.HANDOFF, JOB.destination, 1)
         self.assertFalse(cargo.observe('mock_handoff', handoff))
         self.assertTrue(
-            cargo.observe('IF-05', event(Event.HANDOFF_STOP, JOB.destination, 3))
+            cargo.observe('IF-05', event(Event.HANDOFF_STOP, JOB.destination, 5))
         )
         self.assertEqual(cargo.remaining_m, 0)
         self.assertFalse(cargo.observe('IF-09', handoff))
@@ -115,10 +143,10 @@ class CargoTest(unittest.TestCase):
         self.assertTrue(cargo.observe('IF-13', detached))
         self.assertTrue(cargo.cart_reusable())
         self.assertIs(cargo.state, State.RESTORE_WAIT)
-        arrival = event(Event.GARAGE_ARRIVAL, JOB.garage, 6)
+        arrival = event(Event.GARAGE_ARRIVAL, JOB.garage, 8)
         self.assertFalse(cargo.observe('IF-05', arrival))
         self.assertTrue(
-            cargo.observe('IF-05', event(Event.NORMAL_MODE, JOB.release_site, 5))
+            cargo.observe('IF-05', event(Event.NORMAL_MODE, JOB.release_site, 7))
         )
         self.assertTrue(cargo.observe('IF-05', arrival))
         for link, battery in ((False, 40), (True, 24)):
@@ -135,7 +163,7 @@ class CargoTest(unittest.TestCase):
         self,
     ) -> None:
         cargo = to_release()
-        mode = event(Event.NORMAL_MODE, JOB.release_site, 5)
+        mode = event(Event.NORMAL_MODE, JOB.release_site, 7)
         self.assertFalse(cargo.observe('IF-05', mode))
         self.assertTrue(
             cargo.observe('IF-13', event(Event.RELEASE_FAILED, JOB.release_site, 3))

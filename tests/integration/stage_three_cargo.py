@@ -1,42 +1,11 @@
 """Test-only SD-11 Cargo workflow and evidence boundaries."""
 
 from dataclasses import dataclass, field
-from enum import Enum
 
+from cargo_transitions import TRANSITIONS
+from cargo_transitions import Event as Event
+from cargo_transitions import State as State
 from stage_two_vehicle import Scope
-
-
-class State(Enum):
-    """Test stages from pickup facility through verified return."""
-
-    TO_CARGO_DEPOT = 'cargo_depot_travel'
-    STOPPED_FOR_LOAD = 'cargo_depot_stopped'
-    COUPLING_WAIT = 'coupling_wait'
-    COUPLED = 'coupled'
-    TRANSPORT = 'loaded_travel'
-    STOPPED_FOR_HANDOFF = 'handoff_stopped'
-    RETURN_TO_CARGO_DEPOT = 'cargo_depot_return'
-    RELEASE_WAIT = 'uncoupling_wait'
-    RELEASE_BLOCKED = 'uncoupling_blocked'
-    RESTORE_WAIT = 'normal_config_wait'
-    RETURN_TO_GARAGE = 'garage_return'
-    RETURNED = 'garage_arrived'
-
-
-class Event(Enum):
-    """Explicit evidence kinds so hardware outcomes cannot stand in for motion."""
-
-    LOAD_STOP = 'load_stop'
-    LOADED = 'loaded'
-    COUPLED = 'coupled'
-    LOADED_MODE = 'loaded_mode_applied'
-    HANDOFF_STOP = 'handoff_stop'
-    HANDOFF = 'cargo_handoff'
-    RELEASE_STOP = 'release_stop'
-    DETACHED = 'detached'
-    RELEASE_FAILED = 'release_failed'
-    NORMAL_MODE = 'normal_mode_restored'
-    GARAGE_ARRIVAL = 'garage_arrival'
 
 
 @dataclass(frozen=True)
@@ -50,6 +19,7 @@ class CargoAssignment:
     destination: str
     release_site: str
     garage: str
+    pickup: str
 
 
 @dataclass(frozen=True)
@@ -62,46 +32,6 @@ class CargoEvidence:
     site: str
     event: Event
     sequence: int
-
-
-# Acknowledgements are intentionally outside this table of applied/observed events.
-_TRANSITIONS = {
-    (State.TO_CARGO_DEPOT, Event.LOAD_STOP): (
-        State.STOPPED_FOR_LOAD,
-        'origin',
-        'IF-05',
-    ),
-    (State.STOPPED_FOR_LOAD, Event.LOADED): (State.COUPLING_WAIT, 'origin', 'IF-13'),
-    (State.COUPLING_WAIT, Event.COUPLED): (State.COUPLED, 'origin', 'IF-13'),
-    (State.COUPLED, Event.LOADED_MODE): (State.TRANSPORT, 'origin', 'IF-05'),
-    (State.TRANSPORT, Event.HANDOFF_STOP): (
-        State.STOPPED_FOR_HANDOFF,
-        'destination',
-        'IF-05',
-    ),
-    (State.STOPPED_FOR_HANDOFF, Event.HANDOFF): (
-        State.RETURN_TO_CARGO_DEPOT,
-        'destination',
-        'mock_handoff',
-    ),
-    (State.RETURN_TO_CARGO_DEPOT, Event.RELEASE_STOP): (
-        State.RELEASE_WAIT,
-        'release_site',
-        'IF-05',
-    ),
-    (State.RELEASE_WAIT, Event.DETACHED): (State.RESTORE_WAIT, 'release_site', 'IF-13'),
-    (State.RELEASE_WAIT, Event.RELEASE_FAILED): (
-        State.RELEASE_BLOCKED,
-        'release_site',
-        'IF-13',
-    ),
-    (State.RESTORE_WAIT, Event.NORMAL_MODE): (
-        State.RETURN_TO_GARAGE,
-        'release_site',
-        'IF-05',
-    ),
-    (State.RETURN_TO_GARAGE, Event.GARAGE_ARRIVAL): (State.RETURNED, 'garage', 'IF-05'),
-}
 
 
 @dataclass
@@ -126,6 +56,7 @@ class Cargo:
                 job.destination,
                 job.release_site,
                 job.garage,
+                job.pickup,
             )
         ):
             raise ValueError('complete cargo assignment required')
@@ -139,7 +70,7 @@ class Cargo:
             job.cart,
         ):
             return False
-        edge = _TRANSITIONS.get((self.state, report.event))
+        edge = TRANSITIONS.get((self.state, report.event))
         if edge is None:
             return False
         next_state, place, expected_source = edge

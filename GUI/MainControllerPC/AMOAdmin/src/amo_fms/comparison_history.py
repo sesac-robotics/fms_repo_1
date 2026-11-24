@@ -119,6 +119,13 @@ class HistoryPanel(QWidget):
         if item is not None and item.text().isdigit():
             RouteDialog(self._api, int(item.text()), self._asset, self).show()
 
+    def show_request(self, request_id: int) -> None:
+        """Find a review's exact positive request ID without old date filters."""
+        for field in self._inputs.values():
+            field.clear()
+        self._inputs['q'].setText(str(request_id))
+        self.search()
+
     def search(self) -> None:
         """Apply search and half-open UTC date filters starting on the first page."""
         self._filters = {'q': self._inputs['q'].text().strip()}

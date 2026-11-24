@@ -45,6 +45,7 @@ class Config:
     map_root: Path
     admin_web: str = DEFAULT_ADMIN_WEB
     operations_port: int = DEFAULT_IF03_PORT
+    scenario_review: bool = False
 
     @classmethod
     def from_environment(cls, *, fleet: bool = True) -> Config:
@@ -54,11 +55,14 @@ class Config:
             port = int(os.environ.get('AMO_FMS_TCP_PORT', str(port)))
         if not 1 <= port <= 65535:
             raise ValueError('AMO_FMS_TCP_PORT must be a valid TCP port.')
+        endpoint = preview_endpoint(os.environ.get('AMO_FMS_API', DEFAULT_ENDPOINT))
+        local = urlsplit(endpoint).hostname in {'localhost', '127.0.0.1', '::1'}
         return cls(
-            preview_endpoint(os.environ.get('AMO_FMS_API', DEFAULT_ENDPOINT)),
+            endpoint,
             Path(os.environ.get('AMO_MAP_DIR', str(DEFAULT_MAP_ROOT))).expanduser(),
             preview_endpoint(os.environ.get('AMO_ADMIN_WEB_URL', DEFAULT_ADMIN_WEB)),
             port,
+            not fleet and local and os.environ.get('AMO_SCENARIO_REVIEW') == '1',
         )
 
     def asset(self, base: str, language: str, theme: str) -> Path:

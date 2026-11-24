@@ -173,3 +173,19 @@ AMO_DEMO_HTTP=http://127.0.0.1:18085 AMO_DEMO_IF03_PORT=18087 \
 | `POST /api/admin/demo/depot/observe` | `requestId`(초기 충전 생략), `step`, `key`, 배터리 보고 시 `batteryPercent` |
 
 시험 요율은 지도상의 모의 거리·시간을 사용합니다. 운영 요율·결제 실패 재시도와 환불, 차액 결제 뒤 적용 실패 정산, 별도 관리자 권한·운영 범위, 대여·Cargo의 실제 증거와 IF-04·05·10·13 전송 계약은 팀에서 결정합니다. 대여·Cargo 개정 분기는 메모리 검증에서 실행합니다.
+
+
+## 클릭형 시나리오 검수 시험
+
+위와 같은 격리 서버에서 다음 명령을 실행합니다. 각 실행은 별도의 가상 차량과 충전칸을 배정하고, 테스트가 저장한 결과는 검수용 DB에서 확인할 수 있습니다.
+
+```sh
+AMO_DEMO_HTTP=http://127.0.0.1:18085 AMO_DEMO_IF03_PORT=18087 \
+  python3 -m unittest discover -s tests/integration -p test_scenario_review_http.py -v
+
+cd GUI/MainControllerPC/AMOAdmin
+QT_QPA_PLATFORM=offscreen AMO_DEMO_HTTP=http://127.0.0.1:18085 \
+  uv run --locked python -m unittest discover -s tests -p test_scenario_review_panel.py -v
+```
+
+서버 시험은 접수와 적용의 구분, 결제 뒤 적용 실패, 중복 단계 실행, 실행 간 차량·호출 분리, 관리자 권한과 Android 입력 확인을 검증합니다. PyQt 시험은 실제 검수 탭에서 선행 단계 재생, 실패 보고 클릭, 완료 단계 다시 보기와 원래 운행 이력 조회를 검증합니다.

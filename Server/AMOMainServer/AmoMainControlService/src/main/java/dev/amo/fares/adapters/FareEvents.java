@@ -12,6 +12,24 @@ class FareEvents {
     this.jdbc = jdbc;
   }
 
+  void payment(long quoteId, String key, String outcome) {
+    jdbc.sql(
+            """
+            INSERT INTO operation_events
+              (id, request_id, dispatch_id, producer, event_key, event_type, result_code,
+               occurred_at, received_at)
+            SELECT nextval('amo_record_id'), q.request_id, t.dispatch_id, 'MAIN_CONTROL', :key,
+                   CASE WHEN q.trip_id IS NULL THEN 'MOCK_PREPAYMENT_ATTEMPTED'
+                        ELSE 'MOCK_DIFFERENCE_ATTEMPTED' END,
+                   :result, statement_timestamp(), statement_timestamp()
+            FROM ride_fare_quotes q LEFT JOIN trips t ON t.id = q.trip_id WHERE q.id = :quote
+            """)
+        .param("quote", quoteId)
+        .param("key", "mock-fare:" + quoteId + ":" + key)
+        .param("result", outcome)
+        .update();
+  }
+
   void append(long requestId, Long dispatchId, String eventKey, String type, String result) {
     jdbc.sql(
             """

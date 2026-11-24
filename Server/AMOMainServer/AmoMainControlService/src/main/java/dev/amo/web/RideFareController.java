@@ -2,7 +2,9 @@ package dev.amo.web;
 
 import dev.amo.auth.AuthService;
 import dev.amo.fares.application.FareService;
+import dev.amo.fares.application.RouteAcceptance;
 import dev.amo.fares.domain.Fare.View;
+import dev.amo.fares.domain.RouteChange;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
@@ -23,10 +25,12 @@ import org.springframework.web.bind.annotation.RestController;
 class RideFareController {
   private final AuthService auth;
   private final FareService fares;
+  private final RouteAcceptance changes;
 
-  RideFareController(AuthService auth, FareService fares) {
+  RideFareController(AuthService auth, FareService fares, RouteAcceptance changes) {
     this.auth = auth;
     this.fares = fares;
+    this.changes = changes;
   }
 
   @GetMapping("/api/rides/{requestId}/fare")
@@ -45,6 +49,19 @@ class RideFareController {
       @PathVariable long requestId,
       @Valid @RequestBody Payment body) {
     return fares.prepay(passenger(token), requestId, body.quoteId(), body.key(), Instant.now());
+  }
+
+  @GetMapping("/api/rides/{requestId}/route-change")
+  RouteChange.View routeChange(@AuthenticationPrincipal Jwt token, @PathVariable long requestId) {
+    return changes.read(passenger(token), requestId, Instant.now());
+  }
+
+  @PostMapping("/api/rides/{requestId}/mock-change-accept")
+  RouteChange.View acceptChange(
+      @AuthenticationPrincipal Jwt token,
+      @PathVariable long requestId,
+      @Valid @RequestBody Payment body) {
+    return changes.accept(passenger(token), requestId, body.quoteId(), body.key(), Instant.now());
   }
 
   private long passenger(Jwt token) {

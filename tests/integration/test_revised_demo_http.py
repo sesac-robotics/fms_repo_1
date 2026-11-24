@@ -1,35 +1,14 @@
-"""Verify SD-01 through SD-05 across the local HTTP gateway and PostgreSQL."""
+"""Verify the revised fare and route flow through the local Web gateway."""
 
 from __future__ import annotations
 
-import os
-import unittest
-from concurrent.futures import ThreadPoolExecutor
 from typing import cast
-from uuid import uuid4
 
-from demo_http import DemoHttp
-
-BASE = os.environ.get('AMO_DEMO_HTTP', '')
+from demo_ride_case import DemoRideCase
 
 
-@unittest.skipUnless(BASE, 'requires the isolated local demo servers and PostgreSQL')
-class RevisedDemoHttpTest(unittest.TestCase):
-    """Exercise the same authenticated endpoints used by the demo clients."""
-
-    def setUp(self) -> None:
-        self.http = DemoHttp(BASE)
-        self.passenger = self.http.login('passenger')
-        self.admin = self.http.login('admin')
-        self.operator = self.http.login('operator')
-        status, ride = self.http.send(
-            '/api/rides',
-            self.passenger,
-            {'pickup': 'S1', 'destination': 'S2', 'idempotencyKey': str(uuid4())},
-        )
-        self.assertEqual(status, 200, ride)
-        self.ride = f'/api/rides/{ride["id"]}'
-        self.observations = f'/api/admin/demo/rides/{ride["id"]}/observe'
+class RevisedDemoHttpTest(DemoRideCase):
+    """Exercise authenticated changes and trip settlement without moving hardware."""
 
     def test_prepayment_replay_dispatch_alight_and_receipt(self) -> None:
         self.assertEqual(self.observe('ASSIGN')[1]['code'], 'FARE_PREPAYMENT_REQUIRED')
@@ -37,31 +16,7 @@ class RevisedDemoHttpTest(unittest.TestCase):
         self.assertEqual(
             self.http.send(self.observations, self.operator, {'step': 'ASSIGN'})[0], 403
         )
-        status, result = self.http.send(self.ride + '/mock-quote', self.passenger, {})
-        self.assertEqual(status, 200, result)
-        quote = cast(dict[str, object], result['quote'])
-        self.assertEqual(result['paymentStatus'], 'QUOTED')
-        payment = {'quoteId': quote['id'], 'key': str(uuid4())}
-        with ThreadPoolExecutor(2) as pool:
-            first, second = list(
-                pool.map(
-                    lambda _: self.http.send(
-                        self.ride + '/mock-prepayment', self.passenger, payment
-                    ),
-                    range(2),
-                )
-            )
-        self.assertEqual(first, second)
-        self.assertEqual(first[0], 200, first[1])
-        self.assertEqual(first[1]['paymentStatus'], 'SUCCEEDED')
-        self.assertEqual(
-            self.http.send(
-                self.ride + '/mock-prepayment',
-                self.passenger,
-                {**payment, 'quoteId': int(str(quote['id'])) + 1},
-            )[1]['code'],
-            'FARE_QUOTE_CONFLICT',
-        )
+        quote = self.pay_initial()
         for step in ('ASSIGN', 'PICKUP_STOP', 'BOARD', 'DEPART'):
             status, observed = self.observe(step)
             self.assertEqual(status, 200, observed)
@@ -85,10 +40,65 @@ class RevisedDemoHttpTest(unittest.TestCase):
             self.http.send(self.ride + '/fare', self.passenger)[1]['receipt'], receipt
         )
 
-    def observe(
-        self, step: str, values: dict[str, object] | None = None
-    ) -> tuple[int, dict[str, object]]:
-        """Submit one authorized fictional event to the staff replay adapter."""
-        return self.http.send(
-            self.observations, self.admin, {'step': step, **(values or {})}
+    def test_route_acceptance_application_and_restart_are_distinct(self) -> None:
+        self.pay_initial()
+        self.depart()
+        self.assertEqual(self.observe('STOP_WAIT')[0], 200)
+        proposal = self.propose('S4')
+        revision = {'revisionId': proposal['revisionId']}
+        self.assertGreater(int(str(proposal['deltaMinor'])), 0)
+        self.assertEqual(
+            self.route('issue', revision)[1]['code'],
+            'DEMO_CHANGE_ACCEPTANCE_OR_PAYMENT_REQUIRED',
         )
+        paid = self.accept_change(proposal)
+        self.assertEqual(paid['paymentStatus'], 'SUCCEEDED')
+        self.assertEqual(paid['effectiveDestination'], 'S2')
+        status, scope = self.route('issue', revision)
+        self.assertEqual(status, 200, scope)
+        self.assertEqual(self.route('issue', revision), (status, scope))
+        self.assertEqual(
+            self.route('report', {**scope, 'report': 'APPLIED'})[1]['code'],
+            'DEMO_ROUTE_REPORT_OUT_OF_ORDER',
+        )
+        self.assertEqual(
+            self.route('report', {**scope, 'report': 'ACKNOWLEDGED'})[0], 200
+        )
+        self.assertEqual(
+            self.observe('REDEPART')[1]['code'],
+            'DEMO_APPLIED_CHANGE_REQUIRED_FOR_REDEPARTURE',
+        )
+        applied = {**scope, 'report': 'APPLIED'}
+        self.assertEqual(
+            self.route('report', {**applied, 'epoch': 'prior-session'})[1]['code'],
+            'DEMO_ROUTE_SCOPE_MISMATCH',
+        )
+        result = self.route('report', applied)
+        self.assertEqual(result[0], 200, result[1])
+        self.assertEqual(self.route('report', applied), result)
+        self.assertEqual(
+            self.http.send(self.ride + '/route-change', self.passenger)[1][
+                'effectiveDestination'
+            ],
+            'S4',
+        )
+        self.assertEqual(self.observe('REDEPART')[0], 200)
+        receipt = self.finish()
+        self.assertEqual(
+            receipt['quoteId'], cast(dict[str, object], proposal['quote'])['id']
+        )
+
+    def test_paid_failed_change_keeps_original_fare(self) -> None:
+        initial = self.pay_initial()
+        self.depart()
+        proposal = self.propose('S4')
+        self.assertEqual(self.accept_change(proposal)['paymentStatus'], 'SUCCEEDED')
+        status, scope = self.route('issue', {'revisionId': proposal['revisionId']})
+        self.assertEqual(status, 200, scope)
+        self.assertEqual(self.route('report', {**scope, 'report': 'FAILED'})[0], 200)
+        status, change = self.http.send(self.ride + '/route-change', self.passenger)
+        self.assertEqual(status, 200, change)
+        self.assertEqual(change['effectiveDestination'], 'S2')
+        self.assertEqual(change['status'], 'FAILED')
+        self.assertEqual(change['paymentStatus'], 'SUCCEEDED')
+        self.assertEqual(self.finish()['quoteId'], initial['id'])

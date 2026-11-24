@@ -28,7 +28,7 @@ class FareRepository implements FareStore {
   public Optional<Request> lock(long requestId, long passengerId) {
     return jdbc.sql(
             """
-            SELECT r.id, r.status, u.mock_payment_method_ref,
+            SELECT r.id, r.status, d.place_key, u.mock_payment_method_ref,
                    sqrt(power(p.x_m - d.x_m, 2) + power(p.y_m - d.y_m, 2)) AS schematic_m
             FROM service_requests r
             JOIN users u ON r.user_id = u.id
@@ -44,17 +44,10 @@ class FareRepository implements FareStore {
                 new Request(
                     row.getLong("id"),
                     row.getString("status"),
+                    row.getString("place_key"),
                     row.getString("mock_payment_method_ref"),
-                    demoEstimate(row.getDouble("schematic_m"))))
+                    DemoTariff.schematicEstimate(row.getDouble("schematic_m"))))
         .optional();
-  }
-
-  private static Estimate demoEstimate(double schematicMeters) {
-    if (!Double.isFinite(schematicMeters) || schematicMeters <= 0 || schematicMeters > 1000) {
-      return null;
-    }
-    // A schematic straight line at a fictional 0.2 m/s, only for the demo profile.
-    return new Estimate((long) Math.ceil(schematicMeters), (int) Math.ceil(schematicMeters / 0.2));
   }
 
   @Override
@@ -110,7 +103,12 @@ class FareRepository implements FareStore {
 
   @Override
   public Attempt saveAttempt(
-      Quote quote, String key, String method, PaymentStatus outcome, Instant now) {
+      Quote quote,
+      String key,
+      String method,
+      long amountMinor,
+      PaymentStatus outcome,
+      Instant now) {
     Attempt attempt =
         jdbc.sql(
                 """
@@ -119,25 +117,10 @@ class FareRepository implements FareStore {
                 VALUES (?, ?, ?, ?, ?, ?) RETURNING *
                 """)
             .params(
-                quote.id(),
-                key,
-                method,
-                quote.amountMinor(),
-                outcome.name(),
-                now.atOffset(ZoneOffset.UTC))
+                quote.id(), key, method, amountMinor, outcome.name(), now.atOffset(ZoneOffset.UTC))
             .query(FareRows::attempt)
             .single();
-    long requestId =
-        jdbc.sql("SELECT request_id FROM ride_fare_quotes WHERE id = ?")
-            .param(quote.id())
-            .query(Long.class)
-            .single();
-    events.append(
-        requestId,
-        null,
-        "mock-prepayment:" + quote.id() + ":" + key,
-        "MOCK_PREPAYMENT_ATTEMPTED",
-        outcome.name());
+    events.payment(quote.id(), key, outcome.name());
     return attempt;
   }
 
@@ -158,6 +141,12 @@ class FareRepository implements FareStore {
             JOIN passenger_checks pc ON pc.trip_id = t.id
             WHERE d.request_id = ? AND t.id = ? AND t.status = 'COMPLETED'
               AND t.ended_at IS NOT NULL AND pc.check_kind = 'ALIGHTING' AND pc.result = 'CONFIRMED'
+              AND EXISTS (
+                SELECT 1 FROM operation_events e
+                WHERE e.dispatch_id = d.id AND e.vehicle_id = d.vehicle_id
+                  AND e.producer = 'DEMO_REPLAY' AND e.event_type = 'DEMO_DESTINATION_STOP_CONFIRMED'
+                  AND e.place_id IS NOT NULL AND e.occurred_at <= pc.checked_at
+              )
             ORDER BY pc.received_at, pc.id LIMIT 1
             """)
         .params(requestId, tripId)

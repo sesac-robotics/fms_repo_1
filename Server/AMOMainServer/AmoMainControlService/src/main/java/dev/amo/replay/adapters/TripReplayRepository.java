@@ -87,7 +87,8 @@ class TripReplayRepository implements TripReplayStore {
             """
             UPDATE trips
             SET status = :status,
-                started_at = CASE WHEN :status = 'ON_TRIP' THEN transaction_timestamp() ELSE started_at END,
+                started_at = CASE WHEN :status = 'ON_TRIP' THEN COALESCE(started_at, transaction_timestamp())
+                                  ELSE started_at END,
                 ended_at = CASE WHEN :status = 'COMPLETED' THEN transaction_timestamp() ELSE ended_at END,
                 distance_m = COALESCE(:meters, distance_m),
                 elapsed_s = COALESCE(:seconds, elapsed_s)
@@ -116,9 +117,16 @@ class TripReplayRepository implements TripReplayStore {
     return jdbc.sql(
             """
             INSERT INTO operation_events
-              (id, vehicle_id, request_id, dispatch_id, producer, event_key, event_type,
+              (id, vehicle_id, request_id, dispatch_id, place_id, producer, event_key, event_type,
                occurred_at, received_at, details)
-            VALUES (nextval('amo_record_id'), :vehicle, :request, :dispatch, 'DEMO_REPLAY', :key,
+            VALUES (nextval('amo_record_id'), :vehicle, :request, :dispatch,
+                    CASE WHEN :type = 'DEMO_DESTINATION_STOP_CONFIRMED' THEN COALESCE(
+                      (SELECT c.target_place_id FROM ride_route_changes c
+                       JOIN route_revisions r ON r.id = c.revision_id
+                       WHERE c.trip_id = :trip AND r.status = 'APPLIED'
+                       ORDER BY c.revision_id DESC LIMIT 1),
+                      (SELECT destination_place_id FROM service_requests WHERE id = :request))
+                    END, 'DEMO_REPLAY', :key,
                     :type, transaction_timestamp(), transaction_timestamp(),
                     jsonb_build_object('vehicleStatus', CAST(:phase AS text),
                       'connection', 'SIMULATED', 'distanceMeters', CAST(:meters AS double precision),
@@ -128,6 +136,7 @@ class TripReplayRepository implements TripReplayStore {
         .param("vehicle", work.vehicleId())
         .param("request", requestId)
         .param("dispatch", work.dispatchId())
+        .param("trip", work.tripId())
         .param("key", key(requestId, step))
         .param("type", step.event())
         .param("phase", step.status())

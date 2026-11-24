@@ -1,6 +1,7 @@
 package dev.amo.replay.application;
 
 import dev.amo.fares.application.FareService;
+import dev.amo.fares.application.RouteChangeStore;
 import dev.amo.fares.domain.Fare.Receipt;
 import dev.amo.replay.domain.TripReplay.Step;
 import dev.amo.replay.domain.TripReplay.Totals;
@@ -16,10 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class TripReplayService {
   private final TripReplayStore store;
   private final FareService fares;
+  private final RouteChangeStore routes;
 
-  TripReplayService(TripReplayStore store, FareService fares) {
+  TripReplayService(TripReplayStore store, FareService fares, RouteChangeStore routes) {
     this.store = store;
     this.fares = fares;
+    this.routes = routes;
   }
 
   /** Applies a step once and returns its original time for an exact replay. */
@@ -48,6 +51,13 @@ public class TripReplayService {
       fares.requirePrepayment(owner, requestId);
       assignment =
           store.assign(requestId).orElseThrow(() -> new ReplayFailure("DEMO_VEHICLE_BUSY"));
+    }
+    if (step == Step.REDEPART) {
+      Instant stoppedAt = store.prior(requestId, Step.STOP_WAIT).orElseThrow().observedAt();
+      routes
+          .applied(assignment.tripId())
+          .filter(route -> route.appliedAt().isAfter(stoppedAt))
+          .orElseThrow(() -> new ReplayFailure("DEMO_APPLIED_CHANGE_REQUIRED_FOR_REDEPARTURE"));
     }
     var observation = store.record(requestId, assignment, step, totals);
     return result(requestId, owner, assignment.tripId(), step, observation.observedAt());

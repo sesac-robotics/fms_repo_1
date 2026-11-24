@@ -139,11 +139,12 @@ final class ControlHttpAdapter {
       case "GET" ->
           READ_PATHS.contains(path)
               || path.matches("/api/operations/requests/[0-9]+/route")
-              || path.matches("/api/rides/[0-9]+/fare");
+              || path.matches("/api/rides/[0-9]+/(fare|route-change)");
       case "POST" ->
           WRITE_PATHS.contains(path)
-              || path.matches("/api/rides/[0-9]+/mock-(quote|prepayment)")
-              || path.matches("/api/admin/demo/rides/[0-9]+/observe");
+              || path.matches("/api/rides/[0-9]+/mock-(quote|prepayment|change-accept)")
+              || path.matches(
+                  "/api/admin/demo/rides/[0-9]+/(observe|route/(propose|issue|report))");
       case "PUT" -> path.matches("/api/admin/(?:members/[0-9]+/approval|menu/[a-zA-Z0-9_-]+)");
       default -> false;
     };

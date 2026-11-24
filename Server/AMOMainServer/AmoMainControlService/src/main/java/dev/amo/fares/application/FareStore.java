@@ -26,7 +26,8 @@ public interface FareStore {
   Optional<Attempt> latestAttempt(long quoteId);
 
   /** Records a mock attempt and its event atomically without exposing the instrument. */
-  Attempt saveAttempt(Quote quote, String key, String method, PaymentStatus outcome, Instant now);
+  Attempt saveAttempt(
+      Quote quote, String key, String method, long amountMinor, PaymentStatus outcome, Instant now);
 
   /** Reads a previously issued receipt for the owned request. */
   Optional<Receipt> receipt(long requestId);
@@ -38,7 +39,7 @@ public interface FareStore {
   Receipt settle(long requestId, CloseEvidence evidence, Quote quote, Instant now);
 
   /** Projected request and private inputs. The estimate can be absent. */
-  record Request(long id, String status, String method, Estimate estimate) {}
+  record Request(long id, String status, String destination, String method, Estimate estimate) {}
 
   /** Persisted confirmation from the same completed trip. */
   record CloseEvidence(long tripId, long dispatchId, long alightingCheckId) {}

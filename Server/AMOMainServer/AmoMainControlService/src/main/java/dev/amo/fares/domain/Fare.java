@@ -35,6 +35,7 @@ public final class Fare {
   /** A hold has no attempt, while success and failure represent durable attempts. */
   public enum PaymentStatus {
     QUOTED,
+    NOT_REQUIRED,
     ESTIMATE_MISSING,
     METHOD_MISSING,
     QUOTE_EXPIRED,

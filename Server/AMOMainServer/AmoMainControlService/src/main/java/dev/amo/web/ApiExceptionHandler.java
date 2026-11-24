@@ -34,7 +34,8 @@ class ApiExceptionHandler {
   @ExceptionHandler(FareFailure.class)
   ResponseEntity<ErrorBody> fareRejected(FareFailure failure) {
     HttpStatus status =
-        failure.reason() == FareFailure.Reason.RIDE_NOT_FOUND
+        (failure.reason() == FareFailure.Reason.RIDE_NOT_FOUND
+                || failure.reason() == FareFailure.Reason.ROUTE_CHANGE_NOT_FOUND)
             ? HttpStatus.NOT_FOUND
             : HttpStatus.CONFLICT;
     return ResponseEntity.status(status).body(new ErrorBody(failure.reason().name()));

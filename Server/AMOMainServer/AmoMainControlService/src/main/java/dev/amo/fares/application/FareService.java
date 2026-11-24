@@ -18,9 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Profile("demo")
 public class FareService {
   private final FareStore store;
+  private final RouteChangeStore routes;
 
-  FareService(FareStore store) {
+  FareService(FareStore store, RouteChangeStore routes) {
     this.store = store;
+    this.routes = routes;
   }
 
   /** Returns existing terms, or records the first quote for an open owned request. */
@@ -67,7 +69,10 @@ public class FareService {
       throw new FareFailure(Reason.FARE_PAYMENT_CLOSED);
     }
     return response(
-        requestId, quote, store.saveAttempt(quote, key, request.method(), outcome(request), now));
+        requestId,
+        quote,
+        store.saveAttempt(
+            quote, key, request.method(), quote.amountMinor(), outcome(request), now));
   }
 
   /** Requires a successful initial payment before the demo dispatch can be authorized. */
@@ -94,7 +99,9 @@ public class FareService {
         store
             .closeEvidence(requestId, tripId)
             .orElseThrow(() -> new FareFailure(Reason.FARE_EVIDENCE_MISSING));
-    return store.settle(requestId, evidence, paidQuote(requestId), now);
+    Quote initial = paidQuote(requestId);
+    Quote effective = routes.applied(tripId).map(route -> route.quote()).orElse(initial);
+    return store.settle(requestId, evidence, effective, now);
   }
 
   private Request owned(long passengerId, long requestId) {
@@ -103,7 +110,7 @@ public class FareService {
         .orElseThrow(() -> new FareFailure(Reason.RIDE_NOT_FOUND));
   }
 
-  private Quote paidQuote(long requestId) {
+  Quote paidQuote(long requestId) {
     return store
         .initialQuote(requestId)
         .filter(
@@ -142,7 +149,7 @@ public class FareService {
     return "RECEIVED".equals(request.status()) || "WAITING_DISPATCH".equals(request.status());
   }
 
-  private static PaymentStatus outcome(Request request) {
+  static PaymentStatus outcome(Request request) {
     return "demo-declined".equals(request.method())
         ? PaymentStatus.FAILED
         : PaymentStatus.SUCCEEDED;

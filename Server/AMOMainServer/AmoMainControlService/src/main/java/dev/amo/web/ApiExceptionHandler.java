@@ -1,7 +1,9 @@
 package dev.amo.web;
 
 import dev.amo.ApiError;
+import dev.amo.fares.application.FareFailure;
 import dev.amo.maincontrol.MainControlFailure;
+import dev.amo.replay.application.TripReplayService.ReplayFailure;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -27,6 +29,20 @@ class ApiExceptionHandler {
               HttpStatus.BAD_REQUEST;
         };
     return ResponseEntity.status(status).body(new ErrorBody(failure.reason().name()));
+  }
+
+  @ExceptionHandler(FareFailure.class)
+  ResponseEntity<ErrorBody> fareRejected(FareFailure failure) {
+    HttpStatus status =
+        failure.reason() == FareFailure.Reason.RIDE_NOT_FOUND
+            ? HttpStatus.NOT_FOUND
+            : HttpStatus.CONFLICT;
+    return ResponseEntity.status(status).body(new ErrorBody(failure.reason().name()));
+  }
+
+  @ExceptionHandler(ReplayFailure.class)
+  ResponseEntity<ErrorBody> replayRejected(ReplayFailure failure) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorBody(failure.getMessage()));
   }
 
   @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})

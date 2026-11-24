@@ -91,7 +91,7 @@ class SecurityConfiguration {
                     .hasAnyRole("ADMIN", "OPERATOR")
                     .requestMatchers("/api/admin/**")
                     .hasRole("ADMIN")
-                    .requestMatchers("/api/me/trips", "/api/rides")
+                    .requestMatchers("/api/me/trips", "/api/rides", "/api/rides/**")
                     .hasRole("PASSENGER")
                     .requestMatchers("/api/auth/**")
                     .authenticated()

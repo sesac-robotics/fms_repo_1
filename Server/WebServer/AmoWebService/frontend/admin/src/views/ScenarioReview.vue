@@ -33,7 +33,9 @@ const evidence = computed(
 const stage = computed(() => observations.value.at(-1)?.step);
 const activeVehicles = computed(() =>
   vehicles.value.filter(
-    (vehicle) => vehicle.vehicleNo === currentRun.value?.vehicleNumber,
+    (vehicle) =>
+      vehicle.vehicleNo === currentRun.value?.vehicleNumber &&
+      vehicle.sample?.epoch === `review-${currentRun.value?.id}`,
   ),
 );
 const details = [

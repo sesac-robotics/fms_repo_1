@@ -165,6 +165,7 @@
   "review_command": "Command ID",
   "review_cycle": "Facility cycle ID",
   "review_receipt": "Receipt",
+  "review_error_scenario_run_superseded": "A newer review is active. View saved steps or start a new review.",
   "review_error_scenario_waiting_android": "Complete this action for the current call in Android, then retry.",
   "review_error_scenario_service_unavailable": "Review service unavailable. Check the demo server and administrator sign-in.",
   "review_error_scenario_step_out_of_order": "Progress has changed. Refresh to find the next step.",

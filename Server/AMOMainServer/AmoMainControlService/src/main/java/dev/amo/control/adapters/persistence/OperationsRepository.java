@@ -44,6 +44,7 @@ class OperationsRepository implements OperationsStore {
         LEFT JOIN LATERAL (
           SELECT battery_pct, x_m, y_m, yaw_rad, speed_mps, source_epoch, sample_seq, received_at
           FROM telemetry_samples WHERE vehicle_id = v.id
+            AND (v.scenario_run_id IS NULL OR source_epoch = 'review-' || v.scenario_run_id)
           ORDER BY received_at DESC, id DESC LIMIT 1
         ) t ON TRUE
         LEFT JOIN LATERAL (
@@ -53,9 +54,11 @@ class OperationsRepository implements OperationsStore {
           ORDER BY received_at DESC, id DESC LIMIT 1
         ) e ON TRUE
         LEFT JOIN LATERAL (
-          SELECT battery_pct FROM demo_depot_cycles WHERE vehicle_id = v.id
+          SELECT battery_pct FROM demo_depot_cycles
+          WHERE vehicle_id = v.id AND NOT scenario_archived
           ORDER BY id DESC LIMIT 1
         ) depot ON TRUE
+        WHERE v.scenario_visible
         ORDER BY v.vehicle_no
         """)
         .query(
@@ -113,6 +116,8 @@ class OperationsRepository implements OperationsStore {
         SELECT e.id, e.received_at, e.event_type, v.vehicle_no, e.request_id,
           COALESCE(e.details->>'message', e.result_code, e.cause_code, e.producer) AS detail
         FROM operation_events e LEFT JOIN vehicles v ON v.id = e.vehicle_id
+        WHERE e.producer <> 'DEMO_REVIEW' OR (v.scenario_visible
+          AND e.event_key LIKE 'review:' || v.scenario_run_id || ':%')
         ORDER BY e.received_at DESC, e.id DESC LIMIT 50
         """)
         .query(

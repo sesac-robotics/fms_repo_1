@@ -9,11 +9,14 @@ import java.util.UUID;
 
 /** Persistence port for isolated review runs, independent of the business ledgers they exercise. */
 public interface ScenarioStore {
-  /** Reserves or retrieves an owned run, allocating fixtures on the first call. */
+  /** Reserves or retrieves an owned run, activating the shared fixture on the first call. */
   Optional<Run> start(long ownerId, UUID id, Scenario plan);
 
   /** Returns one run belonging to the active admin. Writes must hold its row lock. */
   Optional<Run> find(long ownerId, UUID id, boolean lock);
+
+  /** Locks the current review selection and reports whether this run may advance. */
+  boolean lockCurrent(UUID runId);
 
   /** Returns the last created run for the active admin, when there is one. */
   Optional<Run> latest(long ownerId);

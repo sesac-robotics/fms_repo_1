@@ -26,7 +26,10 @@ public class ScenarioReviewService {
     this.steps = steps;
   }
 
-  /** Creates an isolated run once per stable ID. A repeated start returns its current evidence. */
+  /**
+   * Starts one review on the shared fixture per stable ID. A repeated start returns its current
+   * evidence.
+   */
   @Transactional
   public View start(long owner, UUID id, Scenario plan) {
     Run run =
@@ -57,10 +60,14 @@ public class ScenarioReviewService {
    */
   @Transactional
   public View advance(long owner, UUID id, Step step, boolean manual, Instant now) {
+    boolean current = store.lockCurrent(id);
     Run run = owned(owner, id, true);
     List<Played> previous = store.steps(id);
     if (previous.stream().anyMatch(result -> result.step() == step)) {
       return view(run, previous);
+    }
+    if (!current) {
+      throw new ScenarioRejected("SCENARIO_RUN_SUPERSEDED");
     }
     var ordered = run.plan().steps();
     if (previous.size() >= ordered.size() || ordered.get(previous.size()) != step) {
@@ -71,11 +78,11 @@ public class ScenarioReviewService {
     }
     var evidence = steps.execute(run, step, manual, now.truncatedTo(ChronoUnit.MICROS));
     store.record(id, previous.size(), step, evidence);
-    Run current = owned(owner, id, false);
-    store.project(current, previous.size(), step, evidence);
+    Run updated = owned(owner, id, false);
+    store.project(updated, previous.size(), step, evidence);
     var results = new ArrayList<>(previous);
     results.add(new Played(step, evidence));
-    return view(current, results);
+    return view(updated, results);
   }
 
   private Run owned(long owner, UUID id, boolean lock) {

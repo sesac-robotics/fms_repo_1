@@ -43,7 +43,7 @@ class DepotReplayRepository implements DepotReplayStore {
   public Optional<Cycle> cycle(long vehicleId, Long requestId) {
     return jdbc.sql(
             """
-            SELECT * FROM demo_depot_cycles WHERE vehicle_id = :vehicle
+            SELECT * FROM demo_depot_cycles WHERE vehicle_id = :vehicle AND NOT scenario_archived
               AND request_id IS NOT DISTINCT FROM CAST(:request AS bigint)
             """)
         .param("vehicle", vehicleId)
@@ -58,7 +58,8 @@ class DepotReplayRepository implements DepotReplayStore {
             """
             INSERT INTO demo_depot_cycles (vehicle_id, dispatch_id, request_id, place_id, phase)
             SELECT vehicle_id, ?, ?, place_id, 'RETURNING'
-            FROM demo_depot_cycles WHERE vehicle_id = ? AND dispatch_id IS NULL RETURNING *
+            FROM demo_depot_cycles WHERE vehicle_id = ? AND dispatch_id IS NULL
+              AND NOT scenario_archived RETURNING *
             """)
         .params(dispatchId, requestId, vehicleId)
         .query(DepotReplayRepository::cycle)

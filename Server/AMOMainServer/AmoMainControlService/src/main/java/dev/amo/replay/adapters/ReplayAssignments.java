@@ -80,15 +80,26 @@ class ReplayAssignments {
     boolean eligible =
         jdbc.sql(
                 """
-                SELECT NOT EXISTS (
+                SELECT EXISTS (
+                    SELECT 1 FROM vehicles v WHERE v.id = :vehicle AND v.scenario_visible
+                      AND (v.scenario_run_id IS NULL OR EXISTS (
+                        SELECT 1 FROM demo_scenario_runs r
+                        WHERE r.id = v.scenario_run_id AND r.request_id = :request)))
+                  AND NOT EXISTS (
                     SELECT 1 FROM dispatches WHERE vehicle_id = :vehicle AND ended_at IS NULL)
                   AND EXISTS (
                     SELECT 1 FROM demo_depot_cycles c
-                    WHERE c.vehicle_id = :vehicle AND c.phase = 'VACATED'
+                    WHERE c.vehicle_id = :vehicle AND c.phase = 'VACATED' AND NOT c.scenario_archived
                       AND c.dispatch_id IS NOT DISTINCT FROM (
-                        SELECT id FROM dispatches WHERE vehicle_id = :vehicle ORDER BY id DESC LIMIT 1))
+                        SELECT d.id FROM dispatches d JOIN vehicles v ON v.id = d.vehicle_id
+                        WHERE d.vehicle_id = :vehicle AND
+                          (v.scenario_run_id IS NULL OR EXISTS (
+                            SELECT 1 FROM demo_scenario_runs r
+                            WHERE r.id = v.scenario_run_id AND r.request_id = d.request_id))
+                        ORDER BY d.id DESC LIMIT 1))
                 """)
             .param("vehicle", vehicleId)
+            .param("request", requestId)
             .query(Boolean.class)
             .single();
     if (!eligible) {

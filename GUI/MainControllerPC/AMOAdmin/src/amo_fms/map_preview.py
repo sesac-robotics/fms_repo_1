@@ -82,13 +82,27 @@ class MapPreview(FitImage):
 
     def show_samples(self, vehicles: tuple[Vehicle, ...], selected: str) -> None:
         """Replace plotted vehicles and update the highlighted sample."""
-        previous = {v.id: v.position_m for v in self._vehicles}
+        previous = {v.id: v for v in self._vehicles}
+        self._motion = {
+            v.id: self._motion[v.id]
+            for v in vehicles
+            if v.id in self._motion
+            and v.id in previous
+            and v.sample is not None
+            and previous[v.id].sample is not None
+            and v.sample[0] == previous[v.id].sample[0]
+        }
         now = monotonic()
         for vehicle in vehicles:
-            old = previous.get(vehicle.id)
+            prior = previous.get(vehicle.id)
+            old = prior.position_m if prior else None
             position = vehicle.position_m
             if (
                 vehicle.number.startswith('DEMO-REVIEW-')
+                and prior is not None
+                and prior.sample is not None
+                and vehicle.sample is not None
+                and prior.sample[0] == vehicle.sample[0]
                 and old
                 and position
                 and old != position

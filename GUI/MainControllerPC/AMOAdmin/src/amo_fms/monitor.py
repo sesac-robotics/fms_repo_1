@@ -40,6 +40,7 @@ class FleetMonitor(QWidget):
         self._select = selection
         self._vehicles: tuple[Vehicle, ...] = ()
         self._selected_id = ''
+        self._review_vehicle = ''
         content = QHBoxLayout(self)
         content.setContentsMargins(0, 0, 0, 0)
         content.setSpacing(14)
@@ -105,7 +106,8 @@ class FleetMonitor(QWidget):
     def show_snapshot(self, snapshot: Snapshot, selected_id: str) -> None:
         """Update the fleet while preserving the selected vehicle's service ID."""
         current = latest_review_stage(snapshot)
-        self._map.set_replay(snapshot.demo and current is not None)
+        self._review_vehicle = current.vehicle if snapshot.demo and current else ''
+        self._map.set_replay(bool(self._review_vehicle))
         self._stage.setVisible(current is not None)
         if current is not None:
             title = step_title(self._tr, current.type.removeprefix('DEMO_REVIEW_'))
@@ -144,7 +146,8 @@ class FleetMonitor(QWidget):
         self._list.blockSignals(True)
         self._list.setCurrentRow(row)
         self._list.blockSignals(False)
-        self._map.show_samples(self._vehicles, vehicle_id)
+        markers = tuple(v for v in self._vehicles if v.number == self._review_vehicle)
+        self._map.show_samples(markers, vehicle_id)
         if selected is None:
             for field in self._values.values():
                 field.setText('—')

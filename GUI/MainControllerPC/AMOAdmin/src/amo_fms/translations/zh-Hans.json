@@ -165,6 +165,7 @@
   "review_command": "指令 ID",
   "review_cycle": "设施使用周期 ID",
   "review_receipt": "收据",
+  "review_error_scenario_run_superseded": "较新的验证已启动。请查看已保存的步骤或开始新的验证。",
   "review_error_scenario_waiting_android": "在 Android 上完成当前呼叫的此项操作后重试。",
   "review_error_scenario_service_unavailable": "无法连接验收服务。请检查演示服务器和管理员登录。",
   "review_error_scenario_step_out_of_order": "进度已变化。请刷新查看下一步。",

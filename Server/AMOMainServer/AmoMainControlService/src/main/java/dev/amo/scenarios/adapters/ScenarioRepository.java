@@ -43,6 +43,7 @@ class ScenarioRepository implements ScenarioStore {
 
   @Override
   public Optional<Run> start(long ownerId, UUID id, Scenario plan) {
+    Optional<UUID> previous = fixtures.lockCurrent();
     jdbc.sql(
             """
             INSERT INTO demo_scenario_runs (id, owner_id, passenger_id, plan)
@@ -55,7 +56,7 @@ class ScenarioRepository implements ScenarioStore {
     var reserved = find(ownerId, id, true);
     if (reserved.isPresent() && reserved.get().vehicleId() == 0) {
       jdbc.sql("UPDATE demo_scenario_runs SET vehicle_id = ? WHERE id = ?")
-          .params(fixtures.createVehicle(), id)
+          .params(fixtures.activate(previous, id), id)
           .update();
       return find(ownerId, id, false);
     }
@@ -68,6 +69,11 @@ class ScenarioRepository implements ScenarioStore {
         .params(ownerId, id)
         .query(ScenarioRepository::run)
         .optional();
+  }
+
+  @Override
+  public boolean lockCurrent(UUID runId) {
+    return fixtures.lockCurrent().filter(runId::equals).isPresent();
   }
 
   @Override

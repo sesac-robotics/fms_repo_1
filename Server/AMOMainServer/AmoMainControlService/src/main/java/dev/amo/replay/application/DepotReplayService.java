@@ -56,7 +56,7 @@ public class DepotReplayService {
     var latest = depot.latestDispatch(vehicleId);
     boolean matches =
         trip == null
-            ? latest.isEmpty()
+            ? scopedVehicle != null || latest.isEmpty()
             : trip.vehicleId() == vehicleId
                 && latest.filter(id -> id == trip.dispatchId()).isPresent();
     if (!matches) {

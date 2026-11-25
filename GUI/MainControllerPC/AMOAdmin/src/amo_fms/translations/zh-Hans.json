@@ -255,5 +255,16 @@
   "status_simulated_resume_approved": "运营员已批准重新出发",
   "status_demo_if05_redeparted_original": "沿原路线重新出发",
   "status_demo_route_failed": "变更路线应用失败",
-  "status_demo_route_applied": "变更路线已应用"
+  "status_demo_route_applied": "变更路线已应用",
+  "forecast_title": "拥堵预测实验",
+  "forecast_scope": "四辆车的模拟回放。等待时间是当前队列中下一辆车获准进入前的时间。",
+  "forecast_unavailable": "无法读取回放，或回放地图不匹配。",
+  "forecast_cursor": "模拟时间",
+  "forecast_elapsed": "模拟时间 {seconds} 秒",
+  "forecast_horizon": "预测时距",
+  "forecast_model": "学习模型",
+  "forecast_baseline": "信号与队列基线",
+  "forecast_observed": "模拟观测值",
+  "forecast_seconds": "{seconds} 秒后",
+  "forecast_value": "{queue} 辆 · {wait} 秒"
 }

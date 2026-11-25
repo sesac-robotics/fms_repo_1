@@ -255,5 +255,16 @@
   "status_simulated_resume_approved": "Restart approved by the operator",
   "status_demo_if05_redeparted_original": "Restarted on the original route",
   "status_demo_route_failed": "Route change failed",
-  "status_demo_route_applied": "Route change applied"
+  "status_demo_route_applied": "Route change applied",
+  "forecast_title": "Congestion experiment",
+  "forecast_scope": "Four-vehicle simulation replay. Wait is the time until the next currently queued vehicle is granted entry.",
+  "forecast_unavailable": "The replay could not be read or its map does not match.",
+  "forecast_cursor": "Simulation time",
+  "forecast_elapsed": "Simulation time {seconds} s",
+  "forecast_horizon": "Horizon",
+  "forecast_model": "Learned model",
+  "forecast_baseline": "Signal and queue baseline",
+  "forecast_observed": "Simulation outcome",
+  "forecast_seconds": "{seconds} s ahead",
+  "forecast_value": "{queue} vehicles · {wait} s"
 }

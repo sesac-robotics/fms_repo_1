@@ -81,6 +81,10 @@ Android에서 Google로 로그인한 승객에게 운영자 권한도 부여하�
 - 운행 이력 #2에는 저장한 경로가 있습니다. 대기 중인 이력 #1에는 경로가 없습니다.
 - 실제 LiDAR·Vision 위치 추정, 자동 배차·안전 정지, 실물 연결과 운행 이력 수집은 별도 시험이 필요합니다.
 
+## 교차로 혼잡 예측 실험
+
+확정 도면의 교차로 한 곳에서 모의 차량 4대의 로그를 생성해 10초·30초 뒤 대기열과 대기시간을 평가합니다. 생성한 결과 파일을 FMS에서 재생할 수 있습니다. [실험 실행과 FMS 확인](experiments/deepfleet/README.md)
+
 ## 회의 안건별 적용 기준과 다시 확인할 일
 
 [회의 반영표](https://k8c1.atlassian.net/wiki/spaces/K8C1sesac/pages/9142410)의 순서입니다. 아래 Python 파일은 모두 `tests/integration/`에 있고, Java 클래스는 Main Control에 있습니다.

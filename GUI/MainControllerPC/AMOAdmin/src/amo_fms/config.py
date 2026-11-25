@@ -47,6 +47,7 @@ class Config:
     admin_web: str = DEFAULT_ADMIN_WEB
     operations_port: int = DEFAULT_IF03_PORT
     scenario_review: bool = False
+    congestion_trace: Path | None = None
 
     @classmethod
     def from_environment(cls, *, fleet: bool = True) -> Config:
@@ -58,12 +59,14 @@ class Config:
             raise ValueError('AMO_FMS_TCP_PORT must be a valid TCP port.')
         endpoint = preview_endpoint(os.environ.get('AMO_FMS_API', DEFAULT_ENDPOINT))
         local = urlsplit(endpoint).hostname in {'localhost', '127.0.0.1', '::1'}
+        trace = os.environ.get('AMO_CONGESTION_FORECAST_FILE') if fleet else None
         return cls(
             endpoint,
             Path(os.environ.get('AMO_MAP_DIR', str(DEFAULT_MAP_ROOT))).expanduser(),
             preview_endpoint(os.environ.get('AMO_ADMIN_WEB_URL', DEFAULT_ADMIN_WEB)),
             port,
             local and os.environ.get('AMO_SCENARIO_REVIEW') == '1',
+            Path(trace).expanduser() if trace else None,
         )
 
     def asset(self, base: str, language: str, theme: str) -> Path:
@@ -102,7 +105,7 @@ class Preferences:
     @property
     def walkthrough_enabled(self) -> bool:
         """Return whether the automatic first-use tutorial is enabled."""
-        return self.settings.value('walkthrough/enabled', True, type=bool)
+        return bool(self.settings.value('walkthrough/enabled', True, type=bool))
 
     @property
     def should_offer_walkthrough(self) -> bool:

@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .config import Config, Preferences
+from .congestion_panel import CongestionPanel
 from .i18n import Text
 from .models import Operator, Snapshot
 from .monitor import FleetMonitor
@@ -42,6 +43,9 @@ class Workspace(QWidget):
         """Construct the live-view shell and preserve navigational state."""
         super().__init__()
         self._tr = tr
+        self._page_keys = (
+            (*PAGE_KEYS, 'forecast_title') if config.congestion_trace else PAGE_KEYS
+        )
         self._nav: dict[str, QPushButton] = {}
         outer = QHBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -72,6 +76,14 @@ class Workspace(QWidget):
         )
         for page in self._pages:
             self._stack.addWidget(page)
+        if config.congestion_trace is not None:
+            self._stack.addWidget(
+                CongestionPanel(
+                    tr,
+                    config.congestion_trace,
+                    config.asset('map', prefs.language, prefs.theme),
+                )
+            )
         body.addWidget(self._stack, 1)
         outer.addWidget(main, 1)
         self.navigate(initial_page)
@@ -88,7 +100,7 @@ class Workspace(QWidget):
         layout.addWidget(brand(config, prefs.theme))
         layout.addWidget(label(tr('nav_label'), 'secondary'))
         layout.addSpacing(17)
-        for name in PAGE_KEYS:
+        for name in self._page_keys:
             item = button(tr(name), 'navigation')
             item.setCheckable(True)
             item.clicked.connect(lambda _checked=False, key=name: self.navigate(key))
@@ -114,16 +126,20 @@ class Workspace(QWidget):
         preview.setToolTip(self._tr('preview_explain'))
         preview.setAlignment(Qt.AlignmentFlag.AlignRight)
         top.addWidget(preview)
-        refresh = button(self._tr('refresh'))
-        refresh.clicked.connect(self.request_refresh)
-        top.addWidget(refresh)
+        self._refresh = button(self._tr('refresh'))
+        self._refresh.clicked.connect(self.request_refresh)
+        top.addWidget(self._refresh)
         return top
 
     def navigate(self, key: str) -> None:
         """Change the displayed page while keeping the data snapshot read-only."""
-        page = key if key in PAGE_KEYS else 'monitor'
-        self._stack.setCurrentIndex(PAGE_KEYS.index(page))
+        page = key if key in self._page_keys else 'monitor'
+        self._stack.setCurrentIndex(self._page_keys.index(page))
         self._title.setText(self._tr(page))
+        live_page = page != 'forecast_title'
+        self._refresh.setVisible(live_page)
+        self._status.setVisible(live_page)
+        self._caption.setVisible(live_page)
         self._caption.setText(
             self._tr('live_caption' if page == 'monitor' else 'preview_explain')
         )

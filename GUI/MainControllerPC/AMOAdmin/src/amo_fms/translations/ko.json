@@ -255,5 +255,16 @@
   "status_simulated_resume_approved": "운영자가 재출발 승인",
   "status_demo_if05_redeparted_original": "기존 경로로 재출발",
   "status_demo_route_failed": "변경 경로 적용 실패",
-  "status_demo_route_applied": "변경 경로 적용 완료"
+  "status_demo_route_applied": "변경 경로 적용 완료",
+  "forecast_title": "혼잡 예측 실험",
+  "forecast_scope": "모의 차량 4대의 교차로 재생입니다. 대기는 대기열의 다음 차량이 허가받기까지 남은 시간입니다.",
+  "forecast_unavailable": "예측 파일을 읽을 수 없거나 확정 지도와 일치하지 않습니다.",
+  "forecast_cursor": "모의 실행 시점",
+  "forecast_elapsed": "모의 실행 {seconds}초 시점",
+  "forecast_horizon": "예측 시점",
+  "forecast_model": "학습 모델",
+  "forecast_baseline": "신호·대기열 기준",
+  "forecast_observed": "모의 관측값",
+  "forecast_seconds": "{seconds}초 뒤",
+  "forecast_value": "{queue}대 · {wait}초"
 }

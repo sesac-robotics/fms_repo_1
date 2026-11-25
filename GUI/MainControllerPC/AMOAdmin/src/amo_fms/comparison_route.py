@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QPainterPath, QPen, QPixmap
+from PyQt6.QtGui import QColor, QPainterPath, QPen, QPixmap, QResizeEvent
 from PyQt6.QtNetwork import QNetworkReply
 from PyQt6.QtWidgets import (
     QDialog,
@@ -17,6 +18,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from .config import CONFIRMED_MAP_FILE
 from .map_preview import map_fraction
 from .staff_api import StaffApi
 
@@ -43,20 +45,34 @@ class RouteDialog(QDialog):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle(f'Recorded route #{request_id}')
-        self.resize(750, 600)
         self._scene = QGraphicsScene(self)
         self._view = QGraphicsView(self._scene)
-        self._map = QPixmap(asset)
-        self._scene.addPixmap(self._map)
+        self._view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._legacy_map = QPixmap(asset) if asset else QPixmap()
+        confirmed = (
+            QPixmap(str(Path(asset).with_name(CONFIRMED_MAP_FILE)))
+            if asset
+            else QPixmap()
+        )
+        self._map_item = self._scene.addPixmap(confirmed)
         self._status = QLabel('Loading recorded route…')
         layout = QVBoxLayout(self)
         layout.addWidget(self._status)
         layout.addWidget(self._view)
+        self.resize(750, 600)
         request = api.web_request(
             f'/api/operations/requests/{request_id}/route', authenticated=True
         )
         self.destroyed.connect(request.abort)
         request.finished.connect(lambda: self._complete(request))
+
+    def resizeEvent(self, event: QResizeEvent | None) -> None:
+        """Keep the road image within the route dialog as it resizes."""
+        super().resizeEvent(event)
+        self._view.fitInView(
+            self._map_item.boundingRect(), Qt.AspectRatioMode.KeepAspectRatio
+        )
 
     def _complete(self, reply: QNetworkReply) -> None:
         reply.deleteLater()
@@ -72,10 +88,12 @@ class RouteDialog(QDialog):
         if not lines:
             self._status.setText('No recorded route.')
             return
-        width, height = self._map.width(), self._map.height()
-        if self._map.isNull():
+        width, height = self._legacy_map.width(), self._legacy_map.height()
+        if self._legacy_map.isNull():
             self._status.setText('Map unavailable.')
             return
+        self._map_item.setPixmap(self._legacy_map)
+        self._scene.setSceneRect(self._map_item.boundingRect())
         for first, *points in lines:
             path = QPainterPath()
             path.moveTo(first[0] * width, first[1] * height)
@@ -86,5 +104,7 @@ class RouteDialog(QDialog):
             self._scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio
         )
         self._status.setText(
-            'Partial recorded route.' if payload.get('truncated') else 'Recorded route.'
+            'Partial recorded route · map v0.2.'
+            if payload.get('truncated')
+            else 'Recorded route · map v0.2.'
         )

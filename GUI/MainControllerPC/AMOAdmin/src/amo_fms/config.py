@@ -14,6 +14,7 @@ THEMES = ('light', 'dark')
 DEFAULT_ENDPOINT = 'http://127.0.0.1:18085'
 DEFAULT_ADMIN_WEB = 'http://127.0.0.1:5175'
 DEFAULT_IF03_PORT = 18087
+CONFIRMED_MAP_FILE = 'amo-map-confirmed.png'
 DEFAULT_MAP_ROOT = Path(__file__).resolve().parents[5] / 'maps'
 
 
@@ -66,7 +67,9 @@ class Config:
         )
 
     def asset(self, base: str, language: str, theme: str) -> Path:
-        """Return the shared palette or localized map image path."""
+        """Return the logo, confirmed map, or explicitly requested legacy map path."""
+        if base == 'map':
+            return self.map_root / CONFIRMED_MAP_FILE
         suffix = theme if theme in THEMES else 'light'
         locale = language if language in LANGUAGES else 'ko'
         stem = 'amo-logo' if base == 'logo' else f'amode-map-v02-fms-{locale}'

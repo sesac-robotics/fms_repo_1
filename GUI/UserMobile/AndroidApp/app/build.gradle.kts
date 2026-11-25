@@ -32,7 +32,7 @@ abstract class PreparePassengerAssets : DefaultTask() {
     fun stage() {
         fileOperations.sync {
             from(mapDirectory)
-            include("amo-logo-*.png", "amode-map-v02-passenger-*.png")
+            include("amo-logo-*.png", "amo-map-confirmed.png")
             into(outputDirectory)
         }
     }

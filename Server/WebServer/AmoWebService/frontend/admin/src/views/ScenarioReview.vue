@@ -127,7 +127,7 @@ function choose(step, prepareOnly = false) {
       </ol>
     </section>
     <div class="stack">
-      <OperationMap :vehicles="activeVehicles" :demo="true" animate>
+      <OperationMap :vehicles="activeVehicles" animate>
         <p v-if="currentRun" role="status">
           {{ currentRun.vehicleNumber }} · {{ t(stage) }}
           <span v-if="currentRun.requestId">

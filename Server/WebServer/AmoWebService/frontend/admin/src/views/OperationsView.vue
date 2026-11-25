@@ -51,7 +51,7 @@ function eventKind(kind) {
     <TripHistoryView v-if="view === 'trips'" :data="data" />
     <template v-if="view === 'overview'">
       <div class="operation-grid">
-        <OperationMap :vehicles="data.vehicles || []" :demo="demo" />
+        <OperationMap />
         <section class="panel">
           <h2>{{ t("vehicles") }}</h2>
           <p v-if="!data.vehicles?.length">{{ t("empty") }}</p>

@@ -111,7 +111,6 @@ class MainActivity : ComponentActivity() {
         val screen = when (state.screen) {
             Screen.HOME -> RidePanels(widgets).home(
                 state,
-                settings.language.tag,
                 model::chooseStop,
                 model::requestRide,
                 model::refreshTrips,

@@ -84,8 +84,10 @@ export default {
   stepLogs:
     "Use the trip map and logs to distinguish receipt from an actual vehicle report.",
   stepMenu: "Change your language or theme and replay this guide in Settings.",
-  map: "Map v0.2 · 2440 × 2225 mm",
-  mapNote: "Facility dimensions will be confirmed by measurement.",
+  map: "Confirmed road layout",
+  mapNote: "Vehicle positions require map calibration.",
+  legacyMap: "Map v0.2 · recorded route or demo replay",
+  legacyMapNote: "Facility dimensions will be confirmed by measurement.",
   mapLegend: "Map legend",
   mapStopLine: "Stop line",
   mapJunction: "Junction boundary",

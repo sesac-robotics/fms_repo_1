@@ -7,9 +7,10 @@ import { dimensions, mapPoint } from "../mapGeometry";
 const props = defineProps({
   vehicles: { type: Array, default: () => [] },
   lines: { type: Array, default: () => [] },
-  demo: Boolean,
   animate: Boolean,
 });
+const legacy = computed(() => props.animate || props.lines.length > 0);
+const caption = computed(() => t(legacy.value ? "legacyMap" : "map"));
 const imageUrl = computed(
   () => `/amode-map-v02-fms-${preferences.locale}-${preferences.theme}.svg`,
 );
@@ -21,7 +22,7 @@ const stopLabels = [
   [894, 848],
 ];
 const markers = computed(() => {
-  if (!props.demo) return [];
+  if (!props.animate) return [];
   return props.vehicles.flatMap((vehicle) => {
     const point = mapPoint(vehicle);
     if (!point) return [];
@@ -43,7 +44,7 @@ const markers = computed(() => {
 
 <template>
   <section class="panel operation-map">
-    <h2>{{ t("map") }}</h2>
+    <h2>{{ caption }}</h2>
     <slot />
     <div class="map">
       <svg
@@ -51,7 +52,7 @@ const markers = computed(() => {
         class="route-layer"
         :viewBox="`0 0 ${dimensions.width} ${dimensions.height}`"
         role="img"
-        :aria-label="`${t('map')} · ${t('routeRecorded')}`"
+        :aria-label="`${caption} · ${t('routeRecorded')}`"
       >
         <use :href="imageUrl + '#map-geometry'" aria-hidden="true" />
         <defs>
@@ -83,7 +84,11 @@ const markers = computed(() => {
         </g>
         <use :href="imageUrl + '#map-labels'" aria-hidden="true" />
       </svg>
-      <img v-else :src="imageUrl" :alt="t('map')" />
+      <img
+        v-else
+        :src="legacy ? imageUrl : '/amo-map-confirmed.png'"
+        :alt="caption"
+      />
       <span
         v-for="marker in markers"
         :key="marker.id"
@@ -97,8 +102,10 @@ const markers = computed(() => {
         <span class="map-marker-name">{{ marker.vehicleNo }}</span>
       </span>
     </div>
-    <p class="map-caption muted">{{ t("mapNote") }}</p>
-    <ul class="map-key" :aria-label="t('mapLegend')">
+    <p class="map-caption muted">
+      {{ t(legacy ? "legacyMapNote" : "mapNote") }}
+    </p>
+    <ul v-if="legacy" class="map-key" :aria-label="t('mapLegend')">
       <li><span class="key-stop"></span>{{ t("mapStopLine") }}</li>
       <li><span class="key-junction"></span>{{ t("mapJunction") }}</li>
       <li v-if="lines.length">

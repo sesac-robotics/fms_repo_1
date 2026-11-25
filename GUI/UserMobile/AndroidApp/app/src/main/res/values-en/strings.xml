@@ -46,8 +46,8 @@
     <string name="one_way">One way</string>
     <string name="request_ride">Request ride</string>
     <string name="request_another">Prepare another ride</string>
-    <string name="map_plan">Map plan v0.2 · 2440 × 2225 mm</string>
-    <string name="map_description">Map of station and shops S1, hospital S2, school S3, and residential area S4 stops</string>
+    <string name="map_plan">Confirmed road layout</string>
+    <string name="map_description">Confirmed road layout and lane directions</string>
     <string name="map_unavailable">Map image unavailable.</string>
     <string name="stop_s1">S1 Station &amp; shops</string>
     <string name="stop_s2">S2 Hospital</string>

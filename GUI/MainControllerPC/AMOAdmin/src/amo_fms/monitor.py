@@ -16,8 +16,8 @@ from PyQt6.QtWidgets import (
 )
 
 from .config import Config, Preferences
+from .fleet_map import FleetMap
 from .i18n import Text, display_time
-from .map_preview import MapPreview
 from .models import Snapshot, Vehicle
 from .scenario_review_labels import latest_review_stage, step_title
 from .widgets import button, label, panel
@@ -40,25 +40,17 @@ class FleetMonitor(QWidget):
         self._select = selection
         self._vehicles: tuple[Vehicle, ...] = ()
         self._selected_id = ''
-        self._demo = False
         content = QHBoxLayout(self)
         content.setContentsMargins(0, 0, 0, 0)
         content.setSpacing(14)
 
         body, body_layout = panel()
         body_layout.addWidget(label(tr('map'), 'heading'))
-        body_layout.addWidget(label(tr('map_caption'), 'secondary'))
         self._stage = label('', 'heading')
         self._stage.hide()
         body_layout.addWidget(self._stage)
-        self._map = MapPreview(
-            config.asset('map', prefs.language, prefs.theme),
-            tr('map_caption'),
-            tr('map_missing'),
-        )
-        self._map.setMinimumHeight(330)
+        self._map = FleetMap(tr, config, prefs)
         body_layout.addWidget(self._map, 1)
-        body_layout.addWidget(label(tr('map_legend'), 'secondary'))
         content.addWidget(body, 4)
 
         right = QVBoxLayout()
@@ -112,8 +104,8 @@ class FleetMonitor(QWidget):
 
     def show_snapshot(self, snapshot: Snapshot, selected_id: str) -> None:
         """Update the fleet while preserving the selected vehicle's service ID."""
-        self._demo = snapshot.demo
         current = latest_review_stage(snapshot)
+        self._map.set_replay(snapshot.demo and current is not None)
         self._stage.setVisible(current is not None)
         if current is not None:
             title = step_title(self._tr, current.type.removeprefix('DEMO_REVIEW_'))
@@ -152,7 +144,7 @@ class FleetMonitor(QWidget):
         self._list.blockSignals(True)
         self._list.setCurrentRow(row)
         self._list.blockSignals(False)
-        self._map.show_samples(self._vehicles if self._demo else (), vehicle_id)
+        self._map.show_samples(self._vehicles, vehicle_id)
         if selected is None:
             for field in self._values.values():
                 field.setText('—')

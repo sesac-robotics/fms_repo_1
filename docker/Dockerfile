@@ -29,5 +29,6 @@ USER node
 COPY --chown=node:node Server/WebServer/AmoWebService/frontend/admin/package*.json ./
 RUN npm ci --no-audit --no-fund
 COPY --chown=node:node Server/WebServer/AmoWebService/frontend/admin/ ./
+COPY --chown=node:node maps/ /maps/
 RUN npm test && npm run build
 CMD ["npm", "run", "dev", "--", "--strictPort"]

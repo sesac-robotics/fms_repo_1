@@ -46,8 +46,8 @@
     <string name="one_way">单程</string>
     <string name="request_ride">呼叫车辆</string>
     <string name="request_another">准备新的用车请求</string>
-    <string name="map_plan">地图示意 v0.2 · 2440 × 2225 毫米</string>
-    <string name="map_description">车站与商铺 S1、医院 S2、学校 S3 及住宅区 S4 站点示意图</string>
+    <string name="map_plan">已确认的道路布局</string>
+    <string name="map_description">已确认的道路布局与行驶方向</string>
     <string name="map_unavailable">地图图像无法加载。</string>
     <string name="stop_s1">S1 车站与商铺</string>
     <string name="stop_s2">S2 医院</string>

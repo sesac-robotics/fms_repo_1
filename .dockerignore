@@ -1,4 +1,7 @@
 **
+!maps/
+!maps/*.png
+!maps/*.svg
 !Server/
 !Server/AMOMainServer/
 !Server/AMOMainServer/AmoDB/

@@ -46,8 +46,8 @@
     <string name="one_way">편도</string>
     <string name="request_ride">호출하기</string>
     <string name="request_another">새 호출 준비</string>
-    <string name="map_plan">맵 예시안 v0.2 · 2440 × 2225 mm</string>
-    <string name="map_description">역·상가 S1, 병원 S2, 학교 S3, 주택가 S4 정류장 안내 지도</string>
+    <string name="map_plan">확정 도로 배치</string>
+    <string name="map_description">확정 도로 배치와 차로 진행 방향</string>
     <string name="map_unavailable">지도 이미지를 불러오지 못했습니다.</string>
     <string name="stop_s1">S1 역·상가</string>
     <string name="stop_s2">S2 병원</string>

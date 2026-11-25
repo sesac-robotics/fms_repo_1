@@ -8,7 +8,7 @@
 - **Android 앱**은 승객이 한국어·영어·중국어로 로그인하고, 편도 호출을 요청하고, 본인 이력을 보는 도구입니다. 확정 아키텍처는 승객의 Web Browser를 표시합니다. Android를 운영에 어떻게 연결할지는 팀에서 정합니다. [Android 안내](GUI/UserMobile/AndroidApp/README.md)
 - **관제 서버**는 회원·권한, 호출 접수, 운영 조회를 처리합니다. 이 서버에서만 PostgreSQL에 접근합니다. Flyway는 번호가 붙은 SQL을 순서대로 실행해 DB 구조를 준비합니다. [관제 서버](Server/AMOMainServer/AmoMainControlService) · [DB 변경 파일](Server/AMOMainServer/AmoDB/migrations)
 - **Web 게이트웨이**는 HTTP 요청을 받아 IF-02를 통해 관제 서버에 전달합니다. **Vue 관리자 화면**은 운영 상태와 운행 이력, 시험 결과를 보여 줍니다. [Web 게이트웨이](Server/WebServer/AmoWebService/backend) · [관리자 화면](Server/WebServer/AmoWebService/frontend/admin)
-- **공용 지도**에는 v0.2 지도와 로고가 있습니다. **통합 모의 시험**은 편도 운행부터 취소·경로 변경, 렌트·Cargo·분실물까지 확인합니다. [공용 지도](maps) · [모의 시험](tests/integration/README.md)
+- **공용 지도**에는 확정 도로 배치, v0.2 이력·재생용 지도와 로고가 있습니다. **통합 모의 시험**은 편도 운행부터 취소·경로 변경, 렌트·Cargo·분실물까지 확인합니다. [공용 지도](maps) · [모의 시험](tests/integration/README.md)
 
 ## 개발 환경에서 실행하기
 

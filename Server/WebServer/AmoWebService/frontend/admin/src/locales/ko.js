@@ -85,8 +85,10 @@ export default {
   stepLogs: "운행 지도와 이벤트에서 요청 접수와 실제 차량 보고를 구분합니다.",
   stepMenu:
     "설정에서 언어와 테마를 바꾸거나 처음 사용 안내를 다시 볼 수 있습니다.",
-  map: "맵 v0.2 · 2440 × 2225 mm",
-  mapNote: "시설 치수는 실측 후 확정합니다.",
+  map: "확정 도로 배치",
+  mapNote: "차량 위치를 표시하려면 지도 보정이 필요합니다.",
+  legacyMap: "지도 v0.2 · 저장 경로 또는 시나리오 재생",
+  legacyMapNote: "시설 치수는 실측 후 확정합니다.",
   mapLegend: "지도 범례",
   mapStopLine: "정지선",
   mapJunction: "교차로 경계",

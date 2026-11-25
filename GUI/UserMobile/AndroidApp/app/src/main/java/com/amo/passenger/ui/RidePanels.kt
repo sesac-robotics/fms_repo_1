@@ -19,7 +19,6 @@ import java.time.format.FormatStyle
 internal class RidePanels(private val widgets: AmoWidgets) {
     fun home(
         state: AmoUiState,
-        language: String,
         choose: (Boolean, Stop) -> Unit,
         request: () -> Unit,
         refresh: () -> Unit,
@@ -51,7 +50,7 @@ internal class RidePanels(private val widgets: AmoWidgets) {
                     add(FarePanel(widgets).render(it, current, state.busy, fareAction), 12)
                 }
             }
-            add(map(language), 14)
+            add(map(), 14)
         }
     }
 
@@ -76,13 +75,12 @@ internal class RidePanels(private val widgets: AmoWidgets) {
         button(string(R.string.refresh), action = refresh).apply { isEnabled = !busy }
     }
 
-    private fun map(language: String): LinearLayout = with(widgets) {
+    private fun map(): LinearLayout = with(widgets) {
         card().apply {
             add(text(string(R.string.map_plan), 14, palette.ink, true))
-            val mode = if (palette.dark) "dark" else "light"
             val plan =
                 image(
-                    "amode-map-v02-passenger-$language-$mode.png",
+                    "amo-map-confirmed.png",
                     string(R.string.map_description),
                     232
                 )

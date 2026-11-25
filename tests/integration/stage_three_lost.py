@@ -7,9 +7,10 @@ from stage_two_vehicle import Scope
 
 
 class Finding(Enum):
-    """The three IF-09 results modeled without consuming photographs."""
+    """Synthetic findings used to route notification and review."""
 
     CANDIDATE = 'candidate'
+    REVIEW = 'needs_admin_review'
     NONE = 'not_detected'
     UNAVAILABLE = 'comparison_unavailable'
 
@@ -40,6 +41,7 @@ class Detection:
     finding: Finding
     before: Snapshot | None
     after: Snapshot | None
+    performance_validated: bool = False
 
 
 @dataclass
@@ -52,6 +54,7 @@ class Report:
     attempts: list[tuple[Recipient, int, bool]] = field(
         default_factory=list, init=False
     )
+    reviewed_at: int | None = field(default=None, init=False)
     corrections: list[tuple[int, str]] = field(default_factory=list, init=False)
 
     @property
@@ -60,6 +63,7 @@ class Report:
         return max(
             [
                 self.input.observed,
+                self.reviewed_at or self.input.observed,
                 *(tick for _, tick, _ in self.attempts),
                 *(tick for tick, _ in self.corrections),
             ]
@@ -84,6 +88,8 @@ class LostProperty:
         if previous is not None:
             return previous if previous.input == data else None
         outcome = data.finding if self._paired(data) else Finding.UNAVAILABLE
+        if outcome is Finding.CANDIDATE and not data.performance_validated:
+            outcome = Finding.REVIEW
         result = Report(data, outcome)
         self._reports[data.key] = result
         return result
@@ -103,6 +109,20 @@ class LostProperty:
             < after.captured
             <= data.observed
         )
+
+    def review(self, key: str, operator: str, tick: int, *, confirmed: bool) -> bool:
+        """Record the registered operator's one-time decision on a pending finding."""
+        report = self._reports.get(key)
+        if (
+            report is None
+            or report.finding is not Finding.REVIEW
+            or operator != self.operator
+            or tick < report.latest_tick
+        ):
+            return False
+        report.reviewed_at = tick
+        report.finding = Finding.CANDIDATE if confirmed else Finding.NONE
+        return True
 
     def pending(self, key: str) -> dict[Recipient, str]:
         """Project only unsent recipients for the current uncorrected candidate."""
@@ -129,7 +149,7 @@ class LostProperty:
             return False
         attempt = role, tick, success
         prior_tick = max((t for r, t, _ in report.attempts if r is role), default=-1)
-        if tick < report.input.observed or tick <= prior_tick:
+        if tick < (report.reviewed_at or report.input.observed) or tick <= prior_tick:
             return False
         report.attempts.append(attempt)
         if success:

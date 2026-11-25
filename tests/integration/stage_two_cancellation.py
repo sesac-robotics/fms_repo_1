@@ -173,11 +173,20 @@ class CancelFlow:
         return True
 
     def can_dispatch(
-        self, *, connected: bool, healthy: bool, battery_pct: int, required_pct: int
+        self,
+        *,
+        connected: bool,
+        healthy: bool,
+        battery_pct: int,
+        required_pct: int,
+        return_interruptible: bool = False,
     ) -> bool:
-        """Require separate return and current link/health/percent eligibility evidence."""
+        """Check current eligibility after cleanup; require safe diversion during return."""
         return (
-            self.phase is Phase.RETURNED
+            (
+                self.phase is Phase.RETURNED
+                or (self.phase is Phase.RETURNING and return_interruptible)
+            )
             and connected
             and healthy
             and 0 <= required_pct <= battery_pct <= 100

@@ -57,11 +57,20 @@ class Rental:
             raise ValueError('first Hold call uses pickup and duration only')
 
     def remaining(self, tick: int) -> int | None:
-        """Return unknown before actual departure and zero only at expiry."""
+        """Return remaining synthetic seconds, or None before handover confirmation."""
         if self.started_at is None:
             return None
         used_until = min(tick, self.ended_at) if self.ended_at is not None else tick
         return max(0, self.call.duration - max(0, used_until - self.started_at))
+
+    def confirm_handover(self, scope: Scope, owner: str, tick: int) -> bool:
+        """Start timing once on matching handover evidence in synthetic seconds."""
+        if (scope, owner) != (self.scope, self.call.owner):
+            return False
+        if self.started_at is not None or tick < 0:
+            return False
+        self.started_at = self._clock = tick
+        return True
 
     def set_destination(self, owner: str, target: str, command: str) -> bool:
         """Bind a later route command. Command intake never proves departure."""
@@ -106,18 +115,15 @@ class Rental:
         return self._start_return('expired', tick)
 
     def _start_return(self, reason: str, tick: int) -> bool:
-        if self.return_reason or self.state not in {
-            State.MOVING,
-            State.STOPPED,
-            State.PARKED,
-        }:
+        if self.started_at is None or self.return_reason:
+            return False
+        if self.state not in {State.READY, State.MOVING, State.STOPPED, State.PARKED}:
             return False
         if self.state is State.MOVING and reason != 'expired':
             return False
         self.return_origin = self.state
         self.return_reason = reason
-        self._stopped = self.state in {State.STOPPED, State.PARKED}
-        assert self.started_at is not None
+        self._stopped = self.state is not State.MOVING
         self.ended_at = min(tick, self.started_at + self.call.duration)
         self._clock = tick
         if self.state is State.MOVING:
@@ -135,9 +141,7 @@ class Rental:
             ):
                 if self.slot is not None and not self.slot.exited:
                     return False
-                if self.started_at is None:
-                    self.started_at = tick
-                elif self.remaining(tick) == 0:
+                if self.started_at is None or self.remaining(tick) == 0:
                     return False
                 self.state = State.MOVING
                 self.slot = None

@@ -15,6 +15,7 @@ def moving() -> Rental:
     """Enter the first confirmed moving state at synthetic second 100."""
     rental = Rental(CALL, SCOPE)
     assert rental.set_destination(CALL.owner, 'library', 'leg-1')
+    assert rental.confirm_handover(SCOPE, CALL.owner, 100)
     assert rental.vehicle_event(SCOPE, 'leg-1', 'departed', 100)
     return rental
 
@@ -43,7 +44,7 @@ class HoldTest(unittest.TestCase):
                 Rental(call, SCOPE)
         self.assertIsNone(Rental(CALL, SCOPE).remaining(10_000))
 
-    def test_sd10_countdown_starts_only_on_same_assignment_departure(self) -> None:
+    def test_sd10_countdown_starts_only_on_matching_handover(self) -> None:
         rental = Rental(CALL, SCOPE)
         self.assertFalse(rental.set_destination('other', 'library', 'leg-1'))
         self.assertTrue(rental.set_destination(CALL.owner, 'library', 'leg-1'))
@@ -53,14 +54,30 @@ class HoldTest(unittest.TestCase):
             rental.vehicle_event(replace(SCOPE, epoch=1), 'leg-1', 'departed', 120)
         )
         self.assertFalse(rental.vehicle_event(SCOPE, 'old-command', 'departed', 120))
+        self.assertFalse(rental.vehicle_event(SCOPE, 'leg-1', 'departed', 120))
+        self.assertFalse(
+            rental.confirm_handover(replace(SCOPE, epoch=1), CALL.owner, 115)
+        )
+        self.assertFalse(rental.confirm_handover(SCOPE, 'other', 115))
+        self.assertTrue(rental.confirm_handover(SCOPE, CALL.owner, 115))
+        self.assertFalse(rental.confirm_handover(SCOPE, CALL.owner, 119))
         self.assertTrue(rental.vehicle_event(SCOPE, 'leg-1', 'departed', 120))
         self.assertFalse(rental.set_destination('other', 'lab', 'leg-2'))
         self.assertTrue(rental.set_destination(CALL.owner, 'lab', 'leg-2'))
         self.assertEqual(rental.destination, 'lab')
         self.assertFalse(rental.vehicle_event(SCOPE, 'leg-1', 'destination_stop', 130))
-        self.assertEqual(rental.started_at, 120)
-        self.assertEqual(rental.remaining(149), 1)
-        self.assertEqual(rental.remaining(150), 0)
+        self.assertEqual(rental.started_at, 115)
+        self.assertEqual(rental.remaining(144), 1)
+        self.assertEqual(rental.remaining(145), 0)
+
+    def test_sd10_handover_can_expire_before_departure(self) -> None:
+        rental = Rental(CALL, SCOPE)
+        self.assertTrue(rental.confirm_handover(SCOPE, CALL.owner, 100))
+        self.assertTrue(rental.set_destination(CALL.owner, 'library', 'leg-1'))
+        self.assertFalse(rental.vehicle_event(SCOPE, 'leg-1', 'departed', 130))
+        self.assertTrue(rental.expire(130))
+        self.assertTrue(rental.confirm_alighting(SCOPE, CALL.owner, 131))
+        self.assertIs(rental.state, State.RETURNING)
 
     def test_sd10_parking_distinguishes_vehicle_arrival_bay_occupancy_and_exit(
         self,

@@ -62,6 +62,22 @@ class StageTwoCancellationTest(unittest.TestCase):
                     connected=link, healthy=healthy, battery_pct=pct, required_pct=25
                 )
             )
+        for connected, healthy, battery_pct, expected in (
+            (True, True, 25, True),
+            (False, True, 25, False),
+            (True, False, 25, False),
+            (True, True, 24, False),
+        ):
+            self.assertEqual(
+                flow.can_dispatch(
+                    connected=connected,
+                    healthy=healthy,
+                    battery_pct=battery_pct,
+                    required_pct=25,
+                    return_interruptible=True,
+                ),
+                expected,
+            )
         arrival = Evidence(SCOPE, f'return:{CANCEL.key}', 4)
         self.assertFalse(flow.observe(ReportKind.RETURN_ARRIVAL, cleanup(4)))
         self.assertTrue(flow.observe(ReportKind.RETURN_ARRIVAL, arrival))

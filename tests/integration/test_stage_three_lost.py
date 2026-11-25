@@ -9,7 +9,15 @@ from stage_two_vehicle import Scope
 SCOPE = Scope('taxi-1', 'assignment-3', 'vehicle-3', 2)
 BEFORE = Snapshot(SCOPE, 'before', 99)
 AFTER = Snapshot(SCOPE, 'after', 101)
-CANDIDATE = Detection(SCOPE, 'detection-1', 102, Finding.CANDIDATE, BEFORE, AFTER)
+CANDIDATE = Detection(
+    SCOPE,
+    'detection-1',
+    102,
+    Finding.CANDIDATE,
+    BEFORE,
+    AFTER,
+    performance_validated=True,
+)
 
 
 def service() -> LostProperty:
@@ -40,6 +48,31 @@ class LostPropertyTest(unittest.TestCase):
             )
         )
         self.assertEqual(result.success_at, {})
+
+    def test_sd12_unvalidated_or_ambiguous_candidates_require_admin_review(
+        self,
+    ) -> None:
+        ledger = service()
+        for item in (
+            replace(CANDIDATE, performance_validated=False),
+            replace(CANDIDATE, key='ambiguous', finding=Finding.REVIEW),
+        ):
+            report = ledger.accept(item)
+            assert report is not None
+            self.assertIs(report.finding, Finding.REVIEW)
+            self.assertEqual(ledger.pending(item.key), {})
+            self.assertFalse(ledger.review(item.key, 'other', 104, confirmed=True))
+            self.assertFalse(ledger.review(item.key, 'operator-1', 101, confirmed=True))
+        self.assertTrue(ledger.review(CANDIDATE.key, 'operator-1', 104, confirmed=True))
+        self.assertIn(Recipient.RIDER, ledger.pending(CANDIDATE.key))
+        self.assertFalse(
+            ledger.record_delivery(
+                CANDIDATE.key, Recipient.RIDER, 'rider-1', 103, success=True
+            )
+        )
+        self.assertTrue(ledger.review('ambiguous', 'operator-1', 104, confirmed=False))
+        self.assertEqual(ledger.pending('ambiguous'), {})
+        self.assertFalse(ledger.review('ambiguous', 'operator-1', 105, confirmed=True))
 
     def test_sd12_no_detection_and_unavailable_are_distinct_and_silent(self) -> None:
         ledger = service()

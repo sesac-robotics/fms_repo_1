@@ -34,6 +34,7 @@
   "snapshot_at": "服务器查询时间 {time}",
   "map": "运行地图",
   "map_caption": "已确认的道路布局 · 显示车辆位置前需校准地图。",
+  "show_legacy_replay": "显示演示地图（v0.2）",
   "legacy_map_caption": "地图 v0.2 · 演示车辆位置",
   "map_missing": "请检查此语言的地图文件。",
   "fleet": "车辆状态",

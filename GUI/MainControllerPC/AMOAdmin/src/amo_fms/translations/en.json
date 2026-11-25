@@ -34,6 +34,7 @@
   "snapshot_at": "Server retrieval {time}",
   "map": "Site map",
   "map_caption": "Confirmed road layout · vehicle positions require map calibration.",
+  "show_legacy_replay": "Show simulation map (v0.2)",
   "legacy_map_caption": "Map v0.2 · demo vehicle positions",
   "map_missing": "Check the map asset for this language.",
   "fleet": "Vehicle status",

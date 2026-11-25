@@ -107,7 +107,7 @@ class FleetMonitor(QWidget):
         """Update the fleet while preserving the selected vehicle's service ID."""
         current = latest_review_stage(snapshot)
         self._review_vehicle = current.vehicle if snapshot.demo and current else ''
-        self._map.set_replay(bool(self._review_vehicle))
+        self._map.set_replay_available(bool(self._review_vehicle))
         self._stage.setVisible(current is not None)
         if current is not None:
             title = step_title(self._tr, current.type.removeprefix('DEMO_REVIEW_'))

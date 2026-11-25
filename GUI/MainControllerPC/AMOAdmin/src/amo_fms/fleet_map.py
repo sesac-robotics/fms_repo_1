@@ -1,6 +1,6 @@
 """Keep confirmed road artwork separate from v0.2 replay coordinates."""
 
-from PyQt6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QCheckBox, QStackedWidget, QVBoxLayout, QWidget
 
 from .config import Config, Preferences
 from .i18n import Text
@@ -19,6 +19,11 @@ class FleetMap(QWidget):
         self._caption = label(tr('map_caption'), 'secondary')
         self._legend = label(tr('map_legend'), 'secondary')
         self._legend.hide()
+        self._replay = QCheckBox(tr('show_legacy_replay'))
+        self._replay.hide()
+        self._replay.toggled.connect(self._select_map)
+        self._samples: tuple[Vehicle, ...] = ()
+        self._selected = ''
         self._maps = QStackedWidget()
         self._maps.setMinimumHeight(330)
         self._confirmed = FitImage(
@@ -36,18 +41,30 @@ class FleetMap(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._caption)
+        layout.addWidget(self._replay)
         layout.addWidget(self._maps, 1)
         layout.addWidget(self._legend)
 
-    def set_replay(self, enabled: bool) -> None:
-        """Select the old frame only while showing an explicit demo replay."""
+    def set_replay_available(self, available: bool) -> None:
+        """Offer the legacy frame without switching away from the confirmed map."""
+        if not available:
+            self._replay.setChecked(False)
+        self._replay.setVisible(available)
+
+    def _select_map(self, enabled: bool) -> None:
         self._maps.setCurrentWidget(self._legacy if enabled else self._confirmed)
         self._caption.setText(
             self._tr('legacy_map_caption' if enabled else 'map_caption')
         )
         self._legend.setVisible(enabled)
+        self._show_current_samples()
 
     def show_samples(self, vehicles: tuple[Vehicle, ...], selected: str) -> None:
         """Plot legacy metre samples solely on the v0.2 map."""
+        self._samples = vehicles
+        self._selected = selected
+        self._show_current_samples()
+
+    def _show_current_samples(self) -> None:
         active = self._maps.currentWidget() is self._legacy
-        self._legacy.show_samples(vehicles if active else (), selected)
+        self._legacy.show_samples(self._samples if active else (), self._selected)

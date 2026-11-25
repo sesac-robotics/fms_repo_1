@@ -28,23 +28,27 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.stereotype.Component;
 
-/** Issues 20-minute AMO access tokens and verifies the signed token contract. */
+/** Issues profile-scoped AMO access tokens and verifies the signed token contract. */
 @Component
 public class AmoJwt {
-  public static final Duration TTL = Duration.ofMinutes(20);
+  private static final Duration STANDARD_TTL = Duration.ofMinutes(20);
+  private static final Duration DEMO_TTL = Duration.ofHours(12);
   private static final String ISSUER = "https://amo.local";
   private static final String AUDIENCE = "amo-api";
   private final SecretKey key;
   private final JwtEncoder encoder;
   private final SessionRepository sessions;
+  private final Duration ttl;
 
   AmoJwt(
       @Value("${amo.jwt-key}") String configured,
       Environment environment,
       SessionRepository sessions) {
     this.sessions = sessions;
+    boolean demo = environment.acceptsProfiles(Profiles.of("demo"));
+    ttl = demo ? DEMO_TTL : STANDARD_TTL;
     byte[] bytes;
-    if (configured.isBlank() && environment.acceptsProfiles(Profiles.of("demo"))) {
+    if (configured.isBlank() && demo) {
       bytes = new byte[32];
       new SecureRandom().nextBytes(bytes);
     } else {
@@ -58,9 +62,13 @@ public class AmoJwt {
     encoder = new NimbusJwtEncoder(new ImmutableSecret<>(key));
   }
 
+  Duration ttl() {
+    return ttl;
+  }
+
   Access issue(Account account) {
     Instant now = Instant.now();
-    Instant expiration = now.plus(TTL);
+    Instant expiration = now.plus(ttl);
     UUID sessionId = UUID.randomUUID();
     sessions.create(sessionId, account.member().id(), expiration);
     JwtClaimsSet claims =

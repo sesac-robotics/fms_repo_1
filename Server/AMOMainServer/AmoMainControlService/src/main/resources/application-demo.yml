@@ -2,4 +2,5 @@ spring:
   flyway:
     locations: classpath:db/migration,classpath:db/demo
 amo:
+  cookie-session-only: true
   cookie-secure: ${AMO_COOKIE_SECURE:false}

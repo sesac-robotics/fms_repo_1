@@ -29,11 +29,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 class AuthController {
   private final AuthService auth;
+  private final AmoJwt jwt;
   private final boolean secureCookie;
+  private final boolean sessionCookie;
 
-  AuthController(AuthService auth, @Value("${amo.cookie-secure}") boolean secureCookie) {
+  AuthController(
+      AuthService auth,
+      AmoJwt jwt,
+      @Value("${amo.cookie-secure}") boolean secureCookie,
+      @Value("${amo.cookie-session-only:false}") boolean sessionCookie) {
     this.auth = auth;
+    this.jwt = jwt;
     this.secureCookie = secureCookie;
+    this.sessionCookie = sessionCookie;
   }
 
   @PostMapping("/login")
@@ -93,7 +101,9 @@ class AuthController {
 
   private ResponseEntity<Access> signedIn(Access access, HttpStatus status) {
     return ResponseEntity.status(status)
-        .header(HttpHeaders.SET_COOKIE, cookie(access.token(), AmoJwt.TTL))
+        .header(
+            HttpHeaders.SET_COOKIE,
+            cookie(access.token(), sessionCookie ? Duration.ofSeconds(-1) : jwt.ttl()))
         .body(access);
   }
 

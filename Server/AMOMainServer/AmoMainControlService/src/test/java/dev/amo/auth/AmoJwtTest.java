@@ -12,6 +12,7 @@ import dev.amo.auth.Identity.Account;
 import dev.amo.auth.Identity.Member;
 import dev.amo.auth.Identity.Role;
 import dev.amo.auth.Identity.Status;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -48,6 +49,26 @@ class AmoJwtTest {
     assertThat(result.getSubject()).isEqualTo("13");
     assertThat(result.getAudience()).containsExactly(AUDIENCE);
     assertThat(AmoJwt.sessionId(result)).isNotNull();
+    assertThat(Duration.between(result.getIssuedAt(), result.getExpiresAt()))
+        .isEqualTo(Duration.ofMinutes(20));
+    verify(sessions).create(any(UUID.class), eq(13L), eq(access.expiresAt()));
+  }
+
+  @Test
+  void demoSessionLastsTwelveHours() {
+    var environment = new MockEnvironment();
+    environment.setActiveProfiles("demo");
+    var demo = new AmoJwt(Base64.getEncoder().encodeToString(KEY), environment, sessions);
+    var account =
+        new Account(
+            new Member(13, "Operator", "operator@amo.test", Role.OPERATOR, Status.ACTIVE),
+            null,
+            null);
+    var access = demo.issue(account);
+    var claims = demo.decoder().decode(access.token());
+
+    assertThat(Duration.between(claims.getIssuedAt(), claims.getExpiresAt()))
+        .isEqualTo(Duration.ofHours(12));
     verify(sessions).create(any(UUID.class), eq(13L), eq(access.expiresAt()));
   }
 

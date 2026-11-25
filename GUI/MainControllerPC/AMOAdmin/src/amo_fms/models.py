@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite
 from typing import Any
 
 from .measurement import sample_identity
+from .model_fields import identity, optional_number
+from .review_playback import Playback
 from .route_projection import AppliedRoute, applied_route
 
 OPERATORS = frozenset({'ADMIN', 'OPERATOR'})
@@ -32,32 +33,12 @@ def optional_string(data: dict[str, Any], key: str) -> str:
     return '' if data.get(key) is None else string_field(data, key)
 
 
-def optional_number(data: dict[str, Any], key: str) -> float | None:
-    """Return a finite reported measurement or no value."""
-    value = data.get(key)
-    if (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and isfinite(value)
-    ):
-        return float(value)
-    return None
-
-
 def records(data: dict[str, Any], key: str) -> list[dict[str, Any]]:
     """Read a bounded list of decoded records for a GUI table."""
     value = data.get(key)
     if not isinstance(value, list):
         raise ValueError(f'Invalid list {key}.')
     return [object_value(row) for row in value[:400]]
-
-
-def identity(data: dict[str, Any], key: str = 'id') -> str:
-    """Extract a display-safe opaque string or numeric identifier."""
-    raw = data.get(key)
-    if isinstance(raw, (str, int)) and not isinstance(raw, bool) and str(raw):
-        return str(raw)
-    raise ValueError(f'Invalid identifier {key}.')
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,6 +166,7 @@ class Snapshot:
     requests: tuple[RideRequest, ...] = ()
     events: tuple[Event, ...] = ()
     demo: bool = False
+    review: Playback | None = None
 
     @classmethod
     def parse(cls, value: Any) -> Snapshot:
@@ -195,4 +177,5 @@ class Snapshot:
             tuple(RideRequest.parse(row) for row in records(data, 'requests')),
             tuple(Event.parse(row) for row in records(data, 'events')),
             data.get('demo') is True,
+            Playback.parse(data.get('review')),
         )

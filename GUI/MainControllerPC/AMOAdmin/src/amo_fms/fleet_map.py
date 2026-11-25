@@ -3,10 +3,12 @@
 from PyQt6.QtWidgets import QCheckBox, QStackedWidget, QVBoxLayout, QWidget
 
 from .config import Config, Preferences
+from .confirmed_review_map import ConfirmedReviewMap
 from .i18n import Text
 from .map_preview import MapPreview
 from .models import Vehicle
-from .widgets import FitImage, label
+from .review_playback import Playback
+from .widgets import label
 
 
 class FleetMap(QWidget):
@@ -26,7 +28,7 @@ class FleetMap(QWidget):
         self._selected = ''
         self._maps = QStackedWidget()
         self._maps.setMinimumHeight(330)
-        self._confirmed = FitImage(
+        self._confirmed = ConfirmedReviewMap(
             config.asset('map', prefs.language, prefs.theme),
             tr('map_caption'),
             tr('map_missing'),
@@ -44,6 +46,12 @@ class FleetMap(QWidget):
         layout.addWidget(self._replay)
         layout.addWidget(self._maps, 1)
         layout.addWidget(self._legend)
+
+    def show_review(self, review: Playback | None) -> None:
+        """Render on the confirmed map independently of the regular vehicle feed."""
+        self._confirmed.present(review)
+        if review is not None:
+            self._replay.setChecked(False)
 
     def set_replay_available(self, available: bool) -> None:
         """Offer the legacy frame without switching away from the confirmed map."""

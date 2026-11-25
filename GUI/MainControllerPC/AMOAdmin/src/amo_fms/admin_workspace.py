@@ -64,10 +64,6 @@ class AdminWorkspace(ComparisonTabs):
         self.add_menu('settings', operations.settings, 'Settings')
         self.operations = operations
         if role == 'ADMIN' and config.scenario_review:
-            review = ScenarioReviewPanel(api, tr, self._review_history, self)
+            review = ScenarioReviewPanel(api, tr, self)
             review.replay_requested.connect(self.replay_requested)
             self.add_menu('scenario-review', review, tr('review_tab'))
-
-    def _review_history(self, request_id: int) -> None:
-        self.setCurrentWidget(self._trips)
-        self._trips.show_request(request_id)

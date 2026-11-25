@@ -11,7 +11,7 @@ export function useScenarioReview() {
   const busy = ref(false);
   const error = ref(false);
   const mapError = ref(false);
-  const vehicles = ref([]);
+  const playback = ref(null);
   const controller = new AbortController();
   let uncertainStart;
 
@@ -25,7 +25,7 @@ export function useScenarioReview() {
   async function snapshot() {
     try {
       const data = await api("/operations", { signal: controller.signal });
-      vehicles.value = data.vehicles;
+      playback.value = data.review;
       mapError.value = false;
       await nextTick();
     } catch {
@@ -125,7 +125,7 @@ export function useScenarioReview() {
     planId,
     run,
     selected,
-    vehicles,
+    playback,
     busy,
     error,
     mapError,

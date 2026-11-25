@@ -142,12 +142,15 @@ final class ControlHttpAdapter {
       case "GET" ->
           READ_PATHS.contains(path)
               || path.equals(REVIEW)
+              || path.equals(REVIEW + "/history")
               || path.matches(REVIEW_RUN)
               || path.matches("/api/operations/requests/[0-9]+/route")
               || path.matches("/api/rides/[0-9]+/(fare|route-change)");
       case "POST" ->
           WRITE_PATHS.contains(path)
               || path.equals(REVIEW + "/runs")
+              || path.equals(REVIEW + "/history/reset")
+              || path.matches(REVIEW_RUN + "/reset")
               || path.matches(REVIEW_RUN + "/steps/[A-Z_]+")
               || path.matches(
                   "/api/rides/[0-9]+/mock-(quote|prepayment|change-accept|change-propose)")

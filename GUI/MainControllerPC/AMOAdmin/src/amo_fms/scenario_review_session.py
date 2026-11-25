@@ -31,7 +31,7 @@ class ReviewSession(QObject):
         self.busy = False
         self._target: str | None = None
         self._play_target = False
-        self._manual_target = False
+        self.reset_completed = False
         self._map_hold = QTimer(self)
         self._map_hold.setSingleShot(True)
         self._map_hold.timeout.connect(self._play_prepared_target)
@@ -49,7 +49,6 @@ class ReviewSession(QObject):
         target: str | None = None,
         *,
         play_target: bool = False,
-        manual: bool = False,
     ) -> None:
         """Create a run, optionally prepare its prefix, and optionally play the target."""
         if self.busy or (target is not None and target not in plan.steps):
@@ -58,37 +57,59 @@ class ReviewSession(QObject):
             self._starting = (plan.id, target, uuid4())
         self._target = target
         self._play_target = play_target
-        self._manual_target = manual
         self._begin()
         self.http.send(
             'start', '/runs', {'id': str(self._starting[2]), 'plan': plan.id}
         )
 
-    def play_on_map(self, plan: Plan, step: str, *, manual: bool = False) -> None:
+    def play_on_map(self, plan: Plan, step: str) -> None:
         """Play the next step inline or replay a separate run for an arbitrary step."""
-        if self.run and self.run.plan == plan.id and self.run.next_step == step:
-            self.play(step, manual=manual)
-        else:
-            self.start(plan, step, play_target=True, manual=manual)
+        if self.run and self.run.plan == plan.id:
+            if step in self.run.available:
+                self.play(step)
+                return
+            if self.run.next_step in {'LINK_RESTORED', 'RESUME_APPROVED'}:
+                return
+        if step in plan.steps:
+            self.start(plan, step, play_target=True)
 
-    def play(self, step: str, *, manual: bool = False) -> None:
-        """Submit only the current server checkpoint and optionally verify Android input."""
-        if self.busy or self.run is None or self.run.next_step != step:
+    def play(self, step: str) -> None:
+        """Submit an action currently offered by the isolated scenario."""
+        if self.busy or self.run is None or step not in self.run.available:
             return
         self._begin()
-        self._send_step(step, manual)
+        self._send_step(step)
+
+    def reset(self, path: str, body: dict[str, Any]) -> None:
+        """Cancel prepared playback and request the confirmed review reset."""
+        if self.busy and not self._map_hold.isActive():
+            return
+        self._map_hold.stop()
+        self._target = None
+        self._play_target = False
+        self._starting = None
+        self._begin()
+        self.http.send('reset', path, body)
+
+    @property
+    def can_reset(self) -> bool:
+        """Allow reset while idle or during the local map hold before a POST."""
+        return not self.busy or self._map_hold.isActive()
 
     def _begin(self) -> None:
         self.busy = True
         self.changed.emit()
 
-    def _send_step(self, step: str, manual: bool) -> None:
+    def _send_step(self, step: str) -> None:
         assert self.run is not None
-        self.http.send('step', f'/runs/{self.run.id}/steps/{step}', {'manual': manual})
+        self.http.send('step', f'/runs/{self.run.id}/steps/{step}', {})
 
     def _receive(self, operation: str, payload: dict[str, Any]) -> None:
         try:
-            if operation == 'catalog':
+            if operation == 'reset':
+                self.run = None
+                self.reset_completed = True
+            elif operation == 'catalog':
                 plans = tuple(Plan.parse(p) for p in records(payload, 'plans'))
                 latest = payload.get('latest')
                 self.run = (
@@ -102,13 +123,10 @@ class ReviewSession(QObject):
         except (ValueError, TypeError):
             self._failed('SCENARIO_INVALID_RESPONSE')
             return
-        if (
-            self._target is not None
-            and self.run is not None
-            and self.run.next_step not in {None, self._target}
-        ):
+        next_step = self.run.next_step if self.run else None
+        if self._target is not None and next_step and next_step != self._target:
             self.changed.emit()
-            self._send_step(self.run.next_step, False)
+            self._send_step(next_step)
             return
         if (
             self._play_target
@@ -129,7 +147,7 @@ class ReviewSession(QObject):
         target, self._target = self._target, None
         self._play_target = False
         if target is not None:
-            self._send_step(target, self._manual_target)
+            self._send_step(target)
 
     def _failed(self, code: str) -> None:
         self._map_hold.stop()

@@ -181,11 +181,11 @@ AMO_DEMO_HTTP=http://127.0.0.1:18085 AMO_DEMO_IF03_PORT=18087 \
 
 ```sh
 AMO_DEMO_HTTP=http://127.0.0.1:18085 AMO_DEMO_IF03_PORT=18087 \
-  python3 -m unittest discover -s tests/integration -p test_scenario_review_http.py -v
+  python3 -m unittest discover -s tests/integration -p 'test_scenario_*.py' -v
 
 cd GUI/MainControllerPC/AMOAdmin
-QT_QPA_PLATFORM=offscreen AMO_DEMO_HTTP=http://127.0.0.1:18085 \
+QT_QPA_PLATFORM=offscreen AMO_DEMO_HTTP=http://127.0.0.1:18085 AMO_DEMO_IF03_PORT=18087 \
   uv run --locked python -m unittest discover -s tests -p test_scenario_review_panel.py -v
 ```
 
-서버 시험은 접수와 적용의 구분, 결제 뒤 적용 실패, 중복 단계 실행, 차량 재사용, 호출과 검수 기록 보존, 이전 지도 위치 제거, 관리자 권한과 Android 입력 확인을 검증합니다. PyQt 시험은 실제 검수 탭에서 선행 단계 재생, 실패 보고 클릭, 완료 단계 다시 보기와 원래 운행 이력 조회를 검증합니다.
+서버 시험은 선결제 실패 후 재시도, 변경 경로 적용과 기존 경로 유지, 연결 복구 후 재출발 승인, 중복 실행, 차량 재사용, 기록 초기화 및 운영 API와의 분리를 확인합니다. PyQt 시험은 Admin 시나리오 검수 버튼과 IF-03으로 연결된 FMS 확정 지도에서 새 차량 표시, 이전 목적지 이동, 현재 검수 초기화를 확인합니다.

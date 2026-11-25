@@ -91,7 +91,14 @@ class OperationsRepository implements OperationsStore {
         SELECT r.id, p.place_key AS pickup, d.place_key AS destination, r.status,
                COALESCE(applied.target, d.place_key) AS effective_destination,
                applied.revision_id
-        FROM (SELECT * FROM service_requests ORDER BY received_at DESC, id DESC LIMIT 50) r
+        FROM (
+          SELECT * FROM service_requests
+          WHERE NOT EXISTS (
+              SELECT 1 FROM operation_events review
+              WHERE review.request_id = service_requests.id AND review.producer = 'DEMO_REVIEW'
+          )
+          ORDER BY received_at DESC, id DESC LIMIT 50
+        ) r
         JOIN places p ON p.id = r.pickup_place_id
         LEFT JOIN places d ON d.id = r.destination_place_id
         """
@@ -116,8 +123,12 @@ class OperationsRepository implements OperationsStore {
         SELECT e.id, e.received_at, e.event_type, v.vehicle_no, e.request_id,
           COALESCE(e.details->>'message', e.result_code, e.cause_code, e.producer) AS detail
         FROM operation_events e LEFT JOIN vehicles v ON v.id = e.vehicle_id
-        WHERE e.producer <> 'DEMO_REVIEW' OR (v.scenario_visible
-          AND e.event_key LIKE 'review:' || v.scenario_run_id || ':%')
+        WHERE e.producer <> 'DEMO_REVIEW'
+          AND COALESCE(v.scenario_visible, true)
+          AND NOT EXISTS (
+            SELECT 1 FROM operation_events review
+            WHERE review.request_id = e.request_id AND review.producer = 'DEMO_REVIEW'
+          )
         ORDER BY e.received_at DESC, e.id DESC LIMIT 50
         """)
         .query(

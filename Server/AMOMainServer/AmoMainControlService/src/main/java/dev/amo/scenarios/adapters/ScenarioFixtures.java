@@ -23,7 +23,7 @@ class ScenarioFixtures {
   }
 
   long activate(Optional<UUID> previous, UUID next) {
-    long vehicle = previous.map(this::retire).orElseGet(this::createVehicle);
+    long vehicle = previous.map(this::retire).orElseGet(this::availableVehicle);
     jdbc.sql(
             """
             INSERT INTO demo_depot_cycles (vehicle_id, place_id, phase)
@@ -39,7 +39,7 @@ class ScenarioFixtures {
     return vehicle;
   }
 
-  private long retire(UUID run) {
+  long retire(UUID run) {
     long vehicle =
         jdbc.sql(
                 """
@@ -81,7 +81,20 @@ class ScenarioFixtures {
             "UPDATE demo_depot_cycles SET scenario_archived = true WHERE vehicle_id = ? AND NOT scenario_archived")
         .param(vehicle)
         .update();
+    jdbc.sql("UPDATE demo_scenario_runs SET closed_at = statement_timestamp() WHERE id = ?")
+        .param(run)
+        .update();
+    jdbc.sql("UPDATE vehicles SET scenario_visible = false, scenario_run_id = NULL WHERE id = ?")
+        .param(vehicle)
+        .update();
     return vehicle;
+  }
+
+  private long availableVehicle() {
+    return jdbc.sql("SELECT id FROM vehicles ORDER BY id LIMIT 1")
+        .query(Long.class)
+        .optional()
+        .orElseGet(this::createVehicle);
   }
 
   private long createVehicle() {

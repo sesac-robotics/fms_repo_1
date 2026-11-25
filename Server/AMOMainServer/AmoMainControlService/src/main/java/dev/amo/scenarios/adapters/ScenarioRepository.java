@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Repository
 @Profile("demo")
@@ -42,13 +43,20 @@ class ScenarioRepository implements ScenarioStore {
   }
 
   @Override
+  public void enterReview() {
+    if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+      throw new IllegalStateException("Review storage requires a transaction");
+    }
+    jdbc.sql("SET LOCAL search_path TO amo_review, pg_catalog").update();
+  }
+
+  @Override
   public Optional<Run> start(long ownerId, UUID id, Scenario plan) {
     Optional<UUID> previous = fixtures.lockCurrent();
     jdbc.sql(
             """
             INSERT INTO demo_scenario_runs (id, owner_id, passenger_id, plan)
-            SELECT ?, ?, profile_user_id, ? FROM amo_accounts
-            WHERE email = 'passenger@amo.test' AND role = 'PASSENGER' AND status = 'ACTIVE'
+            VALUES (?, ?, 1, ?)
             ON CONFLICT (id) DO NOTHING
             """)
         .params(id, ownerId, plan.name())
@@ -77,8 +85,46 @@ class ScenarioRepository implements ScenarioStore {
   }
 
   @Override
+  public Optional<Run> archived(long ownerId, UUID id) {
+    String legacyRuns =
+        RUNS.replace("FROM demo_", "FROM public.demo_")
+            .replace("JOIN vehicles", "JOIN public.vehicles");
+    return jdbc.sql(legacyRuns + " AND r.id = ?")
+        .params(ownerId, id)
+        .query(ScenarioRepository::run)
+        .optional();
+  }
+
+  @Override
+  public List<Played> archivedSteps(UUID runId) {
+    return readSteps(runId, "public.demo_scenario_steps");
+  }
+
+  @Override
+  public List<Summary> history(long ownerId) {
+    return jdbc.sql(
+            """
+            SELECT r.id, r.plan, false, r.closed_at IS NULL, r.created_at
+            FROM amo_review.demo_scenario_runs r WHERE r.owner_id = ?
+            UNION ALL
+            SELECT r.id, r.plan, true, false, r.created_at
+            FROM public.demo_scenario_runs r WHERE r.owner_id = ?
+            ORDER BY created_at DESC, id DESC LIMIT 100
+            """)
+        .params(ownerId, ownerId)
+        .query(
+            (row, index) ->
+                new Summary(
+                    row.getObject(1, UUID.class),
+                    Scenario.valueOf(row.getString(2)),
+                    row.getBoolean(3),
+                    row.getBoolean(4)))
+        .list();
+  }
+
+  @Override
   public Optional<Run> latest(long ownerId) {
-    return jdbc.sql(RUNS + " ORDER BY r.created_at DESC, r.id DESC LIMIT 1")
+    return jdbc.sql(RUNS + " AND r.closed_at IS NULL ORDER BY r.created_at DESC, r.id DESC LIMIT 1")
         .param(ownerId)
         .query(ScenarioRepository::run)
         .optional();
@@ -86,13 +132,21 @@ class ScenarioRepository implements ScenarioStore {
 
   @Override
   public List<Played> steps(UUID runId) {
-    return jdbc.sql(
-            """
-            SELECT step, evidence FROM demo_scenario_steps WHERE run_id = ? ORDER BY ordinal
-            """)
+    return readSteps(runId, "amo_review.demo_scenario_steps");
+  }
+
+  private List<Played> readSteps(UUID runId, String table) {
+    return jdbc.sql("SELECT step, evidence FROM " + table + " WHERE run_id = ? ORDER BY ordinal")
         .param(runId)
         .query((row, index) -> new Played(Step.valueOf(row.getString(1)), decode(row.getString(2))))
         .list();
+  }
+
+  @Override
+  public void useMockPayment(boolean approved) {
+    jdbc.sql("UPDATE amo_review.users SET mock_payment_method_ref = ? WHERE id = 1")
+        .param(approved ? "demo-approved" : "demo-declined")
+        .update();
   }
 
   @Override

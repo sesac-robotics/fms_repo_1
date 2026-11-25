@@ -19,7 +19,7 @@ from .config import Config, Preferences
 from .fleet_map import FleetMap
 from .i18n import Text, display_time
 from .models import Snapshot, Vehicle
-from .scenario_review_labels import latest_review_stage, step_title
+from .scenario_review_labels import latest_review_stage, review_stage_text
 from .widgets import button, label, panel
 
 
@@ -105,15 +105,14 @@ class FleetMonitor(QWidget):
 
     def show_snapshot(self, snapshot: Snapshot, selected_id: str) -> None:
         """Update the fleet while preserving the selected vehicle's service ID."""
-        current = latest_review_stage(snapshot)
+        review = snapshot.review
+        current = None if review else latest_review_stage(snapshot)
         self._review_vehicle = current.vehicle if snapshot.demo and current else ''
         self._map.set_replay_available(bool(self._review_vehicle))
-        self._stage.setVisible(current is not None)
-        if current is not None:
-            title = step_title(self._tr, current.type.removeprefix('DEMO_REVIEW_'))
-            self._stage.setText(
-                f'{self._tr("review_tab")} · {current.vehicle} · {title}'
-            )
+        self._map.show_review(review)
+        title = review_stage_text(self._tr, review, current)
+        self._stage.setVisible(bool(title))
+        self._stage.setText(title)
         if snapshot.events:
             event = snapshot.events[0]
             parts = (

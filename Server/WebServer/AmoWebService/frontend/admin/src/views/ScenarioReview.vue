@@ -9,7 +9,7 @@ const {
   planId,
   run,
   selected,
-  vehicles,
+  playback,
   busy,
   error,
   mapError,
@@ -31,13 +31,14 @@ const evidence = computed(
     observations.value.find((entry) => entry.step === selected.value)?.evidence,
 );
 const stage = computed(() => observations.value.at(-1)?.step);
-const activeVehicles = computed(() =>
-  vehicles.value.filter(
-    (vehicle) =>
-      vehicle.vehicleNo === currentRun.value?.vehicleNumber &&
-      vehicle.sample?.epoch === `review-${currentRun.value?.id}`,
-  ),
-);
+const activeVehicles = computed(() => {
+  const review = playback.value;
+  if (review?.runId !== currentRun.value?.id || !review?.schematicPoint)
+    return [];
+  return [
+    { id: review.runId, vehicleNo: review.vehicle, ...review.schematicPoint },
+  ];
+});
 const details = [
   "event",
   "status",
@@ -102,7 +103,7 @@ function choose(step, prepareOnly = false) {
         ><input v-model="evidenceOnly" type="checkbox" :disabled="busy" />
         {{ t("reviewEvidenceOnly") }}</label
       >
-      <label
+      <label v-if="plan?.manualSteps.length"
         ><input v-model="manual" type="checkbox" :disabled="busy" />
         {{ t("reviewManual") }}</label
       >

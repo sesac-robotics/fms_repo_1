@@ -49,20 +49,15 @@ class ScenarioVehicleReuseTest(unittest.TestCase):
         second = start('TAXI_APPLY_FAILED')
         self.assertEqual(first['vehicleNumber'], second['vehicleNumber'])
         fresh = snapshot()
-        vehicles = [
-            v
-            for v in cast(list[dict[str, object]], fresh['vehicles'])
-            if str(v['vehicleNo']).startswith('DEMO-REVIEW-')
-        ]
-        self.assertEqual(len(vehicles), 1)
-        self.assertIsNone(vehicles[0]['xM'])
+        current = cast(dict[str, object], fresh['review'])
+        self.assertEqual(current['runId'], second['id'])
+        self.assertEqual(current['checkpoints'], [])
         self.assertFalse(
             any(
-                str(e['type']).startswith('DEMO_REVIEW_')
-                for e in cast(list[dict[str, object]], fresh['events'])
+                str(v['vehicleNo']).startswith('DEMO-REVIEW-')
+                for v in cast(list[dict[str, object]], fresh['vehicles'])
             )
         )
-
         first_path = f'{ROOT}/{first["id"]}'
         self.assertEqual(http.send(first_path, admin), (200, first))
         self.assertEqual(
@@ -73,10 +68,49 @@ class ScenarioVehicleReuseTest(unittest.TestCase):
             (409, {'code': 'SCENARIO_RUN_SUPERSEDED'}),
         )
         self.assertNotEqual(assign(second)['requestId'], first['requestId'])
-        stage = next(
-            e
-            for e in cast(list[dict[str, object]], snapshot()['events'])
-            if str(e['type']).startswith('DEMO_REVIEW_')
+        playback = cast(dict[str, object], snapshot()['review'])
+        stages = cast(list[dict[str, object]], playback['checkpoints'])
+        self.assertEqual(stages[-1]['step'], 'ASSIGN')
+        self.assertEqual(playback['vehicle'], second['vehicleNumber'])
+
+    def test_close_and_clear_scope(self) -> None:
+        http = DemoHttp(ORIGIN)
+        admin = http.login('admin')
+        api = ROOT.removesuffix('/runs')
+        before = http.send('/api/operations', admin)[1]
+        run_path = f'{ROOT}/{uuid4()}'
+        payload: dict[str, object] = {
+            'plan': 'TAXI_APPLIED',
+            'id': run_path.rsplit('/', 1)[1],
+        }
+        self.assertEqual(http.send(ROOT, admin, payload)[0], 200)
+        self.assertEqual(
+            http.send(run_path + '/steps/INITIAL_OCCUPY', admin, {})[0], 200
         )
-        self.assertEqual(stage['type'], 'DEMO_REVIEW_ASSIGN')
-        self.assertEqual(stage['vehicle'], second['vehicleNumber'])
+        status, closed = http.send(run_path + '/reset', admin, {})
+        self.assertEqual(status, 200, closed)
+        self.assertIsNone(closed['current'])
+        self.assertEqual(http.send(run_path, admin)[0], 200)
+        self.assertIsNone(http.send('/api/operations', admin)[1]['review'])
+        self.assertEqual(
+            http.send(run_path + '/steps/INITIAL_CHARGE', admin, {})[0], 409
+        )
+
+        status, stale = http.send(api, admin)
+        self.assertEqual(status, 200, stale)
+        payload['id'] = str(uuid4())
+        self.assertEqual(http.send(ROOT, admin, payload)[0], 200)
+        counts = cast(dict[str, object], stale['history'])
+        self.assertEqual(
+            http.send(api + '/history/reset', admin, counts),
+            (409, {'code': 'SCENARIO_RESET_CHANGED'}),
+        )
+        counts = cast(dict[str, object], http.send(api, admin)[1]['history'])
+        self.assertEqual(
+            http.send(api + '/history/reset', admin, counts),
+            (200, {'runs': 0, 'observations': 0, 'current': None}),
+        )
+        self.assertEqual(http.send(run_path, admin)[0], 404)
+        after = http.send('/api/operations', admin)[1]
+        for field in ('vehicles', 'requests', 'events'):
+            self.assertEqual(before[field], after[field])

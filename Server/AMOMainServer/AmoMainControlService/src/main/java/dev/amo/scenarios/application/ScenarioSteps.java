@@ -7,6 +7,7 @@ import dev.amo.replay.domain.DepotReplay;
 import dev.amo.replay.domain.TripReplay;
 import dev.amo.scenarios.application.ScenarioStore.Run;
 import dev.amo.scenarios.domain.ReviewEvidence;
+import dev.amo.scenarios.domain.Scenario;
 import dev.amo.scenarios.domain.Scenario.Step;
 import java.time.Instant;
 import org.springframework.context.annotation.Profile;
@@ -35,9 +36,15 @@ class ScenarioSteps {
     this.fares = fares;
   }
 
-  ReviewEvidence execute(Run run, Step step, boolean manual, Instant now) {
+  ReviewEvidence execute(Run run, Step step, Instant now) {
     return switch (step) {
       case CALL -> call(run, step, now);
+      case LINK_LOST -> ReviewEvidence.trip("SIMULATED_LINK_LOST", now, null, "STOPPED");
+      case LINK_RESTORED ->
+          ReviewEvidence.trip("SIMULATED_LINK_RESTORED", now, null, "AWAITING_APPROVAL");
+      case RESUME_APPROVED ->
+          ReviewEvidence.trip("SIMULATED_RESUME_APPROVED", now, null, "RESUMED");
+      case PREPAY_DECLINED -> declinePrepayment(run, now);
       case QUOTE,
           PREPAY,
           CHANGE_PROPOSE,
@@ -46,7 +53,7 @@ class ScenarioSteps {
           ROUTE_ACK,
           ROUTE_APPLIED,
           ROUTE_FAILED ->
-          fares.execute(run, step, manual, now);
+          fares.execute(run, step, now);
       case ASSIGN, PICKUP_STOP, BOARD, DEPART, STOP_WAIT, REDEPART, DESTINATION_STOP, ALIGHT ->
           trip(run, step, now);
       case INITIAL_OCCUPY,
@@ -63,6 +70,13 @@ class ScenarioSteps {
     };
   }
 
+  private ReviewEvidence declinePrepayment(Run run, Instant now) {
+    store.useMockPayment(false);
+    var evidence = fares.declinePrepayment(run, now);
+    store.useMockPayment(true);
+    return evidence;
+  }
+
   private ReviewEvidence call(Run run, Step step, Instant now) {
     var ride = rides.accept(run.passengerId(), "S1", "S2", run.key(step), now);
     store.linkRequest(run.id(), ride.id());
@@ -70,6 +84,14 @@ class ScenarioSteps {
   }
 
   private ReviewEvidence trip(Run run, Step step, Instant now) {
+    if (step == Step.REDEPART && run.plan() == Scenario.TAXI_APPLY_FAILED) {
+      var resumed = trips.resumeOriginal(run.requestId());
+      return ReviewEvidence.trip(
+          TripReplay.Step.REDEPART_ORIGINAL.event(),
+          resumed.observedAt(),
+          resumed.tripId(),
+          resumed.status());
+    }
     var operation = TripReplay.Step.valueOf(step.name());
     var totals =
         operation == TripReplay.Step.DESTINATION_STOP ? new TripReplay.Totals(2.25, 17) : null;

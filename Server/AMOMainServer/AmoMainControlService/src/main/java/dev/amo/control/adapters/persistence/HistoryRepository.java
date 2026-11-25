@@ -17,6 +17,10 @@ class HistoryRepository implements HistoryStore {
       """
       FROM service_requests
       WHERE received_at >= :from AND received_at < :until
+        AND NOT EXISTS (
+          SELECT 1 FROM operation_events review
+          WHERE review.request_id = service_requests.id AND review.producer = 'DEMO_REVIEW'
+        )
         AND (:text = '' OR strpos(lower(service_type), lower(:text)) > 0
           OR strpos(lower(status), lower(:text)) > 0 OR id::text = :text)
       """;

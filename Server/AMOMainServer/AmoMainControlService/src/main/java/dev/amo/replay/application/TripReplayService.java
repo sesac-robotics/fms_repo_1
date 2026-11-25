@@ -3,6 +3,7 @@ package dev.amo.replay.application;
 import dev.amo.fares.application.FareService;
 import dev.amo.fares.application.RouteChangeStore;
 import dev.amo.fares.domain.Fare.Receipt;
+import dev.amo.fares.domain.RouteChange;
 import dev.amo.replay.domain.TripReplay.Step;
 import dev.amo.replay.domain.TripReplay.Totals;
 import java.time.Instant;
@@ -28,6 +29,19 @@ public class TripReplayService {
   /** Applies a step once and returns its original time for an exact replay. */
   @Transactional
   public Result observe(long requestId, Step step, Totals totals) {
+    if (step == Step.REDEPART_ORIGINAL) {
+      throw new ReplayFailure("DEMO_REVIEW_STEP_ONLY");
+    }
+    return apply(requestId, step, totals);
+  }
+
+  /** Records explicit review resumption on the original route after a failed change. */
+  @Transactional
+  public Result resumeOriginal(long requestId) {
+    return apply(requestId, Step.REDEPART_ORIGINAL, null);
+  }
+
+  private Result apply(long requestId, Step step, Totals totals) {
     if ((step == Step.DESTINATION_STOP) != (totals != null)) {
       throw new ReplayFailure("DEMO_TOTALS_REQUIRED_ONLY_AT_DESTINATION");
     }
@@ -58,6 +72,12 @@ public class TripReplayService {
           .applied(assignment.tripId())
           .filter(route -> route.appliedAt().isAfter(stoppedAt))
           .orElseThrow(() -> new ReplayFailure("DEMO_APPLIED_CHANGE_REQUIRED_FOR_REDEPARTURE"));
+    }
+    if (step == Step.REDEPART_ORIGINAL) {
+      routes
+          .latest(assignment.tripId())
+          .filter(route -> route.status() == RouteChange.Status.FAILED)
+          .orElseThrow(() -> new ReplayFailure("DEMO_FAILED_CHANGE_REQUIRED_FOR_ORIGINAL_ROUTE"));
     }
     var observation = store.record(requestId, assignment, step, totals);
     return result(requestId, owner, assignment.tripId(), step, observation.observedAt());

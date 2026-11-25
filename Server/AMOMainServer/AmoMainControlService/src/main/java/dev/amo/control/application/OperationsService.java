@@ -3,6 +3,7 @@ package dev.amo.control.application;
 import dev.amo.control.domain.Operations;
 import dev.amo.control.domain.RecordedRoute;
 import java.util.Optional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
@@ -16,11 +17,16 @@ public class OperationsService {
   private final RecordedRouteStore routes;
 
   private final boolean demo;
+  private final ObjectProvider<ReviewPlaybackSource> review;
 
   OperationsService(
-      OperationsStore repository, RecordedRouteStore routes, Environment environment) {
+      OperationsStore repository,
+      RecordedRouteStore routes,
+      Environment environment,
+      ObjectProvider<ReviewPlaybackSource> review) {
     this.repository = repository;
     this.routes = routes;
+    this.review = review;
     this.demo = environment.acceptsProfiles(Profiles.of("demo"));
   }
 
@@ -39,11 +45,13 @@ public class OperationsService {
 
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public Operations snapshot() {
+    var playback = review.getIfAvailable();
     return new Operations(
         repository.vehicles(),
         repository.requests(),
         repository.events(),
         repository.tests(),
-        demo);
+        demo,
+        playback == null ? null : playback.current());
   }
 }

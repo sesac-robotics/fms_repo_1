@@ -52,6 +52,7 @@ class Run:
     request_id: int | None
     next_step: str | None
     completed: dict[str, dict[str, Any]]
+    available: tuple[str, ...] = ()
 
     @classmethod
     def parse(cls, data: dict[str, Any]) -> Run:
@@ -72,6 +73,7 @@ class Run:
                 string_field(item, 'step'): object_value(item.get('evidence'))
                 for item in records(data, 'completed')
             },
+            _steps(data.get('availableSteps', [next_step] if next_step else [])),
         )
 
 
@@ -105,7 +107,7 @@ class ReviewHttp(QObject):
         try:
             if reply.bytesAvailable() > 200_000:
                 raise ValueError('Review response too large.')
-            data = object_value(json.loads(bytes(reply.readAll())))
+            data = object_value(json.loads(reply.readAll().data()))
         except (ValueError, TypeError):
             data = {}
         if status == 200 and data:

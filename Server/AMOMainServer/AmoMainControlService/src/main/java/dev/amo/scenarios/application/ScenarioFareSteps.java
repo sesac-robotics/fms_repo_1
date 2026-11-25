@@ -1,6 +1,5 @@
 package dev.amo.scenarios.application;
 
-import dev.amo.fares.application.FareFailure;
 import dev.amo.fares.application.FareService;
 import dev.amo.fares.application.RouteAcceptance;
 import dev.amo.fares.application.RouteChangeStore;
@@ -42,48 +41,59 @@ class ScenarioFareSteps {
     this.trips = trips;
   }
 
-  ReviewEvidence execute(Run run, Step step, boolean manual, Instant now) {
+  ReviewEvidence execute(Run run, Step step, Instant now) {
     return switch (step) {
-      case QUOTE, PREPAY -> initial(run, step, manual, now);
-      case CHANGE_PROPOSE, CHANGE_ACCEPT -> passengerChange(run, step, manual, now);
+      case QUOTE, PREPAY -> initial(run, step, now);
+      case CHANGE_PROPOSE, CHANGE_ACCEPT -> passengerChange(run, step, now);
       case ROUTE_ISSUE, ROUTE_ACK, ROUTE_APPLIED, ROUTE_FAILED -> command(run, step, now);
       default -> throw new IllegalArgumentException("Not a fare or route step");
     };
   }
 
-  private ReviewEvidence initial(Run run, Step step, boolean manual, Instant now) {
+  ReviewEvidence declinePrepayment(Run run, Instant now) {
+    var view = fares.read(run.passengerId(), run.requestId(), now);
+    require(view.quote() != null);
+    view =
+        fares.prepay(
+            run.passengerId(),
+            run.requestId(),
+            view.quote().id(),
+            run.key(Step.PREPAY_DECLINED),
+            now);
+    require(view.attempt() != null && view.attempt().status() == PaymentStatus.FAILED);
+    return FareReviewEvidence.initial(view, true);
+  }
+
+  private ReviewEvidence initial(Run run, Step step, Instant now) {
     long owner = run.passengerId();
     long request = run.requestId();
     var view =
-        step == Step.QUOTE && !manual
-            ? fares.quote(owner, request, now)
-            : fares.read(owner, request, now);
-    require(view.quote() != null, manual);
-    if (step == Step.PREPAY && !manual) {
+        step == Step.QUOTE ? fares.quote(owner, request, now) : fares.read(owner, request, now);
+    require(view.quote() != null);
+    if (step == Step.PREPAY) {
       view = fares.prepay(owner, request, view.quote().id(), run.key(step), now);
     }
     var attempt = view.attempt();
     boolean paid = step == Step.PREPAY;
-    require(!paid || attempt != null && attempt.status() == PaymentStatus.SUCCEEDED, manual);
+    require(!paid || attempt != null && attempt.status() == PaymentStatus.SUCCEEDED);
     return FareReviewEvidence.initial(view, paid);
   }
 
-  private ReviewEvidence passengerChange(Run run, Step step, boolean manual, Instant now) {
+  private ReviewEvidence passengerChange(Run run, Step step, Instant now) {
     long request = run.requestId();
-    if (step == Step.CHANGE_PROPOSE && !manual) {
+    if (step == Step.CHANGE_PROPOSE) {
       routes.proposeForPassenger(run.passengerId(), request, "S4", now);
     }
-    var view = change(run, manual, now);
+    var view = change(run, now);
     require(
         view.proposedDestination().equals("S4")
             && view.effectiveDestination().equals("S2")
-            && view.deltaMinor() > 0,
-        false);
-    if (step == Step.CHANGE_ACCEPT && !manual) {
+            && view.deltaMinor() > 0);
+    if (step == Step.CHANGE_ACCEPT) {
       view = acceptance.accept(run.passengerId(), request, view.quote().id(), run.key(step), now);
     }
     boolean paid = step == Step.CHANGE_ACCEPT;
-    require(!paid || view.accepted() && view.paymentStatus() == PaymentStatus.SUCCEEDED, manual);
+    require(!paid || view.accepted() && view.paymentStatus() == PaymentStatus.SUCCEEDED);
     return FareReviewEvidence.route(
         view,
         proposal(run),
@@ -105,7 +115,7 @@ class ScenarioFareSteps {
           };
       routes.report(run.requestId(), proposal.scope(), report, now);
     }
-    var view = change(run, false, now);
+    var view = change(run, now);
     var expected =
         switch (step) {
           case ROUTE_ISSUE -> RouteChange.Status.ISSUED;
@@ -118,8 +128,7 @@ class ScenarioFareSteps {
     require(
         view.status() == expected
             && view.effectiveDestination().equals(destination)
-            && view.paymentStatus() == PaymentStatus.SUCCEEDED,
-        false);
+            && view.paymentStatus() == PaymentStatus.SUCCEEDED);
     return FareReviewEvidence.route(
         view,
         proposal(run),
@@ -128,31 +137,24 @@ class ScenarioFareSteps {
   }
 
   void requireEffectiveRoute(Run run, Instant now) {
-    var view = change(run, false, now);
-    require(view.effectiveDestination().equals(run.plan().effectiveDestination()), false);
+    var view = change(run, now);
+    require(view.effectiveDestination().equals(run.plan().effectiveDestination()));
   }
 
   ReviewEvidence settlement(Run run, Result trip) {
     var receipt = trip.receipt();
-    require(receipt != null, false);
+    require(receipt != null);
     Instant now = receipt.finalizedAt();
     var quote =
         run.plan() == Scenario.TAXI_APPLIED
-            ? change(run, false, now).quote()
+            ? change(run, now).quote()
             : fares.read(run.passengerId(), run.requestId(), now).quote();
-    require(receipt.quoteId() == quote.id() && receipt.amountMinor() == quote.amountMinor(), false);
-    return FareReviewEvidence.settled(trip, change(run, false, now).effectiveDestination());
+    require(receipt.quoteId() == quote.id() && receipt.amountMinor() == quote.amountMinor());
+    return FareReviewEvidence.settled(trip, change(run, now).effectiveDestination());
   }
 
-  private RouteChange.View change(Run run, boolean manual, Instant now) {
-    try {
-      return acceptance.read(run.passengerId(), run.requestId(), now);
-    } catch (FareFailure failure) {
-      if (manual && failure.reason() == FareFailure.Reason.ROUTE_CHANGE_NOT_FOUND) {
-        throw new ScenarioRejected("SCENARIO_WAITING_ANDROID");
-      }
-      throw failure;
-    }
+  private RouteChange.View change(Run run, Instant now) {
+    return acceptance.read(run.passengerId(), run.requestId(), now);
   }
 
   private RouteChange.Proposal proposal(Run run) {
@@ -162,10 +164,9 @@ class ScenarioFareSteps {
         .orElseThrow(() -> new ScenarioRejected("SCENARIO_EXPECTATION_MISMATCH"));
   }
 
-  private static void require(boolean condition, boolean manual) {
+  private static void require(boolean condition) {
     if (!condition) {
-      throw new ScenarioRejected(
-          manual ? "SCENARIO_WAITING_ANDROID" : "SCENARIO_EXPECTATION_MISMATCH");
+      throw new ScenarioRejected("SCENARIO_EXPECTATION_MISMATCH");
     }
   }
 }

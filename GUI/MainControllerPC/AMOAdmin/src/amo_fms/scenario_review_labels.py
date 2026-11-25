@@ -6,6 +6,7 @@ from typing import Any
 
 from .i18n import Text, display_time
 from .models import Event, Snapshot
+from .review_playback import Playback
 
 EXPECTED: dict[str, tuple[str, str]] = {
     'INITIAL_OCCUPY': ('SD-07', 'FMS · Admin'),
@@ -14,6 +15,10 @@ EXPECTED: dict[str, tuple[str, str]] = {
     'INITIAL_VACATE': ('SD-07', 'FMS · Admin'),
     'CALL': ('SD-01', 'Android · FMS'),
     'QUOTE': ('SD-01', 'Android'),
+    'PREPAY_DECLINED': ('SD-01', 'Admin · FMS'),
+    'LINK_LOST': ('SD-06', 'Admin · FMS'),
+    'LINK_RESTORED': ('SD-06', 'Admin · FMS'),
+    'RESUME_APPROVED': ('SD-06', 'Admin · FMS'),
     'PREPAY': ('SD-01', 'Android · Admin'),
     'ASSIGN': ('SD-02', 'Android · FMS'),
     'PICKUP_STOP': ('SD-02', 'Android · FMS'),
@@ -98,3 +103,25 @@ def review_vehicle(snapshot: Snapshot, selected: str, follow_review: bool) -> st
     if any(v.id == selected for v in snapshot.vehicles):
         return selected
     return snapshot.vehicles[0].id if snapshot.vehicles else ''
+
+
+def review_stage_text(tr: Text, review: Playback | None, legacy: Event | None) -> str:
+    """Format the current simulated state and reason above the confirmed map."""
+    if review is not None:
+        parts = [tr('review_tab'), review.vehicle]
+        if review.checkpoints:
+            checkpoint = review.checkpoints[-1]
+            parts.extend(
+                (
+                    step_title(tr, checkpoint.step),
+                    tr.status(checkpoint.status),
+                    tr.status(checkpoint.reason),
+                )
+            )
+        else:
+            parts.append(tr('review_ready'))
+        return ' · '.join(parts)
+    if legacy is None:
+        return ''
+    title = step_title(tr, legacy.type.removeprefix('DEMO_REVIEW_'))
+    return f'{tr("review_tab")} · {legacy.vehicle} · {title}'

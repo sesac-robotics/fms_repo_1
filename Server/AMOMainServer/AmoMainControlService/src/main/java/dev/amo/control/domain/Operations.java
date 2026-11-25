@@ -9,7 +9,8 @@ public record Operations(
     List<Request> requests,
     List<Event> events,
     List<Trial> tests,
-    boolean demo) {
+    boolean demo,
+    ReviewPlayback review) {
   /** Latest stored vehicle data. Coordinates are in map meters, yaw in radians, speed in m/s. */
   public record Vehicle(
       long id,

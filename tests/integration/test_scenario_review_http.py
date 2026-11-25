@@ -39,12 +39,16 @@ class ScenarioReviewHttpTest(unittest.TestCase):
         self.assertEqual(
             self.evidence(acknowledged, 'ROUTE_ACK')['status'], 'ACKNOWLEDGED'
         )
-        self.assert_effective(acknowledged, 'S2', None)
+        self.assertEqual(
+            self.evidence(acknowledged, 'ROUTE_ACK')['effectiveDestination'], 'S2'
+        )
+        self.assert_not_in_operations(acknowledged)
         applied = self.play(acknowledged, 'ROUTE_APPLIED')
         checkpoint = self.evidence(applied, 'ROUTE_APPLIED')
         self.assertEqual(checkpoint['status'], 'APPLIED')
         self.assertEqual(applied['nextStep'], 'REDEPART')
-        self.assert_effective(applied, 'S4', checkpoint['revisionId'])
+        self.assertEqual(checkpoint['effectiveDestination'], 'S4')
+        self.assertIsNotNone(checkpoint['revisionId'])
         finished = self.finish(applied)
         final = self.evidence(finished, 'ALIGHT')
         self.assertEqual(final['quoteId'], checkpoint['quoteId'])
@@ -53,36 +57,16 @@ class ScenarioReviewHttpTest(unittest.TestCase):
         self.assertEqual(self.evidence(finished, 'RETURN_VACATE')['status'], 'VACATED')
         self.assertEqual(self.play(finished, 'ALIGHT'), finished)
 
-    def test_map_positions_and_current_stage_over_if03(self) -> None:
-        run = self.through(self.start('TAXI_APPLIED'), 'PICKUP_STOP')
-        first = self.vehicle_snapshot(run, 'PICKUP_STOP')
-        self.assertEqual((first['xM'], first['yM']), (0.516, 0.913))
-        moving = self.play(self.play(run, 'BOARD'), 'DEPART')
-        second = self.vehicle_snapshot(moving, 'DEPART')
-        self.assertNotEqual(first['xM'], second['xM'])
-
-    def vehicle_snapshot(self, run: dict[str, Any], step: str) -> dict[str, object]:
-        """Read the current review stage and map point over the fleet interface."""
-        port = os.environ.get('AMO_DEMO_IF03_PORT')
-        status, snap = (
-            self.http.fms_snapshot(int(port), self.admin)
-            if port
-            else self.http.send('/api/operations', self.admin)
-        )
-        self.assertEqual(status, 200, snap)
-        events = cast(list[dict[str, object]], snap['events'])
-        stage = next(
-            e
-            for e in events
-            if e['vehicle'] == run['vehicleNumber']
-            and str(e['type']).startswith('DEMO_REVIEW_')
-        )
-        self.assertEqual(stage['type'], f'DEMO_REVIEW_{step}')
-        return next(
-            v
-            for v in cast(list[dict[str, object]], snap['vehicles'])
-            if v['vehicleNo'] == run['vehicleNumber']
-        )
+    def test_current_review_checkpoints_over_if03(self) -> None:
+        run = self.start('TAXI_APPLIED')
+        self.assertEqual(self.playback(run)['checkpoints'], [])
+        pickup = self.through(run, 'PICKUP_STOP')
+        first = self.playback(pickup)
+        self.assertEqual(first['checkpoints'][-1]['step'], 'PICKUP_STOP')
+        moving = self.play(self.play(pickup, 'BOARD'), 'DEPART')
+        second = self.playback(moving)
+        self.assertEqual(second['checkpoints'][-1]['step'], 'DEPART')
+        self.assertNotEqual(first['schematicPoint'], second['schematicPoint'])
 
     def test_paid_failure_preserves_evidence(self) -> None:
         original = self.through(self.start('TAXI_APPLY_FAILED'), 'ROUTE_ACK')
@@ -91,7 +75,7 @@ class ScenarioReviewHttpTest(unittest.TestCase):
         self.assertEqual(result['paymentStatus'], 'SUCCEEDED')
         self.assertGreater(result['deltaMinor'], 0)
         self.assertEqual(result['status'], 'FAILED')
-        self.assert_effective(failed, 'S2', None)
+        self.assertEqual(result['effectiveDestination'], 'S2')
         final = self.evidence(self.finish(failed), 'ALIGHT')
         initial = self.evidence(failed, 'QUOTE')
         self.assertEqual(
@@ -99,39 +83,48 @@ class ScenarioReviewHttpTest(unittest.TestCase):
             (initial['quoteId'], initial['amountMinor']),
         )
 
-    def test_manual_passenger_evidence_and_admin_boundary(self) -> None:
+    def test_admin_boundary_and_passenger_isolation(self) -> None:
         operator = self.http.login('operator')
         self.assertEqual(self.http.send(ROOT, operator)[0], 403)
         self.assertEqual(self.http.send(ROOT, self.passenger)[0], 403)
+        self.assertEqual(self.http.send(ROOT + '/history/reset', operator, {})[0], 403)
         run = self.through(self.start('TAXI_APPLIED'), 'CALL')
-        pending = f'{ROOT}/runs/{run["id"]}/steps/QUOTE'
         self.assertEqual(
-            self.http.send(pending, self.admin, {'manual': True}),
-            (409, {'code': 'SCENARIO_WAITING_ANDROID'}),
+            self.http.send(
+                f'{ROOT}/runs/{run["id"]}/steps/QUOTE', self.admin, {'manual': True}
+            ),
+            (409, {'code': 'SCENARIO_MANUAL_INPUT_UNSUPPORTED'}),
         )
         ride = f'/api/rides/{run["requestId"]}'
-        status, quote = self.http.send(ride + '/mock-quote', self.passenger, {})
-        self.assertEqual(status, 200, quote)
-        after_quote = self.play(run, 'QUOTE', manual=True)
-        prepay = f'{ROOT}/runs/{run["id"]}/steps/PREPAY'
         self.assertEqual(
-            self.http.send(prepay, self.admin, {'manual': True}),
-            (409, {'code': 'SCENARIO_WAITING_ANDROID'}),
+            self.http.send(ride + '/mock-quote', self.passenger, {})[0], 404
         )
-        terms = cast(dict[str, object], quote['quote'])
-        status, paid = self.http.send(
-            ride + '/mock-prepayment',
-            self.passenger,
-            {'quoteId': terms['id'], 'key': str(uuid4())},
-        )
-        self.assertEqual(status, 200, paid)
-        recorded = self.play(after_quote, 'PREPAY', manual=True)
+        self.assert_not_in_operations(run)
+
+    def test_choose_payment_recovery_and_alternative_route(self) -> None:
+        quoted = self.through(self.start('TAXI_APPLIED'), 'QUOTE')
+        declined = self.play(quoted, 'PREPAY_DECLINED')
         self.assertEqual(
-            self.evidence(recorded, 'PREPAY')['paymentStatus'], 'SUCCEEDED'
+            self.evidence(declined, 'PREPAY_DECLINED')['paymentStatus'], 'FAILED'
         )
-        status, catalog = self.http.send(ROOT, self.admin)
-        self.assertEqual(status, 200, catalog)
-        self.assertEqual(catalog['latest'], recorded)
+        self.reject(declined, 'ASSIGN')
+        departed = self.through(declined, 'DEPART')
+        stopped = self.play(departed, 'LINK_LOST')
+        self.assertEqual(stopped['availableSteps'], ['LINK_RESTORED'])
+        self.reject(stopped, 'STOP_WAIT')
+        restored = self.play(stopped, 'LINK_RESTORED')
+        self.assertEqual(restored['availableSteps'], ['RESUME_APPROVED'])
+        self.assertEqual(
+            self.playback(restored)['checkpoints'][-1]['status'], 'AWAITING_APPROVAL'
+        )
+        self.reject(restored, 'STOP_WAIT')
+        approved = self.play(restored, 'RESUME_APPROVED')
+        acknowledged = self.through(approved, 'ROUTE_ACK')
+        failed = self.play(acknowledged, 'ROUTE_FAILED')
+        self.assertEqual(failed['nextStep'], 'REDEPART')
+        self.assertEqual(
+            self.evidence(self.finish(failed), 'ALIGHT')['effectiveDestination'], 'S2'
+        )
 
     def start(self, plan: str) -> dict[str, Any]:
         """Start a review on the shared fixture, retrying the same run ID."""
@@ -143,12 +136,10 @@ class ScenarioReviewHttpTest(unittest.TestCase):
         )
         return run
 
-    def play(
-        self, run: dict[str, Any], step: str, *, manual: bool = False
-    ) -> dict[str, Any]:
+    def play(self, run: dict[str, Any], step: str) -> dict[str, Any]:
         """Submit one ordered checkpoint and read committed evidence."""
         status, result = self.http.send(
-            f'{ROOT}/runs/{run["id"]}/steps/{step}', self.admin, {'manual': manual}
+            f'{ROOT}/runs/{run["id"]}/steps/{step}', self.admin, {}
         )
         self.assertEqual(status, 200, (step, result))
         return result
@@ -172,10 +163,15 @@ class ScenarioReviewHttpTest(unittest.TestCase):
             next(item['evidence'] for item in run['completed'] if item['step'] == step),
         )
 
-    def assert_effective(
-        self, run: dict[str, Any], stop: str, revision: object
-    ) -> None:
-        """Read the FMS snapshot over development IF-03 and compare effective route."""
+    def reject(self, run: dict[str, Any], step: str) -> None:
+        """Assert a case gate blocks the given checkpoint."""
+        self.assertEqual(
+            self.http.send(f'{ROOT}/runs/{run["id"]}/steps/{step}', self.admin, {}),
+            (409, {'code': 'SCENARIO_STEP_OUT_OF_ORDER'}),
+        )
+
+    def snapshot(self) -> dict[str, Any]:
+        """Read the fleet feed through IF-03 when configured."""
         port = os.environ.get('AMO_DEMO_IF03_PORT')
         status, snapshot = (
             self.http.fms_snapshot(int(port), self.admin)
@@ -183,10 +179,21 @@ class ScenarioReviewHttpTest(unittest.TestCase):
             else self.http.send('/api/operations', self.admin)
         )
         self.assertEqual(status, 200, snapshot)
-        request = next(
-            row
-            for row in cast(list[dict[str, object]], snapshot['requests'])
-            if row['id'] == run['requestId']
+        return snapshot
+
+    def playback(self, run: dict[str, Any]) -> dict[str, Any]:
+        """Verify the FMS snapshot is scoped to the run without exposing a fleet vehicle."""
+        snapshot = self.snapshot()
+        review = cast(dict[str, Any], snapshot['review'])
+        self.assertEqual(review['runId'], run['id'])
+        self.assertEqual(review['vehicle'], run['vehicleNumber'])
+        self.assertTrue(
+            all(v['vehicleNo'] != review['vehicle'] for v in snapshot['vehicles'])
         )
-        self.assertEqual(request['effectiveDestination'], stop)
-        self.assertEqual(request['appliedRevisionId'], revision)
+        return review
+
+    def assert_not_in_operations(self, run: dict[str, Any]) -> None:
+        """Verify the ordinary FMS queue never contains the simulated request."""
+        self.assertTrue(
+            all(r['id'] != run['requestId'] for r in self.snapshot()['requests'])
+        )

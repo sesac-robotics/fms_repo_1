@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from typing import cast
 from uuid import uuid4
 
 from demo_http import DemoHttp
@@ -20,13 +21,13 @@ class ScenarioVehicleReuseTest(unittest.TestCase):
         http = DemoHttp(ORIGIN)
         admin = http.login('admin')
 
-        def start(plan: str):
-            payload = {'plan': plan, 'id': str(uuid4())}
+        def start(plan: str) -> dict[str, object]:
+            payload: dict[str, object] = {'plan': plan, 'id': str(uuid4())}
             status, run = http.send(ROOT, admin, payload)
             self.assertEqual(status, 200, run)
             return run
 
-        def assign(run):
+        def assign(run: dict[str, object]) -> dict[str, object]:
             while (step := run['nextStep']) is not None:
                 status, run = http.send(f'{ROOT}/{run["id"]}/steps/{step}', admin, {})
                 self.assertEqual(status, 200, (step, run))
@@ -34,7 +35,7 @@ class ScenarioVehicleReuseTest(unittest.TestCase):
                     return run
             self.fail('ASSIGN checkpoint unavailable')
 
-        def snapshot():
+        def snapshot() -> dict[str, object]:
             port = os.environ.get('AMO_DEMO_IF03_PORT')
             status, result = (
                 http.fms_snapshot(int(port), admin)
@@ -49,12 +50,17 @@ class ScenarioVehicleReuseTest(unittest.TestCase):
         self.assertEqual(first['vehicleNumber'], second['vehicleNumber'])
         fresh = snapshot()
         vehicles = [
-            v for v in fresh['vehicles'] if v['vehicleNo'].startswith('DEMO-REVIEW-')
+            v
+            for v in cast(list[dict[str, object]], fresh['vehicles'])
+            if str(v['vehicleNo']).startswith('DEMO-REVIEW-')
         ]
         self.assertEqual(len(vehicles), 1)
         self.assertIsNone(vehicles[0]['xM'])
         self.assertFalse(
-            any(e['type'].startswith('DEMO_REVIEW_') for e in fresh['events'])
+            any(
+                str(e['type']).startswith('DEMO_REVIEW_')
+                for e in cast(list[dict[str, object]], fresh['events'])
+            )
         )
 
         first_path = f'{ROOT}/{first["id"]}'
@@ -68,7 +74,9 @@ class ScenarioVehicleReuseTest(unittest.TestCase):
         )
         self.assertNotEqual(assign(second)['requestId'], first['requestId'])
         stage = next(
-            e for e in snapshot()['events'] if e['type'].startswith('DEMO_REVIEW_')
+            e
+            for e in cast(list[dict[str, object]], snapshot()['events'])
+            if str(e['type']).startswith('DEMO_REVIEW_')
         )
         self.assertEqual(stage['type'], 'DEMO_REVIEW_ASSIGN')
         self.assertEqual(stage['vehicle'], second['vehicleNumber'])

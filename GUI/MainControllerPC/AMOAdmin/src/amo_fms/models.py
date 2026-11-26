@@ -9,6 +9,7 @@ from .measurement import sample_identity
 from .model_fields import identity, optional_number
 from .review_playback import Playback
 from .route_projection import AppliedRoute, applied_route
+from .vision_readings import VisionReading, parse_vision
 
 OPERATORS = frozenset({'ADMIN', 'OPERATOR'})
 
@@ -167,6 +168,7 @@ class Snapshot:
     events: tuple[Event, ...] = ()
     demo: bool = False
     review: Playback | None = None
+    vision: tuple[VisionReading, ...] = ()
 
     @classmethod
     def parse(cls, value: Any) -> Snapshot:
@@ -178,4 +180,5 @@ class Snapshot:
             tuple(Event.parse(row) for row in records(data, 'events')),
             data.get('demo') is True,
             Playback.parse(data.get('review')),
+            parse_vision(data.get('vision')),
         )

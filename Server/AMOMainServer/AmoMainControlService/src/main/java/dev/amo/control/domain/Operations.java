@@ -1,5 +1,6 @@
 package dev.amo.control.domain;
 
+import dev.amo.vision.domain.VisionObservation.Received;
 import java.time.Instant;
 import java.util.List;
 
@@ -10,7 +11,8 @@ public record Operations(
     List<Event> events,
     List<Trial> tests,
     boolean demo,
-    ReviewPlayback review) {
+    ReviewPlayback review,
+    List<Received> vision) {
   /** Latest stored vehicle data. Coordinates are in map meters, yaw in radians, speed in m/s. */
   public record Vehicle(
       long id,

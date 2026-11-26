@@ -1,4 +1,9 @@
 {
+  "vision_reading": "Vision",
+  "vision_no_report": "No observation",
+  "vision_detected": "Detected",
+  "vision_not_detected": "No detection",
+  "vision_unavailable": "Unavailable",
   "apptitle": "AMO · Fleet Operations",
   "nav_label": "Operator workspace",
   "monitor": "Live fleet",

@@ -36,6 +36,7 @@ class OperationTabs:
         self.overview.addItems(
             [f'{v.number} · {self._tr.status(v.status)}' for v in snapshot.vehicles]
             + [f'#{r.id} · {r.pickup} → {r.destination}' for r in snapshot.requests]
+            + [v.admin_summary(self._tr) for v in snapshot.vision]
         )
         self.logs.clear()
         self.logs.addItems(

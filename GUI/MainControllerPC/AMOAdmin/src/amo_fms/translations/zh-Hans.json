@@ -1,4 +1,9 @@
 {
+  "vision_reading": "视觉判定",
+  "vision_no_report": "未收到判定",
+  "vision_detected": "已检测",
+  "vision_not_detected": "未检测到",
+  "vision_unavailable": "不可用",
   "apptitle": "AMO · 车队监控",
   "nav_label": "操作员工作区",
   "monitor": "实时监控",

@@ -20,6 +20,7 @@ from .fleet_map import FleetMap
 from .i18n import Text, display_time
 from .models import Snapshot, Vehicle
 from .scenario_review_labels import latest_review_stage, review_stage_text
+from .vision_readings import VisionReading, vehicle_vision_summary
 from .widgets import button, label, panel
 
 
@@ -39,6 +40,7 @@ class FleetMonitor(QWidget):
         self._tr = tr
         self._select = selection
         self._vehicles: tuple[Vehicle, ...] = ()
+        self._vision: tuple[VisionReading, ...] = ()
         self._selected_id = ''
         self._review_vehicle = ''
         content = QHBoxLayout(self)
@@ -82,6 +84,7 @@ class FleetMonitor(QWidget):
             'battery',
             'connection',
             'stop_reason',
+            'vision_reading',
             'dispatch_eligibility',
             'position',
             'reported_yaw',
@@ -90,6 +93,7 @@ class FleetMonitor(QWidget):
         for row, key in enumerate(fields):
             name = label(tr(key), 'secondary', wrap=False)
             value = label('—')
+            value.setTextFormat(Qt.TextFormat.PlainText)
             grid.addWidget(name, row, 0)
             grid.addWidget(value, row, 1)
             self._values[key] = value
@@ -105,6 +109,7 @@ class FleetMonitor(QWidget):
 
     def show_snapshot(self, snapshot: Snapshot, selected_id: str) -> None:
         """Update the fleet while preserving the selected vehicle's service ID."""
+        self._vision = snapshot.vision
         review = snapshot.review
         current = None if review else latest_review_stage(snapshot)
         self._review_vehicle = current.vehicle if snapshot.demo and current else ''
@@ -160,6 +165,9 @@ class FleetMonitor(QWidget):
         )
         self._values['connection'].setText(self._tr.status(selected.connection))
         self._values['stop_reason'].setText(self._tr.status(selected.stop_reason))
+        self._values['vision_reading'].setText(
+            vehicle_vision_summary(self._vision, selected.number, self._tr)
+        )
         eligibility = self._tr('unknown')
         if selected.dispatch_enabled is not None:
             eligibility = self._tr(

@@ -71,3 +71,13 @@ After the Vision source is available, verify the container network path
 to the private listener in the combined deployment. The detector source,
 its runtime configuration and camera verification come from the Vision
 team's tested revision.
+
+
+## Staff projection
+
+The existing staff `GET /api/operations` response includes an optional
+`vision` array of objects with `observation` (the fields above) and
+`receivedAt` (ISO-8601 UTC). FMS displays capture time for its selected
+vehicle; Admin Overview also displays the frame ID and reception time.
+No service key is required by staff clients. Their existing session and
+role checks apply. Passenger APIs do not expose this projection.

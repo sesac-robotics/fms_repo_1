@@ -1,4 +1,9 @@
 {
+  "vision_reading": "Vision 판정",
+  "vision_no_report": "판정 미수신",
+  "vision_detected": "감지",
+  "vision_not_detected": "미감지",
+  "vision_unavailable": "판정 불가",
   "apptitle": "AMO · 차량 관제",
   "nav_label": "운영 작업 공간",
   "monitor": "실시간 관제",

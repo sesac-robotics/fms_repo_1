@@ -18,9 +18,10 @@ from .i18n import Text
 from .models import Operator, Snapshot
 from .monitor import FleetMonitor
 from .operations_pages import ActionsPage, RecordsPage
+from .signal_page import SignalsPage
 from .widgets import brand, button, label
 
-PAGE_KEYS = ('monitor', 'queue', 'events', 'commands')
+PAGE_KEYS = ('monitor', 'signals', 'queue', 'events', 'commands')
 
 
 class Workspace(QWidget):
@@ -70,6 +71,7 @@ class Workspace(QWidget):
         )
         self._pages = (
             self._monitor,
+            SignalsPage(tr, self.request_refresh.emit),
             RecordsPage(tr, 'queue'),
             RecordsPage(tr, 'events'),
             ActionsPage(tr, self.vehicle_selected.emit),
@@ -140,9 +142,8 @@ class Workspace(QWidget):
         self._refresh.setVisible(live_page)
         self._status.setVisible(live_page)
         self._caption.setVisible(live_page)
-        self._caption.setText(
-            self._tr('live_caption' if page == 'monitor' else 'preview_explain')
-        )
+        captions = {'monitor': 'live_caption', 'signals': 'signal_caption'}
+        self._caption.setText(self._tr(captions.get(page, 'preview_explain')))
         for name, item in self._nav.items():
             item.setChecked(name == page)
         self.page_selected.emit(page)

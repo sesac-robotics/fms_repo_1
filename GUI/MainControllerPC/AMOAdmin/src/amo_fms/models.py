@@ -9,6 +9,7 @@ from .measurement import sample_identity
 from .model_fields import identity, optional_number
 from .review_playback import Playback
 from .route_projection import AppliedRoute, applied_route
+from .signal_readings import SignalReading, parse_signals
 from .vision_readings import VisionReading, parse_vision
 
 OPERATORS = frozenset({'ADMIN', 'OPERATOR'})
@@ -169,6 +170,7 @@ class Snapshot:
     demo: bool = False
     review: Playback | None = None
     vision: tuple[VisionReading, ...] = ()
+    signals: tuple[SignalReading, ...] = ()
 
     @classmethod
     def parse(cls, value: Any) -> Snapshot:
@@ -181,4 +183,5 @@ class Snapshot:
             data.get('demo') is True,
             Playback.parse(data.get('review')),
             parse_vision(data.get('vision')),
+            parse_signals(data.get('signals')),
         )

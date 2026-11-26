@@ -18,6 +18,7 @@ AMO_FMS_API=http://127.0.0.1:18085 uv run --locked amo-fms
 - 지도와 로고는 저장소의 `maps/`를 읽습니다. 별도 경로가 필요하면 `AMO_MAP_DIR`을 지정하세요.
 - **로그인** Web 게이트웨이에 접속합니다. 로그인 뒤 받은 접속 증표(JWT)는 앱이 실행되는 동안 메모리에만 보관합니다.
 - **차량 상태 새로고침** Main Control에 개발용 IF-03 연결(TCP)로 접속합니다. 기본 포트는 18087입니다. 필요하면 AMO_FMS_TCP_PORT로 바꿉니다.
+- **신호등** 왼쪽 메뉴의 신호등 페이지는 `/api/operations`의 `signals`를 그립니다. 북쪽·동쪽 램프, 다음 전환까지 남은 시간, 운영 방식, 신호 시간, 마지막 명령을 보여 줍니다. 이 페이지가 열려 있는 동안에는 1초마다 새로 읽습니다. 조회 전용이라 명령은 보낼 수 없습니다. [SignalKit](../../../Device/SignalKit/SignalBridge/README.md)
 
 ## 관리자 PyQt를 별도 실행
 

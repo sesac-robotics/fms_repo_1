@@ -246,3 +246,10 @@ node_modules/
 *.bag
 *.db3
 *.mcap
+
+# SignalKit firmware: local Wi-Fi credentials and agent address (copy secrets.example.h).
+/Device/SignalKit/SignalController/LEDController/secrets.h
+
+# ROS 2 colcon outputs when building packages from the repository root.
+/install/
+/log/

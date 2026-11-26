@@ -18,6 +18,8 @@ services:
       AMO_FMS_TCP_PORT: ${AMO_FMS_TCP_PORT:-18087}
       AMO_GOOGLE_CLIENT_ID: ${AMO_GOOGLE_CLIENT_ID:-}
       AMO_GOOGLE_ALLOWED_AUDIENCES: ${AMO_GOOGLE_ALLOWED_AUDIENCES:-}
+      # Fixed loopback HTTP port for the SignalKit ROS 2 bridge.
+      AMO_CONTROL_HTTP_PORT: ${AMO_CONTROL_HTTP_PORT:-18088}
       SPRING_PROFILES_ACTIVE: ${AMO_PROFILE:-demo}
       SPRING_CONFIG_IMPORT: configtree:/run/secrets/
     secrets:
@@ -25,6 +27,8 @@ services:
         target: spring.datasource.password
       - source: jwt_key
         target: amo.jwt-key
+      - source: signal_key
+        target: amo.signal-ingest-key
   gateway:
     <<: *local-service
     build:
@@ -53,3 +57,5 @@ secrets:
     environment: AMO_DB_PASSWORD
   jwt_key:
     environment: AMO_JWT_KEY
+  signal_key:
+    environment: AMO_SIGNAL_INGEST_KEY

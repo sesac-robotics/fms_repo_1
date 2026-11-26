@@ -1,5 +1,6 @@
 package dev.amo.control.domain;
 
+import dev.amo.signals.domain.SignalState;
 import dev.amo.vision.domain.VisionObservation.Received;
 import java.time.Instant;
 import java.util.List;
@@ -12,7 +13,8 @@ public record Operations(
     List<Trial> tests,
     boolean demo,
     ReviewPlayback review,
-    List<Received> vision) {
+    List<Received> vision,
+    List<SignalState.Received> signals) {
   /** Latest stored vehicle data. Coordinates are in map meters, yaw in radians, speed in m/s. */
   public record Vehicle(
       long id,

@@ -2,6 +2,7 @@ package dev.amo.control.application;
 
 import dev.amo.control.domain.Operations;
 import dev.amo.control.domain.RecordedRoute;
+import dev.amo.signals.application.SignalService;
 import dev.amo.vision.application.VisionObservations;
 import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
@@ -17,6 +18,7 @@ public class OperationsService {
   private final OperationsStore repository;
   private final RecordedRouteStore routes;
   private final VisionObservations vision;
+  private final SignalService signals;
 
   private final boolean demo;
   private final ObjectProvider<ReviewPlaybackSource> review;
@@ -25,11 +27,13 @@ public class OperationsService {
       OperationsStore repository,
       RecordedRouteStore routes,
       VisionObservations vision,
+      SignalService signals,
       Environment environment,
       ObjectProvider<ReviewPlaybackSource> review) {
     this.repository = repository;
     this.routes = routes;
     this.vision = vision;
+    this.signals = signals;
     this.review = review;
     this.demo = environment.acceptsProfiles(Profiles.of("demo"));
   }
@@ -57,6 +61,7 @@ public class OperationsService {
         repository.tests(),
         demo,
         playback == null ? null : playback.current(),
-        vision.latest());
+        vision.latest(),
+        signals.latest());
   }
 }

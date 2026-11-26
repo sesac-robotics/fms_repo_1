@@ -48,7 +48,7 @@ npm run dev -- --port 5175
 강의 01~05의 이미지 빌드, 컨테이너 실행·점검, 네트워크 연결을 Main Control, Web 게이트웨이, 브라우저 로그인용 Web에 적용했습니다. Docker Engine과 Compose가 설치된 Ubuntu에서 실행합니다.
 
 1. 호스트나 별도 서버에 빈 개발용 PostgreSQL을 준비합니다. Main Control이 이 DB에 Flyway 마이그레이션을 적용합니다.
-2. Git에서 제외되는 `.env`에 `AMO_DB_URL`(JDBC URL), `AMO_DB_USER`, `AMO_DB_PASSWORD`, `AMO_JWT_KEY`(Base64로 인코딩한 32바이트 이상 키)를 설정합니다. 신호등 브리지를 쓴다면 `AMO_SIGNAL_INGEST_KEY`(32자 이상 임의 문자열)도 넣습니다. 비워 두면 신호등 내부 API는 거부됩니다. 비밀번호와 키는 Compose 시크릿으로 마운트합니다. Main Control의 내부 HTTP는 루프백 `18088`(`AMO_CONTROL_HTTP_PORT`)에 열립니다. [신호등 브리지](Device/SignalKit/SignalBridge/README.md)
+2. Git에서 제외되는 `.env`에 `AMO_DB_URL`(JDBC URL), `AMO_DB_USER`, `AMO_DB_PASSWORD`, `AMO_JWT_KEY`(Base64로 인코딩한 32바이트 이상 키)를 설정합니다. 신호등 브리지를 쓴다면 `AMO_SIGNAL_INGEST_KEY`(32자 이상 임의 문자열)도 넣습니다. 비워 두면 신호등 내부 API는 거부됩니다. 비밀번호와 키는 Compose 시크릿으로 마운트합니다. Main Control의 내부 HTTP는 루프백 `18088`(`AMO_CONTROL_HTTP_PORT`)에 열립니다. [신호등(SignalKit) 준비와 실행](Device/SignalKit/README.md)
 3. 저장소 루트에서 실행합니다.
 
 ```sh

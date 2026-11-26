@@ -12,6 +12,7 @@ from .comparison_operations import OperationTabs
 from .config import Config, Preferences
 from .main import Application
 from .models import Snapshot
+from .tls_trust import configure_classroom_trust
 
 
 class ComparisonApplication(Application):
@@ -54,6 +55,7 @@ class ComparisonApplication(Application):
 def main() -> int:
     """Run the combined client with the same service configuration as the FMS."""
     app = QApplication(sys.argv)
+    configure_classroom_trust()
     app.setApplicationName('AMO FMS')
     window = ComparisonApplication(Config.from_environment(), Preferences.open())
     window.resize(1650, 855)

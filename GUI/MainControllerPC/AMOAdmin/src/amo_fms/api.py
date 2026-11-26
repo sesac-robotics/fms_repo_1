@@ -17,10 +17,18 @@ class PreviewApi(StaffApi):
 
     snapshot_received = pyqtSignal(object)
 
-    def __init__(self, endpoint: str, port: int, parent: QObject | None = None) -> None:
-        """Use the given Web origin and loopback IF-03 port for this session."""
+    def __init__(
+        self,
+        endpoint: str,
+        port: int,
+        parent: QObject | None = None,
+        *,
+        operations_host: str = '127.0.0.1',
+    ) -> None:
+        """Use the given Web origin and IF-03 address for this session."""
         super().__init__(endpoint, parent)
         self._port = port
+        self._operations_host = operations_host
         self._operations: OperationsTcpRequest | None = None
 
     def refresh(self) -> None:
@@ -31,7 +39,7 @@ class PreviewApi(StaffApi):
             observe('poll_skipped')
             return
         observe('poll_started')
-        request = OperationsTcpRequest(self._port, self)
+        request = OperationsTcpRequest(self._port, self, host=self._operations_host)
         self._operations = request
         request.finished.connect(
             lambda status, payload: self._finish_refresh(request, status, payload)

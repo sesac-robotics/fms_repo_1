@@ -14,6 +14,7 @@ THEMES = ('light', 'dark')
 DEFAULT_ENDPOINT = 'http://127.0.0.1:18085'
 DEFAULT_ADMIN_WEB = 'http://127.0.0.1:5175'
 DEFAULT_IF03_PORT = 18087
+LOOPBACK_HOSTS = {'localhost', '127.0.0.1', '::1'}
 CONFIRMED_MAP_FILE = 'amo-map-confirmed.png'
 DEFAULT_MAP_ROOT = Path(__file__).resolve().parents[5] / 'maps'
 
@@ -22,7 +23,7 @@ def preview_endpoint(value: str) -> str:
     """Accept a path-free HTTPS origin or a local HTTP origin."""
     candidate = value.strip().rstrip('/')
     parts = urlsplit(candidate)
-    is_loopback = parts.hostname in {'localhost', '127.0.0.1', '::1'}
+    is_loopback = parts.hostname in LOOPBACK_HOSTS
     if (
         parts.scheme != 'https'
         and not (parts.scheme == 'http' and is_loopback)
@@ -49,6 +50,14 @@ class Config:
     scenario_review: bool = False
     congestion_trace: Path | None = None
 
+    @property
+    def operations_host(self) -> str:
+        """Use the validated API hostname for IF-03, preserving local IPv4."""
+        host = urlsplit(self.endpoint).hostname
+        if host is None or host in LOOPBACK_HOSTS:
+            return '127.0.0.1'
+        return host
+
     @classmethod
     def from_environment(cls, *, fleet: bool = True) -> Config:
         """Read Web settings and optionally use the fleet TCP port override."""
@@ -58,14 +67,13 @@ class Config:
         if not 1 <= port <= 65535:
             raise ValueError('AMO_FMS_TCP_PORT must be a valid TCP port.')
         endpoint = preview_endpoint(os.environ.get('AMO_FMS_API', DEFAULT_ENDPOINT))
-        local = urlsplit(endpoint).hostname in {'localhost', '127.0.0.1', '::1'}
         trace = os.environ.get('AMO_CONGESTION_FORECAST_FILE') if fleet else None
         return cls(
             endpoint,
             Path(os.environ.get('AMO_MAP_DIR', str(DEFAULT_MAP_ROOT))).expanduser(),
             preview_endpoint(os.environ.get('AMO_ADMIN_WEB_URL', DEFAULT_ADMIN_WEB)),
             port,
-            local and os.environ.get('AMO_SCENARIO_REVIEW') == '1',
+            os.environ.get('AMO_SCENARIO_REVIEW') == '1',
             Path(trace).expanduser() if trace else None,
         )
 

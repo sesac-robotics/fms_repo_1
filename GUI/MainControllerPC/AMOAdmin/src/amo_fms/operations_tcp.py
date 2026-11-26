@@ -1,4 +1,4 @@
-"""Loopback IF-03 transport for the provisional read-only operations snapshot."""
+"""Local TCP and remote TLS transport for the provisional read-only operations snapshot."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from base64 import b64decode
 from typing import Any
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
-from PyQt6.QtNetwork import QTcpSocket
+from PyQt6.QtNetwork import QSslSocket, QTcpSocket
 
 from .models import object_value
 
@@ -62,13 +62,22 @@ class OperationsTcpRequest(QObject):
 
     finished = pyqtSignal(int, object)
 
-    def __init__(self, port: int, parent: QObject | None = None) -> None:
-        """Bind a request to a TCP port on the numeric IPv4 loopback address."""
+    def __init__(
+        self, port: int, parent: QObject | None = None, *, host: str = '127.0.0.1'
+    ) -> None:
+        """Use TCP on IPv4 loopback and verified TLS for other hosts."""
         super().__init__(parent)
         self._port = port
-        self._socket = QTcpSocket(self)
+        self._host = host
+        self._socket: QTcpSocket
+        if host == '127.0.0.1':
+            self._socket = QTcpSocket(self)
+            self._socket.connected.connect(self._send)
+        else:
+            tls = QSslSocket(self)
+            tls.encrypted.connect(self._send)
+            self._socket = tls
         self._socket.setReadBufferSize(PREFIX_BYTES + MAX_FRAME_BYTES)
-        self._socket.connected.connect(self._send)
         self._socket.readyRead.connect(self._read)
         self._socket.disconnected.connect(self._disconnected)
         self._socket.errorOccurred.connect(self._disconnected)
@@ -87,7 +96,10 @@ class OperationsTcpRequest(QObject):
             self._finish()
             return
         self._timer.start(TIMEOUT_MS)
-        self._socket.connectToHost('127.0.0.1', self._port)
+        if isinstance(self._socket, QSslSocket):
+            self._socket.connectToHostEncrypted(self._host, self._port)
+        else:
+            self._socket.connectToHost(self._host, self._port)
 
     def cancel(self) -> None:
         """Release the socket and timer without signaling a cancelled result."""

@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QCloseEvent
-from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow
+from PyQt6.QtWidgets import QDialog, QMainWindow
 
 from .api import PreviewApi
 from .config import Config, Preferences
@@ -42,7 +41,12 @@ class Application(QMainWindow):
         self._login_pending = False
         self._login: LoginPage | None = None
         self._workspace: Workspace | None = None
-        self._api = PreviewApi(config.endpoint, config.operations_port, self)
+        self._api = PreviewApi(
+            config.endpoint,
+            config.operations_port,
+            self,
+            operations_host=config.operations_host,
+        )
         self._api.authenticated.connect(self._signed_in)
         self._api.failed.connect(self._error)
         self._api.snapshot_received.connect(self._received)
@@ -190,8 +194,6 @@ class Application(QMainWindow):
 
 def main() -> int:
     """Run the PyQt FMS development client."""
-    app = QApplication(sys.argv)
-    app.setApplicationName('AMO FMS')
-    window = Application(Config.from_environment(), Preferences.open())
-    window.show()
-    return app.exec()
+    from .fms_entry import run
+
+    return run()

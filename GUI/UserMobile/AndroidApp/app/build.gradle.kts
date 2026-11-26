@@ -1,4 +1,6 @@
 import java.net.URI
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
 import javax.inject.Inject
 
 plugins {
@@ -43,6 +45,83 @@ val passengerAssets = tasks.register<PreparePassengerAssets>("preparePassengerAs
     outputDirectory.set(layout.buildDirectory.dir("generated/passenger-assets"))
 }
 
+/** Generates debug-only trust for the configured AMO HTTPS hostname. */
+abstract class PreparePassengerNetwork : DefaultTask() {
+    @get:Input
+    abstract val apiHost: Property<String>
+
+    @get:InputFile
+    @get:Optional
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val caFile: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun buildConfig() {
+        val output = outputDirectory.get().asFile
+        val raw = output.resolve("raw/amo_lan_ca.pem")
+        val anchor = caFile.orNull?.asFile
+        val lan = if (anchor == null) {
+            raw.delete()
+            ""
+        } else {
+            val certificates = anchor.inputStream().use {
+                CertificateFactory.getInstance("X.509").generateCertificates(it)
+            }
+            require(
+                certificates.isNotEmpty() && certificates.all {
+                    it is X509Certificate && it.basicConstraints >= 0
+                }
+            ) { "amoLanCaFile must contain public CA certificates." }
+            raw.parentFile.mkdirs()
+            anchor.copyTo(raw, overwrite = true)
+            """
+            <domain-config cleartextTrafficPermitted="false">
+                <domain includeSubdomains="false">${apiHost.get()}</domain>
+                <trust-anchors><certificates src="@raw/amo_lan_ca" /></trust-anchors>
+            </domain-config>
+            """
+        }
+        val config = output.resolve("xml/amo_network.xml")
+        config.parentFile.mkdirs()
+        config.writeText(
+            """
+            <network-security-config>
+                <base-config cleartextTrafficPermitted="false" />
+                <domain-config cleartextTrafficPermitted="true">
+                    <domain includeSubdomains="false">10.0.2.2</domain>
+                    <domain includeSubdomains="false">127.0.0.1</domain>
+                    <domain includeSubdomains="false">localhost</domain>
+                </domain-config>
+                $lan
+            </network-security-config>
+            """.trimIndent()
+        )
+    }
+}
+
+val privateCa = providers.gradleProperty("amoLanCaFile")
+val usePrivateCa = privateCa.isPresent
+require(
+    !usePrivateCa ||
+        (
+            endpoint.scheme == "https" && endpoint.host !in setOf(
+                "10.0.2.2",
+                "127.0.0.1",
+                "localhost"
+            )
+            )
+) {
+    "amoLanCaFile requires a non-loopback HTTPS AMO endpoint."
+}
+val passengerNetwork = tasks.register<PreparePassengerNetwork>("preparePassengerNetwork") {
+    apiHost.set(endpoint.host)
+    caFile.fileProvider(privateCa.map { file(it) })
+    outputDirectory.set(layout.buildDirectory.dir("generated/passenger-network"))
+}
+
 android {
     namespace = "com.amo.passenger"
     compileSdk = 36
@@ -64,6 +143,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+androidComponents.onVariants(androidComponents.selector().withBuildType("debug")) { variant ->
+    variant.sources.res?.addGeneratedSourceDirectory(
+        passengerNetwork,
+        PreparePassengerNetwork::outputDirectory
+    )
 }
 
 androidComponents.onVariants { variant ->

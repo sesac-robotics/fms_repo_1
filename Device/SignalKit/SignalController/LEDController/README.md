@@ -140,6 +140,6 @@ ros2 topic pub --once /traffic_light_1/cmd std_msgs/msg/String "{data: 'PLAN 150
 
 ## 아직 안 된 것
 
-- **Main Control 연동**: 이 토픽을 Main Control로 중계하는 브리지와 서버 API가 필요합니다.
+- **화면 조작**: 토픽은 [SignalBridge](../../SignalBridge/README.md)가 Main Control로 중계합니다. FMS는 조회만 하고, 버튼으로 명령을 보내는 화면은 아직 없습니다.
 - 교차로 진입 허가 로직(`tests/integration/one_way_operations.py`의 `green`)을 실제 신호 상태와 연결하는 작업.
 - 6등식(LED 6개) 배선 검증. 지금까지는 신호등 모듈 하나로 북쪽 방향만 확인했습니다.

@@ -12,7 +12,12 @@ public record Operations(
     List<Trial> tests,
     boolean demo,
     ReviewPlayback review,
-    List<Received> vision) {
+    List<Received> vision,
+    List<PinkyBattery> pinkyBatteries) {
+  /** Equipment reading in percent and volts, with a UTC observation time. */
+  public record PinkyBattery(
+      String deviceId, Double percent, Double voltage, Instant observedAt, boolean simulated) {}
+
   /** Latest stored vehicle data. Coordinates are in map meters, yaw in radians, speed in m/s. */
   public record Vehicle(
       long id,

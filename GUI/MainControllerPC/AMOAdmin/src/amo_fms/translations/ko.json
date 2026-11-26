@@ -49,6 +49,7 @@
   "vehicle_no": "차량 번호",
   "status": "운행 상태",
   "battery": "배터리",
+  "pinky_simulated": "모의 데이터",
   "connection": "연결 상태",
   "stop_reason": "정차 사유",
   "unknown": "미확인",

@@ -37,6 +37,7 @@ class OperationTabs:
             [f'{v.number} · {self._tr.status(v.status)}' for v in snapshot.vehicles]
             + [f'#{r.id} · {r.pickup} → {r.destination}' for r in snapshot.requests]
             + [v.admin_summary(self._tr) for v in snapshot.vision]
+            + [row.summary(self._tr) for row in snapshot.pinky_batteries]
         )
         self.logs.clear()
         self.logs.addItems(

@@ -17,6 +17,7 @@ public class OperationsService {
   private final OperationsStore repository;
   private final RecordedRouteStore routes;
   private final VisionObservations vision;
+  private final PinkyBatteryReadings pinkyBatteries;
 
   private final boolean demo;
   private final ObjectProvider<ReviewPlaybackSource> review;
@@ -25,11 +26,13 @@ public class OperationsService {
       OperationsStore repository,
       RecordedRouteStore routes,
       VisionObservations vision,
+      PinkyBatteryReadings pinkyBatteries,
       Environment environment,
       ObjectProvider<ReviewPlaybackSource> review) {
     this.repository = repository;
     this.routes = routes;
     this.vision = vision;
+    this.pinkyBatteries = pinkyBatteries;
     this.review = review;
     this.demo = environment.acceptsProfiles(Profiles.of("demo"));
   }
@@ -57,6 +60,7 @@ public class OperationsService {
         repository.tests(),
         demo,
         playback == null ? null : playback.current(),
-        vision.latest());
+        vision.latest(),
+        pinkyBatteries.latest());
   }
 }

@@ -49,6 +49,7 @@
   "vehicle_no": "车辆编号",
   "status": "运行状态",
   "battery": "电量",
+  "pinky_simulated": "模拟数据",
   "connection": "连接状态",
   "stop_reason": "停车原因",
   "unknown": "未确认",

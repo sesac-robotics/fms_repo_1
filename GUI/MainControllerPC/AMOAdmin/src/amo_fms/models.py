@@ -7,6 +7,7 @@ from typing import Any
 
 from .measurement import sample_identity
 from .model_fields import identity, optional_number
+from .pinky_batteries import PinkyBattery, parse_pinky_batteries
 from .review_playback import Playback
 from .route_projection import AppliedRoute, applied_route
 from .vision_readings import VisionReading, parse_vision
@@ -169,6 +170,7 @@ class Snapshot:
     demo: bool = False
     review: Playback | None = None
     vision: tuple[VisionReading, ...] = ()
+    pinky_batteries: tuple[PinkyBattery, ...] = ()
 
     @classmethod
     def parse(cls, value: Any) -> Snapshot:
@@ -181,4 +183,5 @@ class Snapshot:
             data.get('demo') is True,
             Playback.parse(data.get('review')),
             parse_vision(data.get('vision')),
+            parse_pinky_batteries(data.get('pinkyBatteries')),
         )

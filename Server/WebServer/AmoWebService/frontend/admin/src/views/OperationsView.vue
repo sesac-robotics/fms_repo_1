@@ -50,6 +50,23 @@ function eventKind(kind) {
     />
     <TripHistoryView v-if="view === 'trips'" :data="data" />
     <template v-if="view === 'overview'">
+      <section v-if="data.pinkyBatteries?.length" class="panel">
+        <h2>Pinky · {{ t("battery") }}</h2>
+        <article
+          v-for="row in data.pinkyBatteries"
+          :key="row.deviceId"
+          class="vehicle"
+        >
+          <strong>{{ row.deviceId }}</strong>
+          <small>
+            {{ measurement(row.percent, "%") }} ·
+            {{ measurement(row.voltage, "V") }}
+            <template v-if="row.simulated">
+              · {{ t("simulatedObservation") }}</template
+            >
+          </small>
+        </article>
+      </section>
       <div class="operation-grid">
         <OperationMap />
         <section class="panel">

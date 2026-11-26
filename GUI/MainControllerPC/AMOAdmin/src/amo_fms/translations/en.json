@@ -49,6 +49,7 @@
   "vehicle_no": "Vehicle number",
   "status": "Service state",
   "battery": "Battery",
+  "pinky_simulated": "Simulated",
   "connection": "Connection",
   "stop_reason": "Stop reason",
   "unknown": "Unknown",

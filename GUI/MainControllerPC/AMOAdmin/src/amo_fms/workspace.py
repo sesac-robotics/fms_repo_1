@@ -60,6 +60,10 @@ class Workspace(QWidget):
         body.addWidget(self._caption)
         self._status = label(tr('snapshot_wait'), 'secondary')
         body.addWidget(self._status)
+        self._pinky = label('', 'secondary')
+        self._pinky.setTextFormat(Qt.TextFormat.PlainText)
+        self._pinky.hide()
+        body.addWidget(self._pinky)
         self._stack = QStackedWidget()
         self._monitor = FleetMonitor(
             tr,
@@ -151,6 +155,10 @@ class Workspace(QWidget):
         """Present one consistent snapshot to all pages."""
         for page in self._pages:
             page.show_snapshot(snapshot, selected)
+        self._pinky.setText(
+            '   |   '.join(row.summary(self._tr) for row in snapshot.pinky_batteries)
+        )
+        self._pinky.setVisible(bool(snapshot.pinky_batteries))
 
     def tell(self, text: str) -> None:
         """Display a localized retrieval timestamp or connectivity warning."""

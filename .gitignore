@@ -253,3 +253,6 @@ node_modules/
 # ROS 2 colcon outputs when building packages from the repository root.
 /install/
 /log/
+
+# Third-party firmware libraries unpacked locally for the SignalKit build profile.
+/Device/SignalKit/third_party/

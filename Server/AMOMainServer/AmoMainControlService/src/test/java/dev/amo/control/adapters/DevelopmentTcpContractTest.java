@@ -89,6 +89,37 @@ class DevelopmentTcpContractTest {
     }
   }
 
+  @Test
+  void signalCommandsPassOnlyThroughTheWebLink() throws Exception {
+    var backend = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    backend.createContext(
+        "/",
+        exchange -> {
+          try (exchange) {
+            exchange.sendResponseHeaders(202, -1);
+          }
+        });
+    backend.start();
+    try {
+      var adapter = new ControlHttpAdapter(backend.getAddress().getPort());
+      var bearer = Map.of("authorization", List.of("Bearer staff"));
+      var command = new ControlWire.Request("POST", "/api/signals/SIG-01/commands", bearer, "");
+      assertEquals(202, adapter.handle(command, false).status());
+      assertEquals(404, adapter.handle(command, true).status());
+      var bad = new ControlWire.Request("POST", "/api/signals/sig_01/commands", bearer, "");
+      assertEquals(404, adapter.handle(bad, false).status());
+      for (String internal :
+          new String[] {"/internal/signals/state", "/internal/signals/SIG-01/commands"}) {
+        for (String method : new String[] {"GET", "POST"}) {
+          var request = new ControlWire.Request(method, internal, bearer, "");
+          assertEquals(404, adapter.handle(request, false).status());
+        }
+      }
+    } finally {
+      backend.stop(0);
+    }
+  }
+
   private ControlWire.Response exchange(int port, ControlWire.Request request) throws IOException {
     byte[] payload = json.writeValueAsBytes(request);
     try (var client = new Socket("127.0.0.1", port)) {

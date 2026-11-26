@@ -20,6 +20,8 @@ amo:
   google-client-id: ${AMO_GOOGLE_CLIENT_ID:}
   google-allowed-audiences: ${AMO_GOOGLE_ALLOWED_AUDIENCES:}
   cookie-secure: ${AMO_COOKIE_SECURE:true}
+  # Machine key for the SignalKit ROS 2 bridge; empty keeps /internal/signals denied.
+  signal-ingest-key: ${AMO_SIGNAL_INGEST_KEY:}
   tcp:
     web-port: ${AMO_WEB_TCP_PORT:18086}
     admin-port: ${AMO_FMS_TCP_PORT:18087}

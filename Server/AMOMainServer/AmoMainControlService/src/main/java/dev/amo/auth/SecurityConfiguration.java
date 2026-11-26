@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -57,7 +56,8 @@ class SecurityConfiguration {
       AmoJwt jwt,
       SessionRepository sessions,
       @Value("${amo.cookie-secure}") boolean secureCookie,
-      @Value("${amo.vision-ingest-key:}") String visionKey)
+      @Value("${amo.vision-ingest-key:}") String visionKey,
+      @Value("${amo.signal-ingest-key:}") String signalKey)
       throws Exception {
     var bearer = new DefaultBearerTokenResolver();
     return http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -78,11 +78,11 @@ class SecurityConfiguration {
             routes ->
                 routes
                     .requestMatchers(HttpMethod.POST, "/internal/vision/observations")
-                    .access(
-                        (auth, request) ->
-                            new AuthorizationDecision(
-                                VisionIngressKey.matches(
-                                    visionKey, request.getRequest().getHeader("X-AMO-Vision-Key"))))
+                    .access(VisionIngressKey.authorization(visionKey, "X-AMO-Vision-Key"))
+                    .requestMatchers("/internal/signals/state", "/internal/signals/{id}/commands")
+                    .access(VisionIngressKey.authorization(signalKey, "X-AMO-Signal-Key"))
+                    .requestMatchers(HttpMethod.POST, "/api/signals/{signalId}/commands")
+                    .hasAnyRole("ADMIN", "OPERATOR")
                     .requestMatchers(HttpMethod.GET, PUBLIC_READS)
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, PUBLIC_WRITES)

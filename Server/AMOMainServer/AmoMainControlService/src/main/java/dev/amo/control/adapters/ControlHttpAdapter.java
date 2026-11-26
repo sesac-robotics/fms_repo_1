@@ -152,6 +152,7 @@ final class ControlHttpAdapter {
               || path.equals(REVIEW + "/history/reset")
               || path.matches(REVIEW_RUN + "/reset")
               || path.matches(REVIEW_RUN + "/steps/[A-Z_]+")
+              || path.matches("/api/signals/[A-Z0-9-]{1,32}/commands")
               || path.matches(
                   "/api/rides/[0-9]+/mock-(quote|prepayment|change-accept|change-propose)")
               || path.matches(

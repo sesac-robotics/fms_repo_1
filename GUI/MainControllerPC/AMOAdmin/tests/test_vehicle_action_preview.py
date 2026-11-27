@@ -21,7 +21,7 @@ class VehicleActionPreviewTest(TestCase):
         app = QApplication.instance() or QApplication([])
         fleet = tuple(
             Vehicle.parse(
-                {'id': i, 'vehicleNo': f'PINKY-{i:02d}', 'connection': 'SIMULATED'}
+                {'id': i, 'vehicleNo': f'PINKY-{i:02d}', 'connection': 'CONNECTED'}
             )
             for i in range(1, 5)
         )

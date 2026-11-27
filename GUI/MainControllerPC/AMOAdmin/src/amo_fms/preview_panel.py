@@ -17,6 +17,7 @@ from .i18n import Text
 from .local_preview_source import LocalPreviewSource
 from .models import Vehicle
 from .preview_card import PreviewCard, PreviewSurface
+from .vehicle_details import received_vehicle_status
 from .widgets import button
 
 _NUMBERS = tuple(f'PINKY-{number:02d}' for number in range(1, 5))
@@ -132,7 +133,7 @@ class PreviewPanel(QWidget):
                 frame = self._test_frames[number]
                 status = self._tr('camera_test_image')
             vehicle = self._vehicles.get(number)
-            state = self._tr.status(vehicle.status) if vehicle else self._tr('unknown')
+            state = received_vehicle_status(vehicle, self._tr)
             card.present(frame, state, status)
             self._update_connection(number, not frame.isNull())
 

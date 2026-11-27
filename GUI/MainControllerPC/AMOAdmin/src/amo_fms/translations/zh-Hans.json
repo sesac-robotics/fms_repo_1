@@ -60,6 +60,7 @@
   "pinky_simulated": "模拟数据",
   "connection": "连接状态",
   "stop_reason": "停车原因",
+  "not_received": "未收到",
   "unknown": "未确认",
   "request_id": "叫车请求编号",
   "pickup": "上车点",

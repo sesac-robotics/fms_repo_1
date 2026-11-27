@@ -17,10 +17,16 @@ def visible_fleet(snapshot: Snapshot, scenario_demo: bool) -> Snapshot:
     """Return the view snapshot without changing the received IF-03 observations."""
     if scenario_demo:
         return snapshot
+    vehicles = tuple(v for v in snapshot.vehicles if not is_scenario_vehicle(v.number))
+    simulated = {v.number for v in vehicles if _is_demo_reading(v)}
     return replace(
         snapshot,
         vehicles=tuple(
-            v for v in snapshot.vehicles if not is_scenario_vehicle(v.number)
+            _without_demo_observations(v) if v.number in simulated else v
+            for v in vehicles
+        ),
+        pinky_batteries=tuple(
+            row for row in snapshot.pinky_batteries if not row.simulated
         ),
         review=None,
         events=tuple(
@@ -28,7 +34,29 @@ def visible_fleet(snapshot: Snapshot, scenario_demo: bool) -> Snapshot:
             for event in snapshot.events
             if not event.type.startswith('DEMO_REVIEW_')
             and not is_scenario_vehicle(event.vehicle)
+            and not (event.vehicle in simulated and event.type == 'CHARGING')
         ),
+    )
+
+
+def _is_demo_reading(vehicle: Vehicle) -> bool:
+    return vehicle.connection.upper() == 'SIMULATED' or (
+        vehicle.sample is not None
+        and vehicle.sample[0].startswith(('demo-', 'review-'))
+    )
+
+
+def _without_demo_observations(vehicle: Vehicle) -> Vehicle:
+    return replace(
+        vehicle,
+        status='UNKNOWN',
+        battery_percent=None,
+        connection='UNKNOWN',
+        stop_reason='',
+        position_m=None,
+        yaw_rad=None,
+        speed_mps=None,
+        sample=None,
     )
 
 

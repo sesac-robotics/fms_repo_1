@@ -60,6 +60,7 @@
   "pinky_simulated": "Simulated",
   "connection": "Connection",
   "stop_reason": "Stop reason",
+  "not_received": "Not received",
   "unknown": "Unknown",
   "request_id": "Request ID",
   "pickup": "Pickup",

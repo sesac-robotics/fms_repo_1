@@ -5,6 +5,13 @@ from .models import Vehicle
 from .vision_readings import VisionReading, vehicle_vision_summary
 
 
+def received_vehicle_status(vehicle: Vehicle | None, tr: Text) -> str:
+    """Display missing vehicle status explicitly, with normal status localization."""
+    if vehicle is None or vehicle.status.upper() in {'', 'UNKNOWN'}:
+        return tr('not_received')
+    return tr.status(vehicle.status)
+
+
 def vehicle_details(
     vehicle: Vehicle, vision: tuple[VisionReading, ...], tr: Text
 ) -> dict[str, str]:
@@ -15,8 +22,8 @@ def vehicle_details(
     position = vehicle.position_m
     return {
         'vehicle_no': vehicle.number,
-        'status': tr.status(vehicle.status),
-        'battery': f'{battery:g}%' if battery is not None else unknown,
+        'status': received_vehicle_status(vehicle, tr),
+        'battery': f'{battery:g}%' if battery is not None else tr('not_received'),
         'connection': tr.status(vehicle.connection),
         'stop_reason': tr.status(vehicle.stop_reason),
         'vision_reading': vehicle_vision_summary(vision, vehicle.number, tr),

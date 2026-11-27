@@ -60,6 +60,7 @@
   "pinky_simulated": "모의 데이터",
   "connection": "연결 상태",
   "stop_reason": "정차 사유",
+  "not_received": "미수신",
   "unknown": "미확인",
   "request_id": "호출 ID",
   "pickup": "출발지",

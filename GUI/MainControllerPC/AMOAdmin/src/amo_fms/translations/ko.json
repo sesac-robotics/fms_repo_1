@@ -1,4 +1,6 @@
 {
+  "camera_test_image": "시험 이미지",
+  "camera_waiting": "연결 대기",
   "vision_reading": "Vision 판정",
   "vision_no_report": "판정 미수신",
   "vision_detected": "감지",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from os import getenv
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -18,7 +19,9 @@ from PyQt6.QtWidgets import (
 from .config import Config, Preferences
 from .fleet_map import FleetMap
 from .i18n import Text, display_time
+from .map_vehicle_selector import MapVehicleSelector
 from .models import Snapshot, Vehicle
+from .preview_panel import PreviewPanel
 from .scenario_review_labels import latest_review_stage, review_stage_text
 from .vehicle_details import vehicle_details
 from .vision_readings import VisionReading
@@ -55,10 +58,16 @@ class FleetMonitor(QWidget):
         body_layout.addWidget(self._stage)
         self._map = FleetMap(tr, config, prefs)
         body_layout.addWidget(self._map, 1)
+        self._map_selection = MapVehicleSelector(self._choose_vehicle)
+        body_layout.addWidget(self._map_selection)
         content.addWidget(body, 4)
 
         right = QVBoxLayout()
         right.setSpacing(12)
+        self._previews = PreviewPanel(
+            tr, self._choose_vehicle, test_images=getenv('AMO_FMS_TEST_IMAGES') == '1'
+        )
+        right.addWidget(self._previews)
         fleet, fleet_layout = panel()
         fleet_layout.addWidget(label(tr('fleet'), 'heading'))
         self._count = label(tr('fleet_count', count=0), 'secondary')
@@ -133,6 +142,7 @@ class FleetMonitor(QWidget):
             self._recent.setText(self._tr('empty'))
         if self._vehicles != snapshot.vehicles:
             self._vehicles = snapshot.vehicles
+            self._map_selection.set_vehicles(self._vehicles)
             self._list.blockSignals(True)
             self._list.clear()
             for vehicle in self._vehicles:
@@ -152,6 +162,8 @@ class FleetMonitor(QWidget):
         row = next((i for i, v in enumerate(self._vehicles) if v.id == vehicle_id), -1)
         self._list.blockSignals(True)
         self._list.setCurrentRow(row)
+        self._map_selection.highlight(vehicle_id)
+        self._previews.present(self._vehicles, vehicle_id)
         self._list.blockSignals(False)
         markers = tuple(v for v in self._vehicles if v.number == self._review_vehicle)
         self._map.show_samples(markers, vehicle_id)
@@ -170,5 +182,8 @@ class FleetMonitor(QWidget):
         _previous: QListWidgetItem | None,
     ) -> None:
         selected_id = str(current.data(Qt.ItemDataRole.UserRole)) if current else ''
-        self.select(selected_id)
-        self._select(selected_id)
+        self._choose_vehicle(selected_id)
+
+    def _choose_vehicle(self, vehicle_id: str) -> None:
+        self.select(vehicle_id)
+        self._select(vehicle_id)

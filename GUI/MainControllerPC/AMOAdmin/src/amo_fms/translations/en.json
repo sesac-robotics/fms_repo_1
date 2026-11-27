@@ -1,4 +1,6 @@
 {
+  "camera_test_image": "Test image",
+  "camera_waiting": "Waiting for video",
   "vision_reading": "Vision",
   "vision_no_report": "No observation",
   "vision_detected": "Detected",

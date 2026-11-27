@@ -45,4 +45,4 @@ ROS 도메인 ID는 펌웨어(`config.h`)에서 16으로 정합니다. `ros2` �
 
 ## 4. 운영자 명령
 
-`POST /api/signals/SIG-01/commands`에 `{"command": "..."}`를 보냅니다(관리자·운영자 세션). 명령은 `AUTO`, `HOLD NORTH_GREEN`, `HOLD EAST_GREEN`, `HOLD ALL_RED`, `PLAN <북녹> <동녹> <황> <전적>`(ms)입니다. FMS 화면은 조회 전용입니다. 자세한 계약은 [SignalBridge README](SignalBridge/README.md#main-control-api)에 있습니다.
+`POST /api/signals/SIG-01/commands`에 `{"command": "..."}`를 보냅니다(관리자·운영자 세션). 명령은 `AUTO`, `HOLD NORTH_GREEN`, `HOLD EAST_GREEN`, `HOLD ALL_RED`, `PLAN <북녹> <동녹> <황> <전적>` 또는 동서 황색과 상대 보드 동서 시간까지 넣는 숫자 6개 형식(ms)입니다. FMS의 신호등 페이지에서도 신호 시간(`PLAN`)을 바꿀 수 있습니다. 모니터 지도 가운데 교차로를 누르면 그 페이지로 넘어갑니다. 자세한 계약은 [SignalBridge README](SignalBridge/README.md#main-control-api)에 있습니다.

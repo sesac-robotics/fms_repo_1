@@ -12,7 +12,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -22,6 +21,7 @@ from .fleet_map import FleetMap
 from .i18n import Text, display_time
 from .map_vehicle_selector import MapVehicleSelector
 from .models import Snapshot, Vehicle
+from .monitor_layout import map_and_cameras
 from .preview_panel import PreviewPanel
 from .scenario_review_labels import latest_review_stage, review_stage_text
 from .vehicle_details import vehicle_details
@@ -61,7 +61,6 @@ class FleetMonitor(QWidget):
         body_layout.addWidget(self._map, 1)
         self._map_selection = MapVehicleSelector(self._choose_vehicle)
         body_layout.addWidget(self._map_selection)
-        content.addWidget(body, 4)
 
         sidebar = QWidget()
         right = QVBoxLayout(sidebar)
@@ -124,11 +123,7 @@ class FleetMonitor(QWidget):
         self._actions.clicked.connect(open_actions)
         detail_layout.addWidget(self._actions)
         right.addWidget(details, 2)
-        scroll = QScrollArea()
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(sidebar)
-        content.addWidget(scroll, 2)
+        content.addWidget(map_and_cameras(body, sidebar))
 
     def show_snapshot(self, snapshot: Snapshot, selected_id: str) -> None:
         """Update the fleet while preserving the selected vehicle's service ID."""

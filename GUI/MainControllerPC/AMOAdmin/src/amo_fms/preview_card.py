@@ -52,7 +52,6 @@ class PreviewCard(QPushButton):
         """Create a dedicated image surface followed by one status caption."""
         super().__init__(parent)
         self._number = number
-        self._expanded = False
         self.setCheckable(True)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.surface = PreviewSurface(waiting, self)
@@ -67,7 +66,7 @@ class PreviewCard(QPushButton):
         layout.setSpacing(5)
         layout.addWidget(self.surface)
         layout.addWidget(self._caption)
-        self.set_expanded(False)
+        self.set_viewport_height(112)
 
     def present(self, frame: QPixmap, status: str) -> None:
         """Render the frame and expose the vehicle and state to accessibility tools."""
@@ -76,11 +75,10 @@ class PreviewCard(QPushButton):
         self._caption.setText(text)
         self.setAccessibleName(text)
 
-    def set_expanded(self, expanded: bool) -> None:
-        """Allocate more vertical space when the selected card is enlarged."""
-        if self._expanded != expanded or not self.surface.minimumHeight():
-            self._expanded = expanded
-            self.surface.setFixedHeight(220 if expanded else 100)
+    def set_viewport_height(self, height: int) -> None:
+        """Reserve the requested viewport height and keep the caption below it."""
+        if self.surface.minimumHeight() != height:
+            self.surface.setFixedHeight(height)
             self.setFixedHeight(self.sizeHint().height())
 
     def sizeHint(self) -> QSize:

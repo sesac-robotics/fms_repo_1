@@ -6,7 +6,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from PyQt6.QtCore import QSettings
-from PyQt6.QtWidgets import QApplication, QPushButton
+from PyQt6.QtWidgets import QApplication, QPushButton, QSplitter
 
 from amo_fms.config import DEFAULT_MAP_ROOT, Config, Preferences
 from amo_fms.i18n import Text
@@ -50,6 +50,15 @@ class CameraPreviewPanelTest(TestCase):
                 all(not card.surface.frame_rect().isEmpty() for card in cards)
             )
             self.assertTrue(cards[0].isChecked())
+            self.assertTrue(all(card.surface.height() >= 180 for card in cards))
+            split = monitor.findChild(QSplitter)
+            previous_width = cards[0].surface.width()
+            split.setSizes([480, 960])
+            app.processEvents()
+            self.assertTrue(
+                all(card.surface.width() > previous_width for card in cards)
+            )
+            self.assertTrue(monitor._map.isVisible())
             for card in cards:
                 self.assertTrue(card.rect().contains(card.surface.geometry()))
                 self.assertTrue(card.rect().contains(card._caption.geometry()))

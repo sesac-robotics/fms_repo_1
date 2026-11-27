@@ -4,7 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QColor, QImage, QPainter, QPixmap
+from PyQt6.QtGui import QColor, QImage, QPainter, QPixmap, QResizeEvent
 from PyQt6.QtWidgets import QGridLayout, QPushButton, QWidget
 
 from .i18n import Text
@@ -120,11 +120,25 @@ class PreviewPanel(QWidget):
             self._grid.removeWidget(card)
             visible = not expanded or self._vehicles.get(number) == self._selected
             card.setVisible(visible)
-            card.set_expanded(expanded)
             if expanded and visible:
                 self._grid.addWidget(card, 0, 0, 2, 2)
             elif not expanded:
                 self._grid.addWidget(card, index // 2, index % 2)
+        self._resize_cards()
+
+    def resizeEvent(self, event: QResizeEvent | None) -> None:
+        """Scale all visible viewports with the available camera column width."""
+        super().resizeEvent(event)
+        self._resize_cards()
+
+    def _resize_cards(self) -> None:
+        expanded = self._expand.isChecked()
+        width = self.width() if expanded else (self.width() - self._grid.spacing()) // 2
+        height = max(112, (width - 12) * 9 // 16)
+        if expanded:
+            height = min(430, height)
+        for card in self._cards.values():
+            card.set_viewport_height(height)
 
     def _choose(self, number: str) -> None:
         vehicle_id = self._vehicles.get(number)

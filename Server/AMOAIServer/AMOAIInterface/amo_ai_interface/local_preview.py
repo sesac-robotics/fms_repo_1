@@ -1,4 +1,4 @@
-"""Produce a coarse, whole-frame mosaic for the local FMS field test."""
+"""Produce a face-masked frame for the local FMS field test."""
 
 import logging
 import re
@@ -9,10 +9,8 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from threading import Condition, Thread
 
-from amo_ai_interface.frame import Frame, validate_robot_id
-
-_WIDTH, _HEIGHT = 16, 12
-_LEVELS = frozenset({0, 85, 170, 255})
+from amo_ai_interface.face_preview import PREVIEW_MAGIC, load_face_masker
+from amo_ai_interface.frame import Frame, is_jpeg, validate_robot_id
 
 
 def configure_preview(
@@ -32,26 +30,11 @@ def configure_preview(
         or directory.stat().st_uid != getuid()
     ):
         raise ValueError('Local preview requires an existing owner-private directory')
-    try:
-        import cv2
-        import numpy as np
-    except ImportError as exc:
-        raise ValueError('Local preview requires OpenCV and NumPy') from exc
-
-    def mosaic(jpeg: bytes) -> bytes:
-        image = cv2.imdecode(
-            np.frombuffer(jpeg, dtype=np.uint8), cv2.IMREAD_REDUCED_GRAYSCALE_8
-        )
-        if image is None or not image.size:
-            raise ValueError('Could not decode the camera JPEG')
-        cells = cv2.resize(image, (_WIDTH, _HEIGHT), interpolation=cv2.INTER_AREA)
-        return ((cells // 64) * 85).tobytes()
-
-    return LocalPreview(robot, directory / f'{vehicle}.mosaic', mosaic)
+    return LocalPreview(robot, directory / f'{vehicle}.preview', load_face_masker())
 
 
 class LocalPreview:
-    """Own one worker and one pending frame, publishing only coarse grayscale cells."""
+    """Own one worker and one pending frame, publishing only re-encoded face previews."""
 
     def __init__(
         self, robot_id: str, output: Path, mask: Callable[[bytes], bytes]
@@ -95,14 +78,15 @@ class LocalPreview:
                     return
                 frame = self._pending.pop()
             try:
-                cells = self._mask(frame.jpeg)
-                if len(cells) != _WIDTH * _HEIGHT or not set(cells) <= _LEVELS:
-                    raise ValueError('Unexpected mosaic dimensions or palette')
-                self._publish(cells)
+                payload = self._mask(frame.jpeg)
+                if not payload.startswith(PREVIEW_MAGIC) or not is_jpeg(payload[6:]):
+                    raise ValueError('Invalid masked preview payload')
+                self._publish(payload)
                 logging.info(
-                    'local_preview_written frame=%s vehicle=%s',
+                    'local_preview_written frame=%s vehicle=%s masked_regions=%d',
                     frame.frame_id,
                     self._output.stem,
+                    payload[5],
                 )
             except Exception as error:
                 # Camera decode failures must never fall back to the original JPEG.
@@ -111,11 +95,11 @@ class LocalPreview:
                     'local_preview_withheld error_type=%s', type(error).__name__
                 )
 
-    def _publish(self, cells: bytes) -> None:
+    def _publish(self, payload: bytes) -> None:
         with NamedTemporaryFile(dir=self._output.parent, delete=False) as scratch:
             temporary = Path(scratch.name)
             try:
-                scratch.write(cells)
+                scratch.write(payload)
                 scratch.close()
                 temporary.replace(self._output)
             finally:

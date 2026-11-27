@@ -117,7 +117,6 @@ Android에서 Google로 로그인한 승객에게 운영자 권한도 부여하�
 포매터가 만든 줄바꿈을 기준으로 직접 쓴 구현·시험 소스의 물리적 줄을 셉니다. 빈 줄과 주석을 포함해 파일당 200줄까지 허용합니다. 승인된 예외는 없습니다. 단, 외부에서 받은 Gradle Wrapper와 도구가 만든 잠금 파일·빌드 결과, 지도 이미지 같은 정적 자산은 직접 작성한 소스가 아닙니다. [모듈화와 200줄 기준](https://k8c1.atlassian.net/wiki/spaces/K8C1sesac/pages/4653058) · [공통 개발 표준 및 기술별 기준](https://k8c1.atlassian.net/wiki/spaces/K8C1sesac/pages/4358173)
 
 각 기술의 포맷을 검사한 뒤 저장소 루트에서 줄 수를 확인합니다.
-GitHub 검사도 같은 포맷·린트·줄 수 검사와 각 앱의 빌드·자동 테스트를 실행합니다. 장치 연결과 실차 검증은 별도로 수행합니다. [자동 검사 정의](.github/workflows/quality.yml)
 
 ```sh
 python3 tests/integration/check_source_lines.py

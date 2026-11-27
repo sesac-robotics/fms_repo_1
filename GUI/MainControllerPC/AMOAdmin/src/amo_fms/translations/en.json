@@ -155,6 +155,7 @@
   "status_demo_depot_charge_started": "Demo charging started",
   "status_demo_depot_battery_reported": "Demo battery report",
   "status_demo_depot_vacated": "Demo charging bay vacated",
+  "scenario_demo_mode": "Scenario demo mode",
   "review_tab": "Scenario review",
   "review_plan": "Review scenario",
   "review_steps": "Scenario steps",

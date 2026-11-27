@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -14,10 +15,12 @@ from PyQt6.QtWidgets import (
 
 from .config import Config, Preferences
 from .congestion_panel import CongestionPanel
+from .fleet_visibility import visible_fleet
 from .i18n import Text
 from .models import Operator, Snapshot
 from .monitor import FleetMonitor
 from .operations_pages import ActionsPage, RecordsPage
+from .scenario_review_labels import review_vehicle
 from .widgets import brand, button, label
 
 PAGE_KEYS = ('monitor', 'queue', 'events', 'commands')
@@ -39,10 +42,16 @@ class Workspace(QWidget):
         prefs: Preferences,
         operator: Operator,
         initial_page: str,
+        scenario_demo: bool = False,
     ) -> None:
         """Construct the live-view shell and preserve navigational state."""
         super().__init__()
         self._tr = tr
+        self._snapshot = Snapshot()
+        self._selected = ''
+        self._review_mode = QCheckBox(tr('scenario_demo_mode'))
+        self._review_mode.setChecked(scenario_demo)
+        self._review_mode.toggled.connect(self._render_snapshot)
         self._page_keys = (
             (*PAGE_KEYS, 'forecast_title') if config.congestion_trace else PAGE_KEYS
         )
@@ -65,6 +74,7 @@ class Workspace(QWidget):
         self._pinky.hide()
         body.addWidget(self._pinky)
         self._stack = QStackedWidget()
+        self.vehicle_selected.connect(self._remember_selection)
         self._monitor = FleetMonitor(
             tr,
             config,
@@ -91,6 +101,11 @@ class Workspace(QWidget):
         body.addWidget(self._stack, 1)
         outer.addWidget(main, 1)
         self.navigate(initial_page)
+
+    @property
+    def scenario_demo(self) -> bool:
+        """Return the current FMS display mode for a workspace rebuild."""
+        return self._review_mode.isChecked()
 
     def _rail(self, config: Config, prefs: Preferences, operator: Operator) -> QWidget:
         tr = self._tr
@@ -130,6 +145,7 @@ class Workspace(QWidget):
         preview.setToolTip(self._tr('preview_explain'))
         preview.setAlignment(Qt.AlignmentFlag.AlignRight)
         top.addWidget(preview)
+        top.addWidget(self._review_mode)
         self._refresh = button(self._tr('refresh'))
         self._refresh.clicked.connect(self.request_refresh)
         top.addWidget(self._refresh)
@@ -153,8 +169,21 @@ class Workspace(QWidget):
 
     def show_snapshot(self, snapshot: Snapshot, selected: str) -> None:
         """Present one consistent snapshot to all pages."""
+        self._snapshot = snapshot
+        self._selected = selected
+        self._render_snapshot()
+
+    def _remember_selection(self, vehicle_id: str) -> None:
+        self._selected = vehicle_id
+
+    def _render_snapshot(self) -> None:
+        review_mode = self.scenario_demo
+        snapshot = visible_fleet(self._snapshot, review_mode)
+        selected = review_vehicle(snapshot, self._selected, review_mode)
         for page in self._pages:
             page.show_snapshot(snapshot, selected)
+        if self._selected != selected:
+            self.vehicle_selected.emit(selected)
         self._pinky.setText(
             '   |   '.join(row.summary(self._tr) for row in snapshot.pinky_batteries)
         )

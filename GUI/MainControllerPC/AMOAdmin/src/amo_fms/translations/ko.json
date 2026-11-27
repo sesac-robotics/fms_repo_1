@@ -155,6 +155,7 @@
   "status_demo_depot_charge_started": "모의 충전 시작",
   "status_demo_depot_battery_reported": "모의 배터리 보고",
   "status_demo_depot_vacated": "모의 충전칸 이탈",
+  "scenario_demo_mode": "시나리오 시연 모드",
   "review_tab": "시나리오 검수",
   "review_plan": "검수 시나리오",
   "review_steps": "시나리오 단계",

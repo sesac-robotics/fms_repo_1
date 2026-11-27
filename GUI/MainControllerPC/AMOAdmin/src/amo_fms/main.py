@@ -17,7 +17,6 @@ from .login_page import LoginPage
 from .measurement import observe
 from .models import Operator, Snapshot
 from .preferences_dialog import PreferenceDialog
-from .scenario_review_labels import review_vehicle
 from .theme import palette, stylesheet
 from .tutorial import Walkthrough
 from .workspace import Workspace
@@ -80,8 +79,9 @@ class Application(QMainWindow):
             self._login.tell(self._login_notice, pending=self._login_pending)
         else:
             self._login = None
+            mode = self._workspace is not None and self._workspace.scenario_demo
             self._workspace = Workspace(
-                tr, self._config, self._prefs, self._operator, self._page
+                tr, self._config, self._prefs, self._operator, self._page, mode
             )
             self._workspace.request_settings.connect(self._settings)
             self._workspace.request_logout.connect(self._api.logout)
@@ -150,9 +150,6 @@ class Application(QMainWindow):
             samples=[(v.id, v.sample) for v in snapshot.vehicles if v.sample],
         )
         self._snapshot = snapshot
-        self._selected_id = review_vehicle(
-            snapshot, self._selected_id, self._timer.interval() == 750
-        )
         self._seen_at = datetime.now(ZoneInfo('Asia/Seoul')).strftime('%H:%M:%S')
         self._status_key = 'snapshot_at'
         if self._workspace is not None:

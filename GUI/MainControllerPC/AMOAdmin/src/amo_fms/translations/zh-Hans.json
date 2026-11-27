@@ -155,6 +155,7 @@
   "status_demo_depot_charge_started": "模拟充电开始",
   "status_demo_depot_battery_reported": "模拟电量报告",
   "status_demo_depot_vacated": "模拟离开充电位",
+  "scenario_demo_mode": "场景演示模式",
   "review_tab": "场景验收",
   "review_plan": "验收场景",
   "review_steps": "场景步骤",

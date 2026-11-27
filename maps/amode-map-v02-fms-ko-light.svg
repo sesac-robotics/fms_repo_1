@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1046" height="958" viewBox="0 0 1046 958">
+  <title>AMoDE 맵 v0.2 (2440×2225 mm)</title>
+  <g id="map-geometry">
+    <rect x="4" y="4" width="1038" height="950" fill="#57455F" stroke="#7D6B83" stroke-width="8" rx="12" />
+    <rect x="80" y="79" width="278" height="130" fill="#E4D8E9" stroke="#FBF1FA" stroke-width="3" rx="13" />
+    <rect x="687" y="79" width="281" height="130" fill="#E4D8E9" stroke="#FBF1FA" stroke-width="3" rx="13" />
+    <rect x="80" y="536" width="278" height="130" fill="#E4D8E9" stroke="#FBF1FA" stroke-width="3" rx="13" />
+    <rect x="687" y="536" width="281" height="130" fill="#E4D8E9" stroke="#FBF1FA" stroke-width="3" rx="13" />
+    <rect x="80" y="748" width="278" height="129" fill="#E4D8E9" stroke="#FBF1FA" stroke-width="3" rx="13" />
+    <rect x="687" y="748" width="281" height="129" fill="#E4D8E9" stroke="#FBF1FA" stroke-width="3" rx="13" />
+    <rect x="80" y="877" width="278" height="76" fill="#87474F" stroke="#FFD18D" stroke-width="2" rx="3" />
+    <rect x="359" y="0" width="328" height="79" fill="none" stroke="#FFD18D" stroke-width="3.5" rx="0" stroke-dasharray="8 6" />
+    <rect x="359" y="209" width="328" height="327" fill="none" stroke="#FFD18D" stroke-width="3.5" rx="0" stroke-dasharray="8 6" />
+    <rect x="359" y="666" width="328" height="82" fill="none" stroke="#FFD18D" stroke-width="3.5" rx="0" stroke-dasharray="8 6" />
+    <rect x="359" y="877" width="328" height="81" fill="none" stroke="#FFD18D" stroke-width="3.5" rx="0" stroke-dasharray="8 6" />
+    <rect x="0" y="209" width="80" height="327" fill="none" stroke="#FFD18D" stroke-width="3.5" rx="0" stroke-dasharray="8 6" />
+    <rect x="968" y="209" width="78" height="327" fill="none" stroke="#FFD18D" stroke-width="3.5" rx="0" stroke-dasharray="8 6" />
+    <rect x="0" y="666" width="80" height="82" fill="none" stroke="#FFD18D" stroke-width="3.5" rx="0" stroke-dasharray="8 6" />
+    <rect x="968" y="666" width="78" height="82" fill="none" stroke="#FFD18D" stroke-width="3.5" rx="0" stroke-dasharray="8 6" />
+    <path d="M522 80v129M80 373h279M687 373h281M522 536v130M522 748v129" fill="none" stroke="#FFD15B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M441 80v129M604 80v129M441 536v130M604 536v130M441 748v129M604 748v129" fill="none" stroke="#FBF1FA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M106 291h250M687 291h254M106 455h250M687 455h254" fill="none" stroke="#FBF1FA" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="12 11" />
+    <path d="M342 5v71" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M363 193h156" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M528 137h154" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M971 193h70" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M97 214v153" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M342 379v151" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M705 214v153" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M950 379v151" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M363 651h156" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M528 553h154" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M5 555h70" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M971 651h70" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M342 670v74" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M950 670v74" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M5 763h70" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M363 860h156" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M528 766h154" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M705 882v71" fill="none" stroke="#FBF1FA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="366" y="93" width="14" height="29" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="402" y="93" width="14" height="29" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="438" y="93" width="14" height="29" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="474" y="93" width="14" height="29" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="510" y="93" width="14" height="29" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="546" y="93" width="14" height="29" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="582" y="93" width="14" height="29" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="618" y="93" width="14" height="29" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="654" y="93" width="14" height="29" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="188" y="881" width="35" height="8" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="188" y="896" width="35" height="8" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="188" y="911" width="35" height="8" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="188" y="926" width="35" height="8" fill="#FBF1FA" stroke="none" stroke-width="1" rx="0" />
+    <rect x="339" y="173" width="16" height="36" fill="#251B31" stroke="#FBF1FA" stroke-width="2" rx="5" />
+    <circle cx="347" cy="181" r="3.5" fill="#FFA4AE" stroke="none" stroke-width="1" />
+    <circle cx="347" cy="191" r="3.5" fill="#FFD385" stroke="none" stroke-width="1" />
+    <circle cx="347" cy="201" r="3.5" fill="#91DEB4" stroke="none" stroke-width="1" />
+    <rect x="692" y="173" width="16" height="36" fill="#251B31" stroke="#FBF1FA" stroke-width="2" rx="5" />
+    <circle cx="700" cy="181" r="3.5" fill="#FFA4AE" stroke="none" stroke-width="1" />
+    <circle cx="700" cy="191" r="3.5" fill="#FFD385" stroke="none" stroke-width="1" />
+    <circle cx="700" cy="201" r="3.5" fill="#91DEB4" stroke="none" stroke-width="1" />
+    <rect x="339" y="542" width="16" height="36" fill="#251B31" stroke="#FBF1FA" stroke-width="2" rx="5" />
+    <circle cx="347" cy="550" r="3.5" fill="#FFA4AE" stroke="none" stroke-width="1" />
+    <circle cx="347" cy="560" r="3.5" fill="#FFD385" stroke="none" stroke-width="1" />
+    <circle cx="347" cy="570" r="3.5" fill="#91DEB4" stroke="none" stroke-width="1" />
+    <rect x="692" y="542" width="16" height="36" fill="#251B31" stroke="#FBF1FA" stroke-width="2" rx="5" />
+    <circle cx="700" cy="550" r="3.5" fill="#FFA4AE" stroke="none" stroke-width="1" />
+    <circle cx="700" cy="560" r="3.5" fill="#FFD385" stroke="none" stroke-width="1" />
+    <circle cx="700" cy="570" r="3.5" fill="#91DEB4" stroke="none" stroke-width="1" />
+    <g transform="translate(310 42) rotate(0)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(1009 149) rotate(90)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(138 286) rotate(180)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(843 291) rotate(180)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(314 503) rotate(0)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(902 479) rotate(0)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(401 603) rotate(90)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(648 587) rotate(270)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(304 707) rotate(0)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(922 707) rotate(0)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(395 824) rotate(90)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(659 803) rotate(270)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(750 923) rotate(180)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g transform="translate(19 794) rotate(270)">
+      <path d="M-14 0h25m-8-8 8 8-8 8" fill="none" stroke="#FBF1FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <circle cx="119" cy="159" r="4.7" fill="#B82A55" stroke="#FBF1FA" stroke-width="1" />
+    <circle cx="188" cy="159" r="4.7" fill="#B82A55" stroke="#FBF1FA" stroke-width="1" />
+    <circle cx="257" cy="159" r="4.7" fill="#B82A55" stroke="#FBF1FA" stroke-width="1" />
+    <circle cx="327" cy="159" r="4.7" fill="#B82A55" stroke="#FBF1FA" stroke-width="1" />
+    <rect x="80" y="79" width="278" height="91" fill="#C6DCEE" stroke="#385FA6" stroke-width="3" rx="0" stroke-dasharray="9 6" />
+    <rect x="707" y="79" width="139" height="91" fill="#C6DCEE" stroke="#385FA6" stroke-width="3" rx="0" stroke-dasharray="9 6" />
+    <path d="M152 81v87" fill="none" stroke="#FBF1FA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M221 81v87" fill="none" stroke="#FBF1FA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M289 81v87" fill="none" stroke="#FBF1FA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M777 81v87" fill="none" stroke="#FBF1FA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="119" cy="159" r="4.7" fill="#B82A55" stroke="#FBF1FA" stroke-width="1" />
+    <circle cx="188" cy="159" r="4.7" fill="#B82A55" stroke="#FBF1FA" stroke-width="1" />
+    <circle cx="257" cy="159" r="4.7" fill="#B82A55" stroke="#FBF1FA" stroke-width="1" />
+    <circle cx="327" cy="159" r="4.7" fill="#B82A55" stroke="#FBF1FA" stroke-width="1" />
+    <rect x="907" y="550" width="60" height="105" fill="#E1CFF1" stroke="#764DA9" stroke-width="3" rx="0" stroke-dasharray="8 6" />
+    <rect x="706" y="748" width="119" height="49" fill="#E1CFF1" stroke="#764DA9" stroke-width="3" rx="0" stroke-dasharray="8 6" />
+    <rect x="152" y="536" width="139" height="52" fill="#C6DCEE" stroke="#385FA6" stroke-width="3" rx="7" stroke-dasharray="7 5" />
+    <rect x="723" y="536" width="140" height="52" fill="#C6DCEE" stroke="#385FA6" stroke-width="3" rx="7" stroke-dasharray="7 5" />
+    <rect x="214" y="748" width="135" height="49" fill="#C6DCEE" stroke="#385FA6" stroke-width="3" rx="7" stroke-dasharray="7 5" />
+    <rect x="833" y="829" width="122" height="48" fill="#C6DCEE" stroke="#385FA6" stroke-width="3" rx="7" stroke-dasharray="7 5" />
+    <path d="M894 603h29" fill="none" stroke="#5B397C" stroke-width="4" stroke-linecap="round" />
+  </g>
+  <g font-family="Noto Sans CJK KR,Noto Sans SC,sans-serif" text-anchor="middle" dominant-baseline="central" font-weight="700" id="map-labels">
+    <text x="218" y="193" font-size="27" fill="#35273D">차고지</text>
+    <text x="891" y="185" font-size="26" fill="#35273D">충전소</text>
+    <text x="218" y="629" font-size="27" fill="#35273D">역·상가</text>
+    <text x="804" y="629" font-size="27" fill="#35273D">병원</text>
+    <text x="154" y="840" font-size="27" fill="#35273D">학교</text>
+    <text x="770" y="845" font-size="27" fill="#35273D">주택가</text>
+    <text x="522" y="307" font-size="28" fill="#FFF0F7">신호 교차로</text>
+    <text x="522" y="711" font-size="28" fill="#FFF0F7">비신호 교차로</text>
+    <text x="884" y="603" font-size="26" fill="#35273D" text-anchor="end">보급</text>
+    <text x="765" y="773" font-size="27" fill="#35273D">하역장</text>
+    <text x="290" font-size="26" fill="#FFF0F7">
+      <tspan x="290" y="901">어린이</tspan>
+      <tspan x="290" y="933">보호구역</tspan>
+    </text>
+    <text x="260" y="563" font-size="33" fill="#35273D">S1</text>
+    <text x="829" y="563" font-size="33" fill="#35273D">S2</text>
+    <text x="280" y="774" font-size="33" fill="#35273D">S3</text>
+    <text x="894" y="848" font-size="33" fill="#35273D">S4</text>
+    <text x="119" y="128" font-size="29" fill="#35273D">P1</text>
+    <text x="188" y="128" font-size="29" fill="#35273D">P2</text>
+    <text x="257" y="128" font-size="29" fill="#35273D">P3</text>
+    <text x="327" y="128" font-size="29" fill="#35273D">P4</text>
+    <text x="742" y="128" font-size="29" fill="#35273D">C1</text>
+    <text x="811" y="128" font-size="29" fill="#35273D">C2</text>
+  </g>
+</svg>

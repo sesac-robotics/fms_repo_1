@@ -1,0 +1,188 @@
+.operation-grid {
+  --route: #6d388d;
+  --route-halo: #fff4ff;
+  --map-road: #57455f;
+  --map-junction: #ffd18d;
+}
+
+[data-theme="dark"] .operation-grid {
+  --route: #ddc0ff;
+  --route-halo: #352147;
+  --map-road: #302639;
+  --map-junction: #f7c77b;
+}
+
+.route-layer {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.route-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.route-halo {
+  stroke: var(--route-halo);
+  stroke-width: 15;
+}
+
+.route-trace {
+  stroke: var(--route);
+  stroke-width: 8;
+}
+
+.map-marker {
+  position: absolute;
+  width: 0.45rem;
+  height: 0.45rem;
+  transform: translate(-50%, -50%);
+  background: var(--accent);
+  border: 1px solid var(--on-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--route-halo);
+}
+
+.map-marker-name {
+  position: absolute;
+  inset-block-end: 0.75rem;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  padding: 0.16rem 0.36rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.4rem;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.map-marker-below .map-marker-name {
+  inset-block-start: 0.75rem;
+  inset-block-end: auto;
+}
+
+.map-key {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  font-size: 0.88rem;
+}
+
+.map-key li {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.map-key span {
+  width: 1rem;
+  border-top: 3px solid var(--secondary);
+}
+
+.map-key :is(.key-stop, .key-junction) {
+  display: grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 0.8rem;
+  border: 0;
+  border-radius: 0.2rem;
+  background: var(--map-road);
+}
+
+.map-key :is(.key-stop, .key-junction)::after {
+  content: "";
+  width: 0.8rem;
+  border-top: 2px solid #fff5ff;
+}
+
+.map-key .key-junction::after {
+  border-top: 2px dashed var(--map-junction);
+}
+
+.map-key .key-route {
+  border-top-color: var(--route);
+}
+
+.map-key .key-vehicle {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--accent);
+  border: 0;
+  border-radius: 50%;
+}
+
+.route-note {
+  margin: 0 0 0.7rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  font-weight: 620;
+}
+
+.trip-grid,
+.test-grid {
+  align-items: start;
+}
+
+.trip-detail select {
+  width: 100%;
+  min-width: 0;
+}
+
+.trip-detail .event-timeline {
+  margin-top: 1.35rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.9rem;
+}
+
+.event-timeline ol {
+  padding-inline-start: 0.75rem;
+  margin: 0.75rem 0 0;
+  list-style: none;
+  border-inline-start: 2px solid var(--line);
+}
+
+.event-timeline li {
+  display: grid;
+  gap: 0.12rem;
+  margin-bottom: 0.8rem;
+}
+
+.event-timeline time,
+.event-timeline p {
+  color: var(--secondary);
+  font-size: 0.9rem;
+}
+
+.test-summary > p:last-child {
+  margin-top: 0.85rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .map-marker-moving {
+    transition:
+      left 1.25s linear,
+      top 1.25s linear;
+  }
+}
+
+.review-steps {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.review-steps button {
+  width: 100%;
+  text-align: start;
+}
+
+.review-steps button[aria-pressed="true"] {
+  outline: 2px solid var(--accent);
+}

@@ -1,3 +1,6 @@
+# macOS Finder metadata
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -218,3 +221,38 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local credentials, mobile signing, and build dependencies
+.env.*
+!.env.example
+.pgpass
+compose.env
+google-login.compose.yaml
+client_secret.json
+client_secret_*.json
+google-services.json
+*.jks
+*.keystore
+*.p12
+*.pem
+local.properties
+node_modules/
+.gradle/
+.kotlin/
+*.apk
+*.aab
+
+# Large local capture and operating evidence
+*.bag
+*.db3
+*.mcap
+
+# SignalKit firmware: local Wi-Fi credentials and agent address (copy secrets.example.h).
+/Device/SignalKit/SignalController/LEDController/secrets.h
+
+# ROS 2 colcon outputs when building packages from the repository root.
+/install/
+/log/
+
+# Third-party firmware libraries unpacked locally for the SignalKit build profile.
+/Device/SignalKit/third_party/

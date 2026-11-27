@@ -1,0 +1,30 @@
+[project]
+name = "amo-deepfleet"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["psycopg[binary]==3.3.9", "pyarrow==26.0.1"]
+
+[project.scripts]
+amo-deepfleet = "amo_deepfleet.cli:main"
+
+[build-system]
+requires = ["hatchling==1.28.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/amo_deepfleet"]
+artifacts = ["src/amo_deepfleet/schema.sql"]
+
+[dependency-groups]
+dev = ["mypy==1.18.2", "ruff==0.14.4"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.format]
+quote-style = "single"
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]

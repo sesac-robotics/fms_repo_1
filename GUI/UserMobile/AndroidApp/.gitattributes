@@ -1,0 +1,2 @@
+# Keep the Windows Gradle wrapper in its native checkout format.
+gradlew.bat text eol=crlf

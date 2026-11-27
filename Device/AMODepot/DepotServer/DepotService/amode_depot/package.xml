@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>amode_depot</name>
+  <version>0.0.0</version>
+  <description>AMoDE Depot Service</description>
+  <maintainer email="maintainers@example.invalid">AMoDE contributors</maintainer>
+  <license>TODO</license>
+  <!-- Declare the build type and dependencies with the implementation. -->
+</package>

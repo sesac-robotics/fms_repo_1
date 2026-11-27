@@ -1,0 +1,124 @@
+"""Paint a camera frame independently of its selectable card caption."""
+
+from PyQt6.QtCore import QRect, QSize, Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QMouseEvent, QPainter, QPaintEvent, QPixmap
+from PyQt6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
+
+
+class PreviewSurface(QWidget):
+    """Keep the complete frame visible inside a dedicated letterboxed viewport."""
+
+    def __init__(self, waiting: str, parent: QWidget) -> None:
+        """Create a passive image surface inside a clickable card."""
+        super().__init__(parent)
+        self._waiting = waiting
+        self._frame = QPixmap()
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    def set_frame(self, frame: QPixmap) -> None:
+        """Replace the current frame, or show the waiting state for a null pixmap."""
+        self._frame = frame
+        self.update()
+
+    @property
+    def frame(self) -> QPixmap:
+        """Return the displayed frame, or a null pixmap while waiting."""
+        return self._frame
+
+    def frame_rect(self) -> QRect:
+        """Return the centered, aspect-preserving frame rectangle in widget pixels."""
+        if self._frame.isNull():
+            return QRect()
+        size = self._frame.size().scaled(
+            self.size(), Qt.AspectRatioMode.KeepAspectRatio
+        )
+        return QRect(
+            (self.width() - size.width()) // 2,
+            (self.height() - size.height()) // 2,
+            size.width(),
+            size.height(),
+        )
+
+    def paintEvent(self, _event: QPaintEvent | None) -> None:
+        """Paint the viewport independently of Qt button icon dimensions."""
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor('#1b1d24'))
+        if self._frame.isNull():
+            painter.setPen(QColor('#e1e4ed'))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self._waiting)
+        else:
+            painter.drawPixmap(self.frame_rect(), self._frame)
+        painter.end()
+
+
+class PreviewCard(QPushButton):
+    """Keep the vehicle caption outside the video and preserve keyboard selection."""
+
+    enlarge_requested = pyqtSignal()
+
+    def __init__(self, number: str, waiting: str, parent: QWidget) -> None:
+        """Create a dedicated image surface followed by one status caption."""
+        super().__init__(parent)
+        self._number = number
+        self.setCheckable(True)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.surface = PreviewSurface(waiting, self)
+        self._caption = QLabel(self)
+        self._caption.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self._caption.setTextFormat(Qt.TextFormat.PlainText)
+        self._caption.setSizePolicy(
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed
+        )
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setSpacing(5)
+        layout.addWidget(self.surface)
+        self._footer = QHBoxLayout()
+        self._footer.setSpacing(6)
+        self._footer.addWidget(self._caption, 1)
+        layout.addLayout(self._footer)
+        self.surface.setMinimumHeight(48)
+
+    def add_connection_button(self, button: QPushButton) -> None:
+        """Place the slot's connection control left of the status caption."""
+        self._footer.insertWidget(0, button, alignment=Qt.AlignmentFlag.AlignTop)
+
+    def present(self, frame: QPixmap, state: str, camera_status: str) -> None:
+        """Render the frame and expose the vehicle and state to accessibility tools."""
+        self.surface.set_frame(frame)
+        text = f'{self._number} · {state}'
+        description = f'{text} · {camera_status}'
+        self._caption.setText(text if frame.isNull() else f'{text}\n{camera_status}')
+        self.setAccessibleName(description)
+        self.setToolTip(description)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent | None) -> None:
+        """Enlarge only a double-click on a populated video surface."""
+        if (
+            event is not None
+            and event.button() == Qt.MouseButton.LeftButton
+            and self.surface.geometry().contains(event.position().toPoint())
+            and not self.surface.frame_rect().isEmpty()
+        ):
+            self.enlarge_requested.emit()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+
+    def sizeHint(self) -> QSize:
+        """Keep the image and caption reachable at the application's minimum width."""
+        return QSize(
+            140, self.surface.minimumHeight() + self._footer.sizeHint().height() + 17
+        )
+
+    def minimumSizeHint(self) -> QSize:
+        """Allow both columns to share a narrow right-hand panel."""
+        return self.sizeHint()

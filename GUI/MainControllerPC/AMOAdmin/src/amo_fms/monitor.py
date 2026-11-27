@@ -20,7 +20,8 @@ from .fleet_map import FleetMap
 from .i18n import Text, display_time
 from .models import Snapshot, Vehicle
 from .scenario_review_labels import latest_review_stage, review_stage_text
-from .vision_readings import VisionReading, vehicle_vision_summary
+from .vehicle_details import vehicle_details
+from .vision_readings import VisionReading
 from .widgets import button, label, panel
 
 
@@ -85,7 +86,9 @@ class FleetMonitor(QWidget):
             'connection',
             'stop_reason',
             'vision_reading',
+            'dispatch_setting',
             'dispatch_eligibility',
+            'observation_received_at',
             'position',
             'reported_yaw',
             'reported_speed',
@@ -157,36 +160,8 @@ class FleetMonitor(QWidget):
                 field.setText('—')
             self._actions.setEnabled(False)
             return
-        self._values['vehicle_no'].setText(selected.number)
-        self._values['status'].setText(self._tr.status(selected.status))
-        battery = selected.battery_percent
-        self._values['battery'].setText(
-            f'{battery:g}%' if battery is not None else self._tr('unknown')
-        )
-        self._values['connection'].setText(self._tr.status(selected.connection))
-        self._values['stop_reason'].setText(self._tr.status(selected.stop_reason))
-        self._values['vision_reading'].setText(
-            vehicle_vision_summary(self._vision, selected.number, self._tr)
-        )
-        eligibility = self._tr('unknown')
-        if selected.dispatch_enabled is not None:
-            eligibility = self._tr(
-                'dispatch_allowed' if selected.dispatch_enabled else 'dispatch_blocked'
-            )
-        self._values['dispatch_eligibility'].setText(eligibility)
-        position = selected.position_m
-        self._values['position'].setText(
-            f'{position[0]:.3f}, {position[1]:.3f} m'
-            if position is not None
-            else self._tr('unknown')
-        )
-        for field, value, unit in (
-            ('reported_yaw', selected.yaw_rad, 'rad'),
-            ('reported_speed', selected.speed_mps, 'm/s'),
-        ):
-            self._values[field].setText(
-                f'{value:.3f} {unit}' if value is not None else self._tr('unknown')
-            )
+        for key, value in vehicle_details(selected, self._vision, self._tr).items():
+            self._values[key].setText(value)
         self._actions.setEnabled(True)
 
     def _changed(

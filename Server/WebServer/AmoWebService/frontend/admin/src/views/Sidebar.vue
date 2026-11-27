@@ -1,6 +1,6 @@
 <script setup>
 import { preferences } from "../preferences";
-import { t } from "../i18n";
+import { staffLabel, t } from "../i18n";
 defineProps({
   menuItems: { type: Array, required: true },
   activeItem: { type: String, required: true },
@@ -26,8 +26,7 @@ defineEmits(["navigate", "logout"]);
       </button>
     </nav>
     <section class="account">
-      <strong>{{ user.name }}</strong>
-      <small>{{ t(user.role) }}</small>
+      <strong>{{ staffLabel(user.role) }}</strong>
       <button class="quiet" type="button" @click="$emit('logout')">
         {{ t("logout") }}
       </button>

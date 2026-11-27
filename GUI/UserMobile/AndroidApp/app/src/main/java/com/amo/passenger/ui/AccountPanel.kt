@@ -19,7 +19,7 @@ internal class AccountPanel(private val widgets: AmoWidgets) {
                 add(
                     card().apply {
                         listOfNotNull(
-                            R.string.name to account.name,
+                            R.string.name to string(R.string.passenger_display_name),
                             R.string.email to account.email,
                             account.profileUserId?.let { R.string.member_id to it }
                         ).forEach { (label, value) ->

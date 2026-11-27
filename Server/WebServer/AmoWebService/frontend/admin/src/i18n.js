@@ -22,6 +22,13 @@ export function t(key) {
   );
 }
 
+/** Return the localized staff label for an API role code. */
+export function staffLabel(role) {
+  if (role === "ADMIN") return t("defaultAdmin");
+  if (role === "OPERATOR") return t("OPERATOR");
+  return t();
+}
+
 export function timeOf(value) {
   if (!value) return "—";
   const date = new Date(value);

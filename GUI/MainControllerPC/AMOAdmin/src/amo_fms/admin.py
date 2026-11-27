@@ -82,9 +82,7 @@ class AdminApplication(QMainWindow):
         shell = QWidget()
         layout = QVBoxLayout(shell)
         controls = QHBoxLayout()
-        controls.addWidget(
-            label(self._operator.name or self._operator.email, 'heading')
-        )
+        controls.addWidget(label(self.text.staff_label(self._operator.role), 'heading'))
         controls.addStretch()
         self._refresh_button = button(self.text('refresh'))
         self._refresh_button.clicked.connect(self._load_operations)

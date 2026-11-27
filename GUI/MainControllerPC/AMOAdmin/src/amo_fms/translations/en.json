@@ -119,6 +119,7 @@
   "status_boarded": "Boarding confirmed",
   "status_parked": "Parked",
   "status_active": "Active",
+  "default_admin": "Default Administrator",
   "role_admin": "Administrator",
   "role_operator": "Operator",
   "status_acknowledged": "Acknowledged",

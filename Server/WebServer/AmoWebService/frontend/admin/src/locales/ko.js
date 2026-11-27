@@ -113,6 +113,7 @@ export default {
   unitMs: "ms",
   tenant: "AMoDE 실습장",
   accountState: "계정 상태",
+  defaultAdmin: "기본 관리자",
   ADMIN: "관리자",
   OPERATOR: "관제 운영자",
   PASSENGER: "회원",

@@ -65,7 +65,10 @@ class FleetMonitor(QWidget):
         right = QVBoxLayout()
         right.setSpacing(12)
         self._previews = PreviewPanel(
-            tr, self._choose_vehicle, test_images=getenv('AMO_FMS_TEST_IMAGES') == '1'
+            tr,
+            self._choose_vehicle,
+            test_images=getenv('AMO_FMS_TEST_IMAGES') == '1',
+            local_directory=getenv('AMO_FMS_PREVIEW_DIRECTORY'),
         )
         right.addWidget(self._previews)
         fleet, fleet_layout = panel()

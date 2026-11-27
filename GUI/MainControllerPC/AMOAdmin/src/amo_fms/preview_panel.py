@@ -1,12 +1,14 @@
 """Render four vehicle previews and forward selections without network I/O."""
 
 from collections.abc import Callable
+from pathlib import Path
 
-from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QColor, QIcon, QPainter, QPixmap
+from PyQt6.QtCore import QSize, Qt, QTimer
+from PyQt6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap
 from PyQt6.QtWidgets import QGridLayout, QPushButton, QSizePolicy, QWidget
 
 from .i18n import Text
+from .local_preview_source import LocalPreviewSource
 from .models import Vehicle
 
 _NUMBERS = tuple(f'PINKY-{number:02d}' for number in range(1, 5))
@@ -27,7 +29,12 @@ class PreviewPanel(QWidget):
     """Display four registered vehicles and an optional synthetic image per slot."""
 
     def __init__(
-        self, tr: Text, select: Callable[[str], None], *, test_images: bool = False
+        self,
+        tr: Text,
+        select: Callable[[str], None],
+        *,
+        test_images: bool = False,
+        local_directory: str | None = None,
     ) -> None:
         """Create the four slots and connect each to the shared vehicle selection."""
         super().__init__()
@@ -54,6 +61,16 @@ class PreviewPanel(QWidget):
         self._expand.setCheckable(True)
         self._expand.toggled.connect(self._show_selection)
         layout.addWidget(self._expand, 2, 0, 1, 2)
+        self._source = (
+            LocalPreviewSource(Path(local_directory))
+            if local_directory and not test_images
+            else None
+        )
+        self._refresh = QTimer(self)
+        self._refresh.setInterval(200)
+        self._refresh.timeout.connect(self._update_images)
+        if self._source:
+            self._refresh.start()
         self.present((), '')
 
     def present(self, vehicles: tuple[Vehicle, ...], selected: str) -> None:
@@ -64,12 +81,36 @@ class PreviewPanel(QWidget):
             vehicle_id = self._vehicles.get(number)
             card.setEnabled(vehicle_id is not None)
             card.setChecked(vehicle_id is not None and vehicle_id == selected)
-            status = 'camera_test_image' if self._test_images else 'camera_waiting'
-            card.setText(f'{number}\n{self._tr(status)}')
+
         self._expand.setEnabled(selected != '' and selected in self._vehicles.values())
         if not self._expand.isEnabled():
             self._expand.setChecked(False)
         self._show_selection(self._expand.isChecked())
+        self._update_images()
+
+    def _update_images(self) -> None:
+        for number, card in self._cards.items():
+            cells = (
+                self._source.read(number)
+                if self._source and number in self._vehicles
+                else None
+            )
+            if cells is not None:
+                image = QImage(cells, 16, 12, 16, QImage.Format.Format_Grayscale8)
+                pixmap = QPixmap.fromImage(image).scaled(
+                    256,
+                    192,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.FastTransformation,
+                )
+                card.setIcon(QIcon(pixmap))
+                status = 'camera_masked_live'
+            elif self._test_images:
+                status = 'camera_test_image'
+            else:
+                card.setIcon(QIcon())
+                status = 'camera_waiting'
+            card.setText(f'{number}\n{self._tr(status)}')
 
     def _show_selection(self, expanded: bool) -> None:
         self._expand.setText(self._tr('camera_grid' if expanded else 'camera_expand'))

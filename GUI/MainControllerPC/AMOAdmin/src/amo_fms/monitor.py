@@ -5,8 +5,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from os import getenv
 
+from PyQt6.QtGui import QHideEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -20,6 +22,7 @@ from .models import Snapshot, Vehicle
 from .monitor_layout import detail_grid, map_and_cameras
 from .preview_panel import PreviewPanel
 from .scenario_review_labels import review_stage_text, scenario_card_text
+from .vehicle_action_preview import VehicleActionPreview
 from .vehicle_details import vehicle_details
 from .vision_readings import VisionReading
 from .widgets import button, label, panel
@@ -34,7 +37,6 @@ class FleetMonitor(QWidget):
         config: Config,
         prefs: Preferences,
         selection: Callable[[str], None],
-        open_actions: Callable[[], None],
     ) -> None:
         """Build the localized monitoring view from the approved Figma palette."""
         super().__init__()
@@ -88,9 +90,14 @@ class FleetMonitor(QWidget):
         detail_layout.addLayout(grid)
         self._actions = button(tr('commands'), 'primary')
         self._actions.setEnabled(False)
-        self._actions.clicked.connect(open_actions)
+        self._actions.clicked.connect(self._open_actions)
         detail_layout.addWidget(self._actions)
-        right.addWidget(details)
+        self._detail_stack = QStackedWidget()
+        self._detail_stack.addWidget(details)
+        self._action_preview = VehicleActionPreview(tr)
+        self._action_preview.close_requested.connect(self._close_actions)
+        self._detail_stack.addWidget(self._action_preview)
+        right.addWidget(self._detail_stack)
         content.addWidget(map_and_cameras(body, sidebar))
 
     def show_snapshot(self, snapshot: Snapshot, selected_id: str) -> None:
@@ -147,6 +154,9 @@ class FleetMonitor(QWidget):
         self._map.highlight_review(is_scenario)
         self._detail_stage.setText(self._stage.text() if is_scenario else '')
         self._detail_stage.setVisible(bool(self._detail_stage.text()))
+        self._action_preview.present(None if is_scenario else selected)
+        if is_scenario or selected is None:
+            self._close_actions()
         if selected is None:
             for field in self._values.values():
                 field.setText('—')
@@ -159,6 +169,20 @@ class FleetMonitor(QWidget):
             self._values[key].setText(value)
             self._values[key].setToolTip(value)
         self._actions.setEnabled(not is_scenario)
+
+    def _open_actions(self) -> None:
+        self._detail_stack.setCurrentWidget(self._action_preview)
+        self._action_preview.focus_action()
+
+    def _close_actions(self) -> None:
+        if self._detail_stack.currentIndex() != 0:
+            self._action_preview.clear()
+            self._detail_stack.setCurrentIndex(0)
+
+    def hideEvent(self, event: QHideEvent | None) -> None:
+        """Dismiss the preview when leaving the monitoring screen."""
+        self._close_actions()
+        super().hideEvent(event)
 
     def _choose_scenario(self) -> None:
         if self._scenario is not None:

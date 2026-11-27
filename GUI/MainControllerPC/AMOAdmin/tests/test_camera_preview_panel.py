@@ -45,7 +45,6 @@ class CameraPreviewPanelTest(TestCase):
                 Config('http://127.0.0.1:18085', DEFAULT_MAP_ROOT),
                 prefs,
                 selections.append,
-                lambda: None,
             )
             monitor.setStyleSheet(stylesheet(palette(prefs.theme)))
             monitor.resize(1440, 850)
@@ -130,7 +129,6 @@ class CameraPreviewPanelTest(TestCase):
                     Config('http://127.0.0.1:18085', DEFAULT_MAP_ROOT),
                     prefs,
                     lambda _: None,
-                    lambda: None,
                 )
                 monitor.show()
                 app.processEvents()

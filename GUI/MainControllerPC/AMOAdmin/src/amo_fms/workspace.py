@@ -19,11 +19,11 @@ from .fleet_visibility import visible_fleet
 from .i18n import Text
 from .models import Operator, Snapshot
 from .monitor import FleetMonitor
-from .operations_pages import ActionsPage, RecordsPage
+from .operations_pages import RecordsPage
 from .scenario_review_labels import review_vehicle
 from .widgets import brand, button, label
 
-PAGE_KEYS = ('monitor', 'queue', 'events', 'commands')
+PAGE_KEYS = ('monitor', 'queue', 'events')
 
 
 class Workspace(QWidget):
@@ -80,13 +80,11 @@ class Workspace(QWidget):
             config,
             prefs,
             self.vehicle_selected.emit,
-            lambda: self.navigate('commands'),
         )
         self._pages = (
             self._monitor,
             RecordsPage(tr, 'queue'),
             RecordsPage(tr, 'events'),
-            ActionsPage(tr, self.vehicle_selected.emit),
         )
         for page in self._pages:
             self._stack.addWidget(page)

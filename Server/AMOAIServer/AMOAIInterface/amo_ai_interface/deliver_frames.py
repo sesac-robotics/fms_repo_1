@@ -1,4 +1,4 @@
-"""Dispatch the latest camera frames to independent Vision receipt endpoints."""
+"""Dispatch the latest camera frames to independently configured Vision services."""
 
 import logging
 from collections.abc import Callable
@@ -10,7 +10,7 @@ from time import monotonic
 from amo_ai_interface.frame import Frame
 from amo_ai_interface.latest_frames import DroppedFrame, LatestFrames
 
-ReceiptPort = Callable[[Frame], None]
+FrameOperation = Callable[[Frame], None]
 
 
 def _log_drop(dropped: DroppedFrame) -> None:
@@ -32,12 +32,14 @@ class FrameDelivery:
     def __init__(
         self,
         robot_ids: frozenset[str],
-        receipts: dict[str, ReceiptPort],
+        operations: dict[str, FrameOperation],
+        detector_service: str | None = None,
     ) -> None:
         self._queue = LatestFrames(robot_ids)
-        if not receipts:
-            raise ValueError('Configure at least one Vision receipt endpoint')
-        self._receipts = dict(receipts)
+        if not operations:
+            raise ValueError('Configure at least one Vision endpoint')
+        self._operations = dict(operations)
+        self._detector_service = detector_service
         self._ready = Condition()
         self._closed = False
         self._worker = Thread(target=self._run, name='vision-frame-delivery')
@@ -65,7 +67,7 @@ class FrameDelivery:
             _log_drop(dropped)
 
     def _run(self) -> None:
-        with ThreadPoolExecutor(max_workers=len(self._receipts)) as pool:
+        with ThreadPoolExecutor(max_workers=len(self._operations)) as pool:
             while True:
                 with self._ready:
                     if self._closed:
@@ -81,28 +83,38 @@ class FrameDelivery:
 
     def _deliver(self, pool: ThreadPoolExecutor, frame: Frame) -> None:
         jobs = {
-            service: pool.submit(receipt, frame)
-            for service, receipt in self._receipts.items()
+            service: pool.submit(operation, frame)
+            for service, operation in self._operations.items()
         }
         confirmed = []
+        receipt_count = 0
         for service, job in jobs.items():
+            is_detector = service == self._detector_service
+            if not is_detector:
+                receipt_count += 1
             try:
                 job.result()
             except (OSError, ValueError, HTTPException) as error:
                 logging.warning(
-                    'vision_receipt_failed robot=%s frame=%s service=%s error_type=%s',
+                    '%s robot=%s frame=%s service=%s error_type=%s',
+                    'vision_detector_failed'
+                    if is_detector
+                    else 'vision_receipt_failed',
                     frame.robot_id,
                     frame.frame_id,
                     service,
                     type(error).__name__,
                 )
             else:
-                confirmed.append(service)
+                if not is_detector:
+                    confirmed.append(service)
+        if not receipt_count:
+            return
         logging.info(
             'vision_receipts robot=%s frame=%s confirmed=%d/%d services=%s',
             frame.robot_id,
             frame.frame_id,
             len(confirmed),
-            len(jobs),
+            receipt_count,
             ','.join(confirmed) or '-',
         )

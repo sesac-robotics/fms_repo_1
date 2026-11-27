@@ -1,0 +1,40 @@
+services:
+  main-control:
+    environment:
+      AMO_CONTROL_HTTP_PORT: ${AMO_VISION_MAIN_PORT:?Set a free private Main Control HTTP port}
+    secrets:
+      - source: vision_ingest_key
+        target: amo.vision-ingest-key
+  ai-interface:
+    build:
+      context: Server/AMOAIServer/AMOAIInterface
+    network_mode: host
+    init: true
+    user: "${AMO_VISION_UID:-10001}:${AMO_VISION_GID:-10001}"
+    environment:
+      AMO_VISION_KEY_FILE: /run/secrets/amo.vision-ingest-key
+      ROS_DOMAIN_ID: ${AMO_VISION_ROS_DOMAIN_ID:?Set the camera ROS domain ID}
+      ROS_AUTOMATIC_DISCOVERY_RANGE: ${AMO_VISION_ROS_DISCOVERY_RANGE:-LOCALHOST}
+      ROS_STATIC_PEERS: ${AMO_VISION_ROS_STATIC_PEERS:-}
+      FASTDDS_BUILTIN_TRANSPORTS: UDPv4
+      RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+    secrets:
+      - source: vision_ingest_key
+        target: amo.vision-ingest-key
+    depends_on:
+      - main-control
+    command:
+      - --robot-id
+      - ${AMO_VISION_ROBOT_ID:?Set the camera robot ID}
+      - --vehicle-map
+      - ${AMO_VISION_ROBOT_ID:?Set the camera robot ID}=${AMO_VISION_VEHICLE_NO:?Set the registered vehicle number}
+      - --detector-service
+      - ${AMO_VISION_SERVICE:?Select one validated Vision service}
+      - --${AMO_VISION_SERVICE:?Select one validated Vision service}-url
+      - ${AMO_VISION_DETECTOR_URL:?Set the validated detector /infer endpoint}
+      - --main-control-url
+      - http://127.0.0.1:${AMO_VISION_MAIN_PORT:?Set a free private Main Control HTTP port}/internal/vision/observations
+
+secrets:
+  vision_ingest_key:
+    environment: AMO_VISION_INGEST_KEY

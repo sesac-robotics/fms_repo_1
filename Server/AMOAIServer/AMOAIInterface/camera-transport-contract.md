@@ -24,13 +24,15 @@ Align IF-07 with the owners before enabling it in the classroom deployment.
   `image/jpeg`, the JPEG bytes (up to 2 MiB), `X-Frame-Id`, `X-Robot-Id`
   and `X-Vision-Id` (1 driving-perception, 2 traffic-rules, 3
   direction-recognition). The response confirms frame ID, service ID/name,
-  byte count and SHA-256. Only that exact receipt with `mock: true` counts
-  as a successful test delivery. Keep frames in memory and record metadata
+  byte count and SHA-256 in diagnostic mode. Only that exact receipt with
+  `mock: true` counts as a successful test delivery. One explicitly enabled
+  detector can instead return the [detector response](detector-response-contract.md). Keep frames in memory and record metadata
   only. Direct UDP and camera retries remain in the handoff diagnostics.
 - Main Control and clients: runtime configuration and actual detector output
   must satisfy the separate [observation contract](observation-contract.md)
-  before publication. This test has no observation writer, preview, passenger
-  data, ride transition or vehicle command.
+  before publication. Receipt diagnostics do not publish observations. The
+  optional detector route publishes staff metadata. Neither mode exposes a
+  preview or produces a passenger status, ride transition or vehicle command.
 
 ## Handoff provenance
 

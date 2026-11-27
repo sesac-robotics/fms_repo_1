@@ -2,7 +2,14 @@
 
 from PyQt6.QtCore import QRect, QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QMouseEvent, QPainter, QPaintEvent, QPixmap
-from PyQt6.QtWidgets import QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class PreviewSurface(QWidget):
@@ -74,8 +81,15 @@ class PreviewCard(QPushButton):
         layout.setContentsMargins(6, 6, 6, 6)
         layout.setSpacing(5)
         layout.addWidget(self.surface)
-        layout.addWidget(self._caption)
+        self._footer = QHBoxLayout()
+        self._footer.setSpacing(6)
+        self._footer.addWidget(self._caption, 1)
+        layout.addLayout(self._footer)
         self.surface.setMinimumHeight(48)
+
+    def add_connection_button(self, button: QPushButton) -> None:
+        """Place the slot's connection control left of the status caption."""
+        self._footer.insertWidget(0, button, alignment=Qt.AlignmentFlag.AlignTop)
 
     def present(self, frame: QPixmap, state: str, camera_status: str) -> None:
         """Render the frame and expose the vehicle and state to accessibility tools."""
@@ -102,7 +116,7 @@ class PreviewCard(QPushButton):
     def sizeHint(self) -> QSize:
         """Keep the image and caption reachable at the application's minimum width."""
         return QSize(
-            140, self.surface.minimumHeight() + self._caption.sizeHint().height() + 17
+            140, self.surface.minimumHeight() + self._footer.sizeHint().height() + 17
         )
 
     def minimumSizeHint(self) -> QSize:

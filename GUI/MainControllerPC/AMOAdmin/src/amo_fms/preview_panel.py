@@ -65,18 +65,13 @@ class PreviewPanel(QWidget):
             card.enlarge_requested.connect(lambda key=number: self._enlarge(key))
             if test_images:
                 self._test_frames[number] = _test_image(number, index)
-            tile = QWidget(self)
-            column = QVBoxLayout(tile)
-            column.setContentsMargins(0, 0, 0, 0)
-            column.setSpacing(3)
-            column.addWidget(card, 1)
-            connect = button(tr('camera_connect'))
+            connect = button(tr('camera_connect'), 'cameraConnection')
             connect.clicked.connect(
                 lambda _checked, key=number: self._connections.toggle(key)
             )
-            column.addWidget(connect)
+            card.add_connection_button(connect)
             self._buttons[number] = connect
-            layout.addWidget(tile, index // 2, index % 2)
+            layout.addWidget(card, index // 2, index % 2)
             self._cards[number] = card
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(1, 1)

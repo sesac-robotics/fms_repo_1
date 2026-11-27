@@ -14,6 +14,7 @@ from amo_fms.camera_connections import CameraConnections, CameraTarget
 from amo_fms.i18n import Text
 from amo_fms.models import Vehicle
 from amo_fms.preview_panel import PreviewPanel
+from amo_fms.theme import palette, stylesheet
 
 
 class CameraConnectionTest(TestCase):
@@ -26,7 +27,22 @@ class CameraConnectionTest(TestCase):
                 Vehicle.parse({'id': index, 'vehicleNo': f'PINKY-{index:02d}'})
                 for index in range(1, 5)
             )
+            panel.setStyleSheet(stylesheet(palette('light')))
+            panel.resize(640, 400)
+            panel.show()
             panel.present(fleet, '1')
+            app.processEvents()
+            for slot, card in panel._cards.items():
+                button = panel._buttons[slot]
+                self.assertIs(button.parentWidget(), card)
+                self.assertTrue(button.isVisible())
+                self.assertLess(button.geometry().right(), card._caption.x())
+                self.assertLess(card.surface.geometry().bottom(), button.y())
+                self.assertTrue(
+                    button.geometry().intersects(
+                        card._caption.geometry().adjusted(-button.width() - 8, 0, 0, 0)
+                    )
+                )
             self.assertFalse(
                 any(button.isEnabled() for button in panel._buttons.values())
             )

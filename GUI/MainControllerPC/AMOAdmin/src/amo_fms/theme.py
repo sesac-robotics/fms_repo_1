@@ -98,6 +98,7 @@ def stylesheet(p: Palette) -> str:
     QCheckBox::indicator:unchecked:hover, QCheckBox::indicator:unchecked:focus {{
         border-color: {p.focus};
     }}
+    QPushButton#cameraConnection {{ min-height: 14px; padding: 0 5px; }}
     QPushButton#navigation {{ text-align: left; padding-left: 13px; }}
     QListWidget, QTableWidget {{
         background: {p.card}; alternate-background-color: {p.bg};

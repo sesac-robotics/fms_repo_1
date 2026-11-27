@@ -1,5 +1,6 @@
 {
-  "camera_masked_live": "遮挡画面 · 本地测试",
+  "camera_faces_masked": "面部已遮挡 · {count} 个区域",
+  "camera_no_faces": "未检测到面部 · 本地测试",
   "camera_expand": "放大选中视频",
   "camera_grid": "返回四画面",
   "camera_test_image": "测试图像",

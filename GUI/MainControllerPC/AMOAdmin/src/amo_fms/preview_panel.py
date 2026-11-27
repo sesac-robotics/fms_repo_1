@@ -93,22 +93,26 @@ class PreviewPanel(QWidget):
 
     def _update_images(self) -> None:
         for number, card in self._cards.items():
-            cells = (
+            preview = (
                 self._source.read(number)
                 if self._source and number in self._vehicles
                 else None
             )
-            if cells is not None:
-                image = QImage(cells, 16, 12, 16, QImage.Format.Format_Grayscale8)
-                frame = QPixmap.fromImage(image)
-                status = 'camera_masked_live'
+            frame = QPixmap()
+            status = self._tr('camera_waiting')
+            if preview:
+                jpeg, count = preview
+                image = QImage.fromData(jpeg, 'JPEG')
+                if (image.width(), image.height()) == (640, 480):
+                    frame = QPixmap.fromImage(image)
+                    status = self._tr(
+                        'camera_faces_masked' if count else 'camera_no_faces',
+                        count=count,
+                    )
             elif self._test_images:
                 frame = self._test_frames[number]
-                status = 'camera_test_image'
-            else:
-                frame = QPixmap()
-                status = 'camera_waiting'
-            card.present(frame, self._tr(status))
+                status = self._tr('camera_test_image')
+            card.present(frame, status)
 
     def _show_selection(self, expanded: bool) -> None:
         self._expand.setText(self._tr('camera_grid' if expanded else 'camera_expand'))

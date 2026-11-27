@@ -1,5 +1,6 @@
 {
-  "camera_masked_live": "Masked live · local test",
+  "camera_faces_masked": "Faces masked · {count} regions",
+  "camera_no_faces": "No faces detected · local test",
   "camera_expand": "Enlarge selected video",
   "camera_grid": "Return to four views",
   "camera_test_image": "Test image",

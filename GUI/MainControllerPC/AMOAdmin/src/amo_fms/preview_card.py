@@ -23,6 +23,8 @@ class PreviewSurface(QWidget):
 
     def frame_rect(self) -> QRect:
         """Return the centered, aspect-preserving frame rectangle in widget pixels."""
+        if self._frame.isNull():
+            return QRect()
         size = self._frame.size().scaled(
             self.size(), Qt.AspectRatioMode.KeepAspectRatio
         )

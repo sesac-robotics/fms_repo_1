@@ -5,7 +5,8 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
-from PyQt6.QtCore import QSettings
+from PyQt6.QtCore import QBuffer, QIODevice, QSettings
+from PyQt6.QtGui import QImage
 from PyQt6.QtWidgets import QApplication, QPushButton, QSplitter
 
 from amo_fms.config import DEFAULT_MAP_ROOT, Config, Preferences
@@ -88,3 +89,51 @@ class CameraPreviewPanelTest(TestCase):
             monitor._previews._expand.click()
             self.assertTrue(all(card.isVisible() for card in cards))
             monitor.close()
+
+    def test_face_status_tracks_the_preview_that_is_actually_rendered(self) -> None:
+        app = QApplication.instance() or QApplication([])
+        with TemporaryDirectory() as name:
+            directory = Path(name)
+            preview = directory / 'PINKY-01.preview'
+            image = QImage(640, 480, QImage.Format.Format_RGB32)
+            image.fill(0xFF406080)
+            output = QBuffer()
+            output.open(QIODevice.OpenModeFlag.WriteOnly)
+            self.assertTrue(image.save(output, 'JPEG'))
+            jpeg = bytes(output.data())
+            rows = [{'id': 1, 'vehicleNo': 'PINKY-01'}]
+            snapshot = Snapshot.parse({'vehicles': rows, 'requests': [], 'events': []})
+            with patch.dict(
+                'os.environ',
+                {
+                    'AMO_FMS_TEST_IMAGES': '0',
+                    'AMO_FMS_PREVIEW_DIRECTORY': name,
+                },
+            ):
+                prefs = Preferences(
+                    QSettings(str(directory / 'test.ini'), QSettings.Format.IniFormat)
+                )
+                monitor = FleetMonitor(
+                    Text('en'),
+                    Config('http://127.0.0.1:18085', DEFAULT_MAP_ROOT),
+                    prefs,
+                    lambda _: None,
+                    lambda: None,
+                )
+                monitor.show()
+                app.processEvents()
+                card = monitor._previews._cards['PINKY-01']
+                for count, expected in [
+                    (0, 'No faces detected'),
+                    (2, 'Faces masked · 2 regions'),
+                ]:
+                    preview.write_bytes(b'AMOV2' + bytes([count]) + jpeg)
+                    preview.chmod(0o600)
+                    monitor.show_snapshot(snapshot, '1')
+                    self.assertIn(expected, card.accessibleName())
+                    self.assertFalse(card.surface.frame_rect().isEmpty())
+                preview.unlink()
+                monitor.show_snapshot(snapshot, '1')
+                self.assertIn('Waiting for video', card.accessibleName())
+                self.assertTrue(card.surface.frame_rect().isEmpty())
+                monitor.close()

@@ -24,7 +24,7 @@ internal class AmoViewModel : ViewModel() {
     private val mutable = MutableStateFlow(AmoUiState())
     val state = mutable.asStateFlow()
     val fares = PassengerFareActions(api.fares, mutable, ::perform)
-    private val tracking = TripFeed(api, mutable)
+    private val tracking = TripFeed(mutable, api::trips, api.fares::load)
     private val pending = PendingRideRequests()
 
     init {

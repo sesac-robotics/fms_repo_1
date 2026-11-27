@@ -1,6 +1,8 @@
 package com.amo.passenger.data
 
+import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URI
 import kotlinx.coroutines.Dispatchers
@@ -14,10 +16,16 @@ internal class ApiFailure(val status: Int, val code: String? = null) :
 internal class ContractFailure : IOException("The AMO API response does not match its contract.")
 internal class RoleFailure : IOException("The session is not a passenger session.")
 
+private const val MAX_RESPONSE_BYTES = 2_000_000
+
 /** HTTP adapter scoped to the configured API origin. Each request has a five-second I/O timeout. */
 internal class JsonHttp(base: String) {
     private val origin = URI(base)
 
+    /**
+     * Returns the UTF-8 JSON body, or an empty string for HTTP 204.
+     * Throws [ApiFailure] on non-success status and [ContractFailure] above two million bytes.
+     */
     suspend fun send(
         path: String,
         token: String? = null,
@@ -44,7 +52,10 @@ internal class JsonHttp(base: String) {
             coroutineContext.ensureActive()
             if (status !in 200..299) throw ApiFailure(status, failureCode(connection))
             if (status == 204) return@withContext ""
-            connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val context = coroutineContext
+            connection.inputStream.use { stream ->
+                stream.readBoundedUtf8(MAX_RESPONSE_BYTES) { context.ensureActive() }
+            }
         } finally {
             connection.disconnect()
         }
@@ -59,5 +70,19 @@ internal class JsonHttp(base: String) {
         null
     } catch (_: IOException) {
         null
+    }
+}
+
+/** Reads at most [limit] UTF-8 bytes from a borrowed stream, checking cancellation between reads. */
+internal fun InputStream.readBoundedUtf8(limit: Int, checkActive: () -> Unit): String {
+    require(limit > 0)
+    val result = ByteArrayOutputStream()
+    val chunk = ByteArray(8_192)
+    while (true) {
+        checkActive()
+        val count = read(chunk, 0, minOf(chunk.size - 1, limit - result.size()) + 1)
+        if (count < 0) return result.toString(Charsets.UTF_8.name())
+        if (count > limit - result.size()) throw ContractFailure()
+        result.write(chunk, 0, count)
     }
 }

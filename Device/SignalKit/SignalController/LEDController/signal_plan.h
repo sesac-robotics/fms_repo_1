@@ -46,6 +46,26 @@ class SignalPlan {
   const Timing &timing() const { return pendingSet_ ? pending_ : timing_; }
   bool timingPending() const { return pendingSet_; }
 
+  // Junction clock. Boards that share an intersection start every NORTH_GREEN
+  // on the same multiple of the cycle length of a shared clock (the micro-ROS
+  // agent's), so identical plans give identical phases on every board. Only
+  // the all red before NORTH_GREEN is lengthened to line up, never a green or
+  // yellow. A coordinated board waits in that all red until its first clock.
+  //
+  // East slots: a junction whose east-west approaches each need their own
+  // green (through plus left turn conflicts with the opposite through) runs
+  // eastSlots east-west greens per cycle, one per board. Board eastSlot waits
+  // in all red through the slots before its own, then the alignment all red
+  // covers the slots after it, so no two boards show EAST_GREEN together.
+  void setCoordinated(bool on, uint8_t eastSlot = 0, uint8_t eastSlots = 1) {
+    coordinated_ = on;
+    eastSlot_ = eastSlot;
+    eastSlots_ = eastSlots;
+  }
+  // clockMinusMillis = shared clock (ms, low 32 bits) minus millis().
+  void setClock(uint32_t clockMinusMillis, uint32_t nowMs);
+  bool clockSet() const { return clockSet_; }
+
   Phase phase() const { return phase_; }
   Mode mode() const { return mode_; }
   Phase holdTarget() const { return target_; }
@@ -57,6 +77,11 @@ class SignalPlan {
   Phase nextTowardTarget() const;
   uint32_t durationOf(Phase phase) const;
   bool holding() const;
+  bool alignsBefore(Phase next) const;
+  uint32_t alignedAllRed() const;
+  uint32_t cycleMs() const;
+  uint32_t eastSlotMs() const;
+  uint32_t partnerSlotMs() const;
 
   Phase phase_ = Phase::ALL_RED;
   Phase target_ = Phase::ALL_RED;
@@ -67,4 +92,10 @@ class SignalPlan {
   Timing timing_{};
   Timing pending_{};
   bool pendingSet_ = false;
+  bool coordinated_ = false;
+  bool clockSet_ = false;
+  bool aligning_ = false;  // the running all red ends on a clock boundary
+  uint32_t clockOffset_ = 0;
+  uint8_t eastSlot_ = 0;
+  uint8_t eastSlots_ = 1;
 };

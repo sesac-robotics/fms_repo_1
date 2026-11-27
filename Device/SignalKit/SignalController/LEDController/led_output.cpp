@@ -26,14 +26,16 @@ void rgbShow(char lamp) {
 }
 #endif
 
+Phase shown = Phase::ALL_RED;
+
 }  // namespace
 
 void ledBegin() {
 #if AMO_RGB_TEST
   const uint8_t pins[] = {PIN_RGB_R, PIN_RGB_G, PIN_RGB_B, PIN_STATUS_LED};
 #else
-  const uint8_t pins[] = {PIN_NORTH_RED, PIN_NORTH_YELLOW, PIN_NORTH_GREEN, PIN_EAST_RED,
-                          PIN_EAST_YELLOW, PIN_EAST_GREEN, PIN_STATUS_LED};
+  const uint8_t pins[] = {PIN_A_RED, PIN_A_YELLOW, PIN_A_GREEN, PIN_B_RED,
+                          PIN_B_YELLOW, PIN_B_GREEN, PIN_STATUS_LED};
 #endif
   for (uint8_t pin : pins) {
     pinMode(pin, OUTPUT);
@@ -43,25 +45,39 @@ void ledBegin() {
 }
 
 void ledShow(Phase phase) {
-  char north = 'R';
-  char east = 'R';
-  if (phase == Phase::NORTH_GREEN) north = 'G';
-  if (phase == Phase::NORTH_YELLOW) north = 'Y';
-  if (phase == Phase::EAST_GREEN) east = 'G';
-  if (phase == Phase::EAST_YELLOW) east = 'Y';
+  char a = 'R';  // head a, lit in NORTH_* phases
+  char b = 'R';  // head b, lit in EAST_* phases
+  if (phase == Phase::NORTH_GREEN) a = 'G';
+  if (phase == Phase::NORTH_YELLOW) a = 'Y';
+  if (phase == Phase::EAST_GREEN) b = 'G';
+  if (phase == Phase::EAST_YELLOW) b = 'Y';
+  shown = phase;
+#if AMO_HEAD_A_PEDESTRIAN
+  if (a == 'Y') a = 'G';  // ledTick() flashes it; there is no yellow lamp.
+#endif
 #if AMO_RGB_TEST
-  (void)east;  // Only the north approach is wired on the bench.
-  rgbShow(north);
+  (void)b;  // Only head a is wired on the RGB bench setup.
+  rgbShow(a);
 #else
   // Turn the red side on before releasing the other side.
-  if (north == 'R') {
-    approach(PIN_NORTH_RED, PIN_NORTH_YELLOW, PIN_NORTH_GREEN, north);
-    approach(PIN_EAST_RED, PIN_EAST_YELLOW, PIN_EAST_GREEN, east);
+  if (a == 'R') {
+    approach(PIN_A_RED, PIN_A_YELLOW, PIN_A_GREEN, a);
+    approach(PIN_B_RED, PIN_B_YELLOW, PIN_B_GREEN, b);
   } else {
-    approach(PIN_EAST_RED, PIN_EAST_YELLOW, PIN_EAST_GREEN, east);
-    approach(PIN_NORTH_RED, PIN_NORTH_YELLOW, PIN_NORTH_GREEN, north);
+    approach(PIN_B_RED, PIN_B_YELLOW, PIN_B_GREEN, b);
+    approach(PIN_A_RED, PIN_A_YELLOW, PIN_A_GREEN, a);
   }
 #endif
 }
 
 void ledLinkStatus(bool connected) { digitalWrite(PIN_STATUS_LED, connected ? HIGH : LOW); }
+
+void ledTick(uint32_t now) {
+#if AMO_HEAD_A_PEDESTRIAN && !AMO_RGB_TEST
+  if (shown == Phase::NORTH_YELLOW) {
+    digitalWrite(PIN_A_GREEN, (now / PEDESTRIAN_FLASH_MS) % 2 == 0 ? HIGH : LOW);
+  }
+#else
+  (void)now;
+#endif
+}

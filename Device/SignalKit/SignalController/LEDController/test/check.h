@@ -15,3 +15,4 @@ extern int g_failures;
 
 void runSignalPlanTests();
 void runSignalCommandTests();
+void runSignalJunctionTests();

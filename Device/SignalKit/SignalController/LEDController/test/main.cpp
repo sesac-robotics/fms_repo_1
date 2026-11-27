@@ -6,6 +6,7 @@ int g_failures = 0;
 int main() {
   runSignalPlanTests();
   runSignalCommandTests();
+  runSignalJunctionTests();
   if (g_failures == 0) printf("signal host tests passed\n");
   return g_failures == 0 ? 0 : 1;
 }

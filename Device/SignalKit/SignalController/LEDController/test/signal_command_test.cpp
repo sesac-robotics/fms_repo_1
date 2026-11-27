@@ -25,6 +25,11 @@ void parsesPlansAtTheRangeBounds() {
   CHECK(c.timing.yellowMs == 3000 && c.timing.allRedMs == 2000);
   CHECK(accepts("PLAN 3000 120000 2000 1000"));
   CHECK(accepts("PLAN 120000 3000 10000 10000"));
+  CHECK(c.timing.eastYellowMs == 3000 && c.timing.partnerEastMs == 0);  // short form
+  CHECK(parseCommand("PLAN 15000 8000 3000 2000 4000 17000", c));
+  CHECK(c.timing.eastYellowMs == 4000 && c.timing.partnerEastMs == 17000);
+  CHECK(accepts("PLAN 15000 8000 3000 2000 3000 0"));
+  CHECK(accepts("PLAN 15000 8000 3000 2000 10000 130000"));
 }
 
 void rejectsUnsafeOrMalformedText() {
@@ -38,7 +43,11 @@ void rejectsUnsafeOrMalformedText() {
   CHECK(!accepts("PLAN 15000 8000 1999 2000"));
   CHECK(!accepts("PLAN 15000 8000 3000 999"));
   CHECK(!accepts("PLAN 15000 8000 3000"));
-  CHECK(!accepts("PLAN 15000 8000 3000 2000 1"));
+  CHECK(!accepts("PLAN 15000 8000 3000 2000 1"));  // five numbers
+  CHECK(!accepts("PLAN 15000 8000 3000 2000 1999 0"));  // east yellow too short
+  CHECK(!accepts("PLAN 15000 8000 3000 2000 3000 4999"));  // partner below green+yellow
+  CHECK(!accepts("PLAN 15000 8000 3000 2000 3000 130001"));
+  CHECK(!accepts("PLAN 15000 8000 3000 2000 3000 0 1"));
   CHECK(!accepts("PLAN 15000 8000 3000 2000x"));
   CHECK(!accepts("PLAN -1 8000 3000 2000"));
   CHECK(!accepts("PLAN 15000  8000 3000 2000"));

@@ -18,13 +18,20 @@ bool readMs(const char *&p, uint32_t &out) {
   return digits > 0;
 }
 
+// Four numbers, or six with the east yellow and the partner's east time.
 bool parsePlan(const char *p, Timing &out) {
-  uint32_t *fields[] = {&out.northGreenMs, &out.eastGreenMs, &out.yellowMs, &out.allRedMs};
-  for (int i = 0; i < 4; ++i) {
-    if (i > 0 && *p++ != ' ') return false;
-    if (!readMs(p, *fields[i])) return false;
+  uint32_t *fields[] = {&out.northGreenMs, &out.eastGreenMs,  &out.yellowMs,
+                        &out.allRedMs,     &out.eastYellowMs, &out.partnerEastMs};
+  int count = 0;
+  for (; count < 6 && *p != '\0'; ++count) {
+    if (count > 0 && *p++ != ' ') return false;
+    if (!readMs(p, *fields[count])) return false;
   }
-  return *p == '\0' && timingValid(out);
+  if (count == 4) {
+    out.eastYellowMs = out.yellowMs;
+    out.partnerEastMs = 0;
+  }
+  return (count == 4 || count == 6) && *p == '\0' && timingValid(out);
 }
 
 }  // namespace

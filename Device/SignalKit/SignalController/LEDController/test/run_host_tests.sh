@@ -7,7 +7,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 out="$(mktemp -d)"
 trap 'rm -rf "$out"' EXIT
 g++ -std=c++17 -Wall -Wextra -Werror -I"$here/.." \
-  "$here/main.cpp" "$here/signal_plan_test.cpp" "$here/signal_command_test.cpp" \
+  "$here/main.cpp" "$here/signal_plan_test.cpp" "$here/signal_command_test.cpp" "$here/signal_junction_test.cpp" \
   "$here/../signal_plan.cpp" "$here/../signal_command.cpp" \
   -o "$out/signal_host_tests"
 "$out/signal_host_tests"

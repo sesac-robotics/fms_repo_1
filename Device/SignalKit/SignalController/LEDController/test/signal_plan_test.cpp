@@ -52,8 +52,8 @@ void planAppliesFromTheNextPhase() {
   uint32_t now = 0;
   plan.begin(now);
   advanceUntilChange(plan, now, 5000);  // NORTH_GREEN, 10 s
-  CHECK(!plan.setTiming({1000, 8000, 3000, 2000}));
-  CHECK(plan.setTiming({15000, 8000, 4000, 1000}));
+  CHECK(!plan.setTiming({1000, 8000, 3000, 2000, 3000, 0}));
+  CHECK(plan.setTiming({15000, 8000, 4000, 1000, 4000, 0}));
   CHECK(plan.timingPending());
   CHECK(plan.remainingMs(now) == 10000);  // the running green keeps its length
   CHECK(advanceUntilChange(plan, now, 20000) == 12000);

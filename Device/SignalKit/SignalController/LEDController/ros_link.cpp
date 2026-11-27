@@ -32,7 +32,12 @@ char commandBuf[64];
 Link linkState = Link::WAITING_WIFI;
 micro_ros_agent_locator locator;
 uint32_t lastPingMs = 0;
+uint8_t missedPings = 0;  // Consecutive failed pings while connected.
 CommandHandler onCommand = nullptr;
+uint32_t lastSyncMs = 0;
+uint32_t clockOffset = 0;  // agent clock (low 32 bits) minus millis()
+bool clockEver = false;
+bool clockFresh = false;
 
 void commandCallback(const void *msgin) {
   const auto *msg = static_cast<const std_msgs__msg__String *>(msgin);
@@ -87,6 +92,16 @@ void destroyEntities() {
   ignore(rclc_support_fini(&support));
 }
 
+// Ask the agent for its clock: right after connecting, then once a minute.
+void syncClock(uint32_t now) {
+  if (now - lastSyncMs < (clockEver ? CLOCK_SYNC_PERIOD_MS : CLOCK_RETRY_MS)) return;
+  lastSyncMs = now;
+  if (rmw_uros_sync_session(CLOCK_SYNC_TIMEOUT_MS) != RMW_RET_OK) return;
+  clockOffset = static_cast<uint32_t>(rmw_uros_epoch_millis()) - millis();
+  clockEver = true;
+  clockFresh = true;
+}
+
 bool pingDue(uint32_t now) {
   if (now - lastPingMs < AGENT_PING_PERIOD_MS) return false;
   lastPingMs = now;
@@ -101,6 +116,11 @@ void rosLinkBegin(CommandHandler handler) {
   // connection here and register the transport from rosLinkService() instead.
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);  // Modem sleep adds 100 ms+ latency to every packet.
+  // A site with many access points under one SSID: the default fast scan joins
+  // the first one heard (channel 1 first), often a distant AP with seconds of
+  // latency. Scan every channel and join the strongest instead.
+  WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+  WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
   WiFi.begin(ssid, password);
   locator.address.fromString(agentIp);
   locator.port = AMO_AGENT_PORT;
@@ -125,6 +145,8 @@ bool rosLinkService() {
       break;
     case Link::AGENT_AVAILABLE:
       if (createEntities()) {
+        missedPings = 0;
+        lastSyncMs = millis() - CLOCK_SYNC_PERIOD_MS;  // sync right away
         linkState = Link::CONNECTED;
       } else {
         destroyEntities();
@@ -132,10 +154,14 @@ bool rosLinkService() {
       }
       break;
     case Link::CONNECTED:
-      if (pingDue(now) && rmw_uros_ping_agent(AGENT_PING_TIMEOUT_MS, 3) != RMW_RET_OK) {
-        linkState = Link::DISCONNECTED;
-        break;
+      if (pingDue(now)) {
+        missedPings = rmw_uros_ping_agent(AGENT_PING_TIMEOUT_MS, 1) == RMW_RET_OK ? 0 : missedPings + 1;
+        if (missedPings >= AGENT_PING_MISSES) {
+          linkState = Link::DISCONNECTED;
+          break;
+        }
       }
+      syncClock(now);
       rclc_executor_spin_some(&executor, RCL_MS_TO_NS(5));
       break;
     case Link::DISCONNECTED:
@@ -152,4 +178,11 @@ bool rosLinkPublish(const char *json) {
   stateMsg.data.size = strlen(json);
   stateMsg.data.capacity = stateMsg.data.size + 1;
   return rcl_publish(&statePub, &stateMsg, nullptr) == RCL_RET_OK;
+}
+
+bool rosLinkClock(uint32_t &clockMinusMillis) {
+  if (!clockFresh) return false;
+  clockFresh = false;
+  clockMinusMillis = clockOffset;
+  return true;
 }

@@ -21,6 +21,8 @@ struct Command {
 ///   "AUTO"
 ///   "HOLD NORTH_GREEN" | "HOLD EAST_GREEN" | "HOLD ALL_RED"
 ///   "PLAN <northGreenMs> <eastGreenMs> <yellowMs> <allRedMs>"
+///   "PLAN <northGreenMs> <eastGreenMs> <yellowMs> <allRedMs> <eastYellowMs> <partnerEastMs>"
+/// The short form uses <yellowMs> after both greens and no partner time.
 /// Words are separated by exactly one space and nothing may follow.
 /// Returns false, leaving `out` unspecified, for unknown or unsafe text.
 bool parseCommand(const char *text, Command &out);

@@ -32,15 +32,16 @@ class JdbcSignalStore implements SignalStore {
             """
             INSERT INTO signal_latest
                 (signal_id, phase, mode, hold_target, remaining_ms, north_green_ms, east_green_ms,
-                 yellow_ms, all_red_ms, plan_pending, device_seq, device_uptime_ms, last_command,
-                 command_result, received_at)
-            VALUES (:id, :phase, :mode, :hold, :remaining, :ng, :eg, :y, :ar, :pending, :seq,
-                    :uptime, :command, :result, :received)
+                 yellow_ms, all_red_ms, east_yellow_ms, partner_east_ms, plan_pending, device_seq,
+                 device_uptime_ms, last_command, command_result, received_at)
+            VALUES (:id, :phase, :mode, :hold, :remaining, :ng, :eg, :y, :ar, :ey, :pe, :pending,
+                    :seq, :uptime, :command, :result, :received)
             ON CONFLICT (signal_id) DO UPDATE
             SET phase = EXCLUDED.phase, mode = EXCLUDED.mode, hold_target = EXCLUDED.hold_target,
                 remaining_ms = EXCLUDED.remaining_ms, north_green_ms = EXCLUDED.north_green_ms,
                 east_green_ms = EXCLUDED.east_green_ms, yellow_ms = EXCLUDED.yellow_ms,
-                all_red_ms = EXCLUDED.all_red_ms, plan_pending = EXCLUDED.plan_pending,
+                all_red_ms = EXCLUDED.all_red_ms, east_yellow_ms = EXCLUDED.east_yellow_ms,
+                partner_east_ms = EXCLUDED.partner_east_ms, plan_pending = EXCLUDED.plan_pending,
                 device_seq = EXCLUDED.device_seq, device_uptime_ms = EXCLUDED.device_uptime_ms,
                 last_command = EXCLUDED.last_command, command_result = EXCLUDED.command_result,
                 received_at = EXCLUDED.received_at
@@ -54,6 +55,8 @@ class JdbcSignalStore implements SignalStore {
         .param("eg", s.plan().eastGreenMs())
         .param("y", s.plan().yellowMs())
         .param("ar", s.plan().allRedMs())
+        .param("ey", s.plan().eastYellowMs())
+        .param("pe", s.plan().partnerEastMs())
         .param("pending", s.planPending())
         .param("seq", s.seq())
         .param("uptime", s.uptimeMs())
@@ -132,7 +135,9 @@ class JdbcSignalStore implements SignalStore {
                 row.getInt("north_green_ms"),
                 row.getInt("east_green_ms"),
                 row.getInt("yellow_ms"),
-                row.getInt("all_red_ms")),
+                row.getInt("all_red_ms"),
+                row.getInt("east_yellow_ms"),
+                row.getInt("partner_east_ms")),
             row.getBoolean("plan_pending"),
             row.getString("last_command"),
             row.getString("command_result"));

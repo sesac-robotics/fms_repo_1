@@ -70,7 +70,7 @@ class SignalController {
     return signalId;
   }
 
-  record Command(@NotNull @Size(max = 40) String command) {}
+  record Command(@NotNull @Size(max = SignalCommand.MAX_LENGTH) String command) {}
 
   /** The firmware's state JSON, forwarded unchanged by the bridge. */
   record State(
@@ -81,9 +81,9 @@ class SignalController {
       Phase holdTarget,
       @Min(0) @Max(600_000) int remainingMs,
       @Min(0) long uptimeMs,
-      @NotNull @Size(min = 4, max = 4) List<@NotNull Integer> planMs,
+      @NotNull @Size(min = 4, max = 6) List<@NotNull Integer> planMs,
       boolean planPending,
-      @NotNull @Size(max = 40) String lastCommand,
+      @NotNull @Size(max = SignalCommand.MAX_LENGTH) String lastCommand,
       @NotNull @Pattern(regexp = "[A-Z_]{1,20}") String commandResult) {
     SignalState state() {
       return new SignalState(
@@ -94,10 +94,19 @@ class SignalController {
           holdTarget,
           remainingMs,
           uptimeMs,
-          new SignalCommand.Timing(planMs.get(0), planMs.get(1), planMs.get(2), planMs.get(3)),
+          timing(),
           planPending,
           lastCommand,
           commandResult);
+    }
+
+    /** Firmware before the six-number plan reports four values. */
+    private SignalCommand.Timing timing() {
+      var ms = planMs;
+      return ms.size() == 6
+          ? new SignalCommand.Timing(
+              ms.get(0), ms.get(1), ms.get(2), ms.get(3), ms.get(4), ms.get(5))
+          : new SignalCommand.Timing(ms.get(0), ms.get(1), ms.get(2), ms.get(3));
     }
   }
 }

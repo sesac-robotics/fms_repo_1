@@ -42,7 +42,7 @@ export AMO_CONTROL_URL=http://127.0.0.1:18088
 ros2 run amode_signal_bridge signal_bridge
 ```
 
-다른 신호등을 중계할 때는 `--ros-args -p signal_namespace:=traffic_light_2`를 붙입니다. 저장소 루트에서 빌드하면 생기는 `build/`, `install/`, `log/`는 Git에서 제외됩니다.
+다른 신호등을 중계할 때는 노드 이름도 겹치지 않게 `--ros-args -r __node:=amo_signal_bridge_2 -p signal_namespace:=traffic_light_2`를 붙여 하나 더 띄웁니다. 저장소 루트에서 빌드하면 생기는 `build/`, `install/`, `log/`는 Git에서 제외됩니다.
 
 ## 검사
 
@@ -64,7 +64,7 @@ Main Control 쪽에는 같은 키를 `AMO_SIGNAL_INGEST_KEY`로, 고정 포트�
 | `POST /api/signals/{signalId}/commands` | 관리자·운영자 | 직원 세션 | `{"command":"PLAN 15000 8000 3000 2000"}` 형식입니다. 응답은 `202 {"id":N}`. 알 수 없거나 안전 범위를 벗어난 명령은 `400 INVALID_SIGNAL_COMMAND`, 한 번도 보고하지 않은 신호등은 `404 SIGNAL_NOT_FOUND` |
 | `GET /api/operations` | 관리자·운영자 | 직원 세션 | 기존 응답에 `signals` 배열이 추가됩니다. 원소는 `{state, receivedAt}` 형식입니다 |
 
-- 명령은 펌웨어와 같습니다: `AUTO` · `HOLD NORTH_GREEN` · `HOLD EAST_GREEN` · `HOLD ALL_RED` · `PLAN <북녹> <동녹> <황> <전적>`(ms). 서버가 펌웨어와 같은 안전 범위(녹색 3~120초, 황색 2~10초, 전적색 1~10초)로 먼저 검사합니다.
+- 명령은 펌웨어와 같습니다: `AUTO` · `HOLD NORTH_GREEN` · `HOLD EAST_GREEN` · `HOLD ALL_RED` · `PLAN <북녹> <동녹> <황> <전적>` 또는 `PLAN <북녹> <동녹> <북황> <전적> <동황> <상대동서>`(ms). 서버가 펌웨어와 같은 안전 범위(녹색 3~120초, 황색 2~10초, 전적색 1~10초, 상대 동서 0 또는 5~130초)로 먼저 검사합니다. 상태의 `planMs`는 숫자 4개(이전 펌웨어)나 6개를 받고, `/api/operations`의 `plan`에는 `eastYellowMs`와 `partnerEastMs`가 함께 나옵니다(V24 마이그레이션).
 - `signalId`는 대문자·숫자·하이픈 1~32자입니다(예: `SIG-01`).
 - 직원 명령은 IF-02(Web 게이트웨이)로도 전달됩니다. FMS의 IF-03 포트는 기존처럼 조회 전용입니다.
 - DB: `V23__traffic_signals.sql`이 `signal_latest`(신호별 최신 상태)와 `signal_commands`(명령 대기열, 요청자와 시각 기록)를 만듭니다.

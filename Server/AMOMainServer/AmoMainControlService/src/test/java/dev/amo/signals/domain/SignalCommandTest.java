@@ -20,6 +20,9 @@ class SignalCommandTest {
     assertTrue(SignalCommand.parse("PLAN 15000 8000 3000 2000").isPresent());
     assertTrue(SignalCommand.parse("PLAN 3000 120000 2000 1000").isPresent());
     assertTrue(SignalCommand.parse("PLAN 120000 3000 10000 10000").isPresent());
+    assertTrue(SignalCommand.parse("PLAN 15000 8000 3000 2000 4000 17000").isPresent());
+    assertTrue(SignalCommand.parse("PLAN 15000 8000 3000 2000 3000 0").isPresent());
+    assertTrue(SignalCommand.parse("PLAN 120000 120000 10000 10000 10000 130000").isPresent());
   }
 
   @Test
@@ -30,6 +33,10 @@ class SignalCommandTest {
     assertTrue(SignalCommand.parse("PLAN 15000 8000 3000 999").isEmpty());
     assertTrue(SignalCommand.parse("PLAN 15000 8000 3000").isEmpty());
     assertTrue(SignalCommand.parse("PLAN 15000 8000 3000 2000 1").isEmpty());
+    assertTrue(SignalCommand.parse("PLAN 15000 8000 3000 2000 1999 0").isEmpty());
+    assertTrue(SignalCommand.parse("PLAN 15000 8000 3000 2000 3000 4999").isEmpty());
+    assertTrue(SignalCommand.parse("PLAN 15000 8000 3000 2000 3000 130001").isEmpty());
+    assertTrue(SignalCommand.parse("PLAN 15000 8000 3000 2000 3000 0 1").isEmpty());
     assertTrue(SignalCommand.parse("PLAN -1 8000 3000 2000").isEmpty());
     assertTrue(SignalCommand.parse("PLAN 15000  8000 3000 2000").isEmpty());
   }

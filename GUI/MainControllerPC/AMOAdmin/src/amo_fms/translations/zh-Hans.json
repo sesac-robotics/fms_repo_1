@@ -1,4 +1,6 @@
 {
+  "camera_expand": "放大选中视频",
+  "camera_grid": "返回四画面",
   "camera_test_image": "测试图像",
   "camera_waiting": "等待视频",
   "vision_reading": "视觉判定",

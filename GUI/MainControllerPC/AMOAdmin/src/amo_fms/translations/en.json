@@ -1,4 +1,6 @@
 {
+  "camera_expand": "Enlarge selected video",
+  "camera_grid": "Return to four views",
   "camera_test_image": "Test image",
   "camera_waiting": "Waiting for video",
   "vision_reading": "Vision",

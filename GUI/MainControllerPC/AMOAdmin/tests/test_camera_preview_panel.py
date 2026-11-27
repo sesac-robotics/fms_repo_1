@@ -41,7 +41,7 @@ class CameraPreviewPanelTest(TestCase):
             monitor.show()
             monitor.show_snapshot(snapshot, '1')
             app.processEvents()
-            cards = monitor._previews.findChildren(QPushButton)
+            cards = list(monitor._previews._cards.values())
             self.assertEqual(len(cards), 4)
             self.assertTrue(all(not card.icon().isNull() for card in cards))
             self.assertTrue(cards[0].isChecked())
@@ -57,4 +57,11 @@ class CameraPreviewPanelTest(TestCase):
             monitor._list.setCurrentRow(1)
             self.assertEqual(selections[-1], '2')
             self.assertTrue(cards[1].isChecked())
+            monitor._previews._expand.click()
+            self.assertEqual(
+                [card.isVisible() for card in cards], [False, True, False, False]
+            )
+            self.assertTrue(monitor._map.isVisible())
+            monitor._previews._expand.click()
+            self.assertTrue(all(card.isVisible() for card in cards))
             monitor.close()

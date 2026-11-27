@@ -34,6 +34,7 @@ class PreviewPanel(QWidget):
         self._tr = tr
         self._select = select
         self._test_images = test_images
+        self._selected = ''
         self._vehicles: dict[str, str] = {}
         self._cards: dict[str, QPushButton] = {}
         layout = QGridLayout(self)
@@ -49,17 +50,34 @@ class PreviewPanel(QWidget):
                 card.setIconSize(QSize(100, 56))
             layout.addWidget(card, index // 2, index % 2)
             self._cards[number] = card
+        self._expand = QPushButton(tr('camera_expand'), self)
+        self._expand.setCheckable(True)
+        self._expand.toggled.connect(self._show_selection)
+        layout.addWidget(self._expand, 2, 0, 1, 2)
         self.present((), '')
 
     def present(self, vehicles: tuple[Vehicle, ...], selected: str) -> None:
         """Associate each registered number with its snapshot ID and highlight it."""
         self._vehicles = {vehicle.number: vehicle.id for vehicle in vehicles}
+        self._selected = selected
         for number, card in self._cards.items():
             vehicle_id = self._vehicles.get(number)
             card.setEnabled(vehicle_id is not None)
             card.setChecked(vehicle_id is not None and vehicle_id == selected)
             status = 'camera_test_image' if self._test_images else 'camera_waiting'
             card.setText(f'{number}\n{self._tr(status)}')
+        self._expand.setEnabled(selected != '' and selected in self._vehicles.values())
+        if not self._expand.isEnabled():
+            self._expand.setChecked(False)
+        self._show_selection(self._expand.isChecked())
+
+    def _show_selection(self, expanded: bool) -> None:
+        self._expand.setText(self._tr('camera_grid' if expanded else 'camera_expand'))
+        for number, card in self._cards.items():
+            card.setVisible(
+                not expanded or self._vehicles.get(number) == self._selected
+            )
+            card.setIconSize(QSize(160, 90) if expanded else QSize(100, 56))
 
     def _choose(self, number: str) -> None:
         vehicle_id = self._vehicles.get(number)

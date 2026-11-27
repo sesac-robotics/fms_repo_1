@@ -64,3 +64,32 @@ AI Interface에는 Main Control의 내부 포트와 동일한 전송 키를 지�
 사용하며 관제 전송이 성공하면 `vision_observation_acknowledged` 로그가 남습니다.
 운영 조회와 화면에서 같은 차량, 출처, 결과 및 프레임 ID가 보이는지 확인합니다.
 출발 승인, 주행 명령, 승객용 결과는 이 관제 연동으로 생성되지 않습니다.
+
+### Compose로 함께 실행
+
+`docker/vision.compose.yaml`은 기본 Compose에 추가하는 선택 구성입니다.
+실제 실행 전 IF-07의 ROS 2 표기와 팀 설정을 확인합니다. 운영 데이터베이스나
+교실 서비스를 바꾸지 않고 검증하려면 별도 개발 환경을 사용합니다.
+
+기존 Compose 설정에 다음 값을 추가합니다. 실제 키와 장비 주소는 저장소 밖의
+설정에 보관합니다.
+
+| 설정 | 입력 값 |
+| --- | --- |
+| `AMO_VISION_MAIN_PORT` | 비어 있는 Main Control 내부 HTTP 포트 |
+| `AMO_VISION_INGEST_KEY` | 32자 이상의 전용 키. 두 서비스의 시크릿 파일로 전달 |
+| `AMO_VISION_ROS_DOMAIN_ID` | Pinky와 같은 ROS 2 도메인 번호 |
+| `AMO_VISION_ROS_DISCOVERY_RANGE` | 개발 기본값 `LOCALHOST`. 실차 시험은 승인된 검색 범위를 설정 |
+| `AMO_VISION_ROS_STATIC_PEERS` | 팀 구성에 필요한 경우에만 지정하는 DDS 상대 주소 |
+| `AMO_VISION_ROBOT_ID`, `AMO_VISION_VEHICLE_NO` | 시험 Pinky 로봇 ID와 해당 AMO 차량 번호 |
+| `AMO_VISION_SERVICE`, `AMO_VISION_DETECTOR_URL` | 판정기 이름과 이미 실행 중인 검증된 HTTP `/infer` 주소 |
+
+먼저 프로젝트, 외부 DB, 포트 및 차량 설정을 확인한 뒤 구성을 검사합니다.
+
+```bash
+docker compose -f compose.yaml -f docker/vision.compose.yaml config --quiet
+```
+
+검증용 프로젝트에서 판정기를 먼저 실행한 뒤 같은 Compose 명령에
+`up -d --build main-control ai-interface`를 사용합니다. 강의실은 기존 실행 구성과
+같은 프로젝트에 적용하고, 기존 데이터베이스와 로그인 설정을 유지합니다.

@@ -78,6 +78,7 @@ team's tested revision.
 The existing staff `GET /api/operations` response includes an optional
 `vision` array of objects with `observation` (the fields above) and
 `receivedAt` (ISO-8601 UTC). FMS displays capture time for its selected
-vehicle; Admin Overview also displays the frame ID and reception time.
+vehicle. The PyQt and Web Admin overviews also display the vehicle, source,
+outcome, frame ID and server reception time.
 No service key is required by staff clients. Their existing session and
 role checks apply. Passenger APIs do not expose this projection.

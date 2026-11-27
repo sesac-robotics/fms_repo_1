@@ -4,6 +4,7 @@ import TripHistoryView from "./TripHistoryView.vue";
 import OperationMap from "./OperationMap.vue";
 import HistoryBrowse from "./HistoryBrowse.vue";
 import TestResults from "./TestResults.vue";
+import VisionReadings from "./VisionReadings.vue";
 import { t, timeOf } from "../i18n";
 const props = defineProps({
   data: { type: Object, required: true },
@@ -109,6 +110,7 @@ function eventKind(kind) {
           </article>
         </section>
       </div>
+      <VisionReadings :entries="data.vision" />
     </template>
     <section v-if="view === 'logs' || view === 'overview'" class="panel">
       <h2>{{ t("logs") }}</h2>

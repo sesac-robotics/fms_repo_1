@@ -37,11 +37,35 @@ ESP32 (LEDController) ──Wi-Fi UDP──▶ micro-ROS Agent ──ROS 2 (도�
 
 1. **서버**: 저장소 루트에서 `.env`를 준비하고 `docker compose up --build -d`를 실행합니다. Main Control 내부 HTTP는 `127.0.0.1:18088`에 열립니다.
 2. **Agent**: `docker run -it --rm --net=host microros/micro-ros-agent:jazzy udp4 --port 8888`
-3. **신호등**: 펌웨어를 업로드합니다. 상태 LED(GPIO 4)가 켜지면 Agent에 연결된 것입니다.
-4. **브리지**: `colcon build` 후 `ros2 run amode_signal_bridge signal_bridge`. 서버와 같은 `AMO_SIGNAL_INGEST_KEY`를 씁니다.
+3. **신호등**: 보드마다 `AMO_BOARD`(1~4)를 정해 펌웨어를 업로드합니다([LEDController README](SignalController/LEDController/README.md)). 상태 LED(GPIO 4)가 켜지면 Agent에 연결된 것입니다.
+4. **브리지**: `colcon build` 후 보드마다 하나씩 띄웁니다. 서버와 같은 `AMO_SIGNAL_INGEST_KEY`를 씁니다. 네 개를 한 터미널에서 띄우고 `Ctrl+C` 한 번으로 함께 끄려면 다음처럼 실행합니다.
+   ```bash
+   bash -c 'for n in 1 2 3 4; do ros2 run amode_signal_bridge signal_bridge --ros-args -r __node:=amo_signal_bridge_$n -p signal_namespace:=traffic_light_$n & done; wait'
+   ```
 5. **FMS**: `GUI/MainControllerPC/AMOAdmin`에서 실행하고 운영자 계정으로 로그인한 뒤 왼쪽 메뉴의 **신호등**을 엽니다.
 
 ROS 도메인 ID는 펌웨어(`config.h`)에서 16으로 정합니다. `ros2` 명령을 쓰는 터미널도 `export ROS_DOMAIN_ID=16`으로 맞춥니다.
+
+| 보드 | 신호 ID | 교차로 | a | b |
+| --- | --- | --- | --- | --- |
+| 1 | SIG-01 | 중앙 +자 | 남→북 | 서→동 직좌 |
+| 2 | SIG-02 | 중앙 +자 | 북→남 | 동→서 직좌 |
+| 3 | SIG-03 | 북쪽 T자 | 보행자(횡단보도 동쪽 끝) | 서→동 |
+| 4 | SIG-04 | 북쪽 T자 | 보행자(횡단보도 서쪽 끝) | 동→서 |
+
+### 서버 없이 켰을 때
+
+- 신호등은 서버나 Agent가 없어도 혼자 기본 계획으로 돕니다. 연결이 끊겨도 바뀌지 않습니다.
+- 다만 같은 교차로의 보드(1·2번, 3·4번)는 **Agent 시계를 한 번은 받아야** 박자를 맞출 수 있습니다. 시계를 받기 전에는 전방향 적색으로 기다립니다. 한 번 받은 뒤에는 연결이 끊겨도 계속 같은 박자로 돕니다.
+- Agent에 연결되면 시계를 받고, 주기 경계(+자 45초, T자 30초)까지 기다렸다가 시작합니다. 켜자마자 한동안 적색인 건 정상입니다.
+
+### 다른 PC의 서버로 옮길 때
+
+1. 그 PC에서 이 브랜치를 받고 `docker compose up --build -d`로 서버를 빌드합니다. V24 마이그레이션이 들어간 서버라야 숫자 6개 `PLAN`을 받습니다.
+2. 그 PC에서 Agent(UDP 8888)와 브리지 네 개를 띄웁니다. 브리지 터미널은 `ROS_DOMAIN_ID=16`입니다.
+3. `secrets.h`의 `AMO_AGENT_IP`를 그 PC의 IP로 바꿉니다. PC IP는 `hostname -I`로 확인합니다. 보드는 같은 Wi-Fi에 있어야 합니다.
+4. 보드마다 `AMO_BOARD`를 맞춰 다시 업로드합니다. IP는 펌웨어에 들어가므로, 바꾸면 네 보드를 모두 다시 올려야 합니다.
+5. 시리얼 모니터(115200)에 `agent connected`와 `agent clock received`가 찍히면 연결된 것입니다.
 
 ## 4. 운영자 명령
 

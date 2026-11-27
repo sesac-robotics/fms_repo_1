@@ -1,0 +1,147 @@
+:root {
+  color-scheme: light;
+  --canvas: #f5eff6;
+  --chrome: #efe5f1;
+  --surface: #fcf9fc;
+  --surface-raised: #fffaff;
+  --badge: #f3e8f5;
+  --text: #2d1e35;
+  --secondary: #5e4b64;
+  --line: #cbb9ce;
+  --accent: #74386d;
+  --on-accent: #fff7fc;
+  --selection: #e9d8ee;
+  --success: #1e5e4d;
+  --success-bg: #dcefe6;
+  --warning: #733526;
+  --warning-bg: #fae0d7;
+  --focus: #5d3876;
+  --shadow: 0 18px 55px #301f3719;
+  font-family:
+    Inter, "Noto Sans KR", "Noto Sans SC", "Apple SD Gothic Neo", "PingFang SC",
+    system-ui, sans-serif;
+  font-synthesis: none;
+  font-size: 16px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #1a1321;
+  --chrome: #33243d;
+  --surface: #2c2234;
+  --surface-raised: #362941;
+  --badge: #302038;
+  --text: #f3e9f5;
+  --secondary: #c9b9ce;
+  --line: #776581;
+  --accent: #ecb4de;
+  --on-accent: #322039;
+  --selection: #4b3656;
+  --success: #a6e6ce;
+  --success-bg: #25453e;
+  --warning: #ffd1b8;
+  --warning-bg: #53302f;
+  --focus: #a6e6ce;
+  --shadow: 0 18px 55px #120b1d66;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(1.65rem, 2.5vw, 2.25rem);
+  line-height: 1.25;
+  font-weight: 730;
+}
+
+h2 {
+  font-size: 1.125rem;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select {
+  min-height: 44px;
+  font: inherit;
+}
+
+button,
+input,
+select {
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface-raised);
+  padding: 0.45rem 0.75rem;
+}
+
+button {
+  cursor: pointer;
+  font-weight: 620;
+}
+
+button:hover,
+button[aria-current="page"] {
+  background: var(--selection);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.66;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+input[type="checkbox"] {
+  min-height: 0;
+  accent-color: var(--accent);
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.primary {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.primary:hover {
+  background: var(--accent);
+  filter: brightness(0.94);
+}
+
+.quiet {
+  background: transparent;
+}
+
+.muted,
+small {
+  color: var(--secondary);
+}
+
+[role="alert"] {
+  font-weight: 680;
+  margin-block: 0.5rem;
+}

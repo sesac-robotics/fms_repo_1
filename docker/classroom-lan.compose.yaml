@@ -1,0 +1,17 @@
+name: amo-classroom-lan
+services:
+  ingress:
+    image: haproxy:3.2-alpine
+    user: "${AMO_LAN_UID:?Set the PEM owner UID}:${AMO_LAN_GID:?Set the PEM owner GID}"
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      AMO_LAN_BIND: ${AMO_LAN_BIND:?Set the presenter Wi-Fi IPv4 address}
+      AMO_LAN_CIDR: ${AMO_LAN_CIDR:?Set the permitted classroom subnet}
+      AMO_LAN_WEB_PORT: ${AMO_LAN_WEB_PORT:-9443}
+      AMO_LAN_IF03_PORT: ${AMO_LAN_IF03_PORT:-18487}
+      AMO_ADMIN_WEB_PORT: ${AMO_ADMIN_WEB_PORT:-5175}
+      AMO_FMS_TCP_PORT: ${AMO_FMS_TCP_PORT:-18087}
+    volumes:
+      - ./classroom-lan.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ${AMO_LAN_TLS_PEM:?Set the absolute path to the certificate chain and key}:/run/secrets/amo-lan.pem:ro

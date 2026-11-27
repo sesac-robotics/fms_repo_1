@@ -1,3 +1,6 @@
+# macOS Finder metadata
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -218,3 +221,28 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local credentials, mobile signing, and build dependencies
+.env.*
+!.env.example
+.pgpass
+compose.env
+google-login.compose.yaml
+client_secret.json
+client_secret_*.json
+google-services.json
+*.jks
+*.keystore
+*.p12
+*.pem
+local.properties
+node_modules/
+.gradle/
+.kotlin/
+*.apk
+*.aab
+
+# Large local capture and operating evidence
+*.bag
+*.db3
+*.mcap

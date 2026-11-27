@@ -1,5 +1,6 @@
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { api } from "./api";
+import { reviewAction } from "./scenarioReviewSteps";
 
 const root = "/admin/demo/scenarios";
 
@@ -12,6 +13,9 @@ export function useScenarioReview() {
   const error = ref(false);
   const mapError = ref(false);
   const playback = ref(null);
+  const history = ref(null);
+  const savedRun = ref(null);
+  const resetDone = ref(false);
   const controller = new AbortController();
   let uncertainStart;
 
@@ -37,6 +41,7 @@ export function useScenarioReview() {
     if (busy.value || controller.signal.aborted) return;
     busy.value = true;
     error.value = false;
+    resetDone.value = false;
     try {
       await action();
     } catch {
@@ -60,8 +65,8 @@ export function useScenarioReview() {
     });
   }
 
-  function advance(step, manual = false) {
-    return request(`/runs/${run.value.id}/steps/${step}`, { manual });
+  function advance(step) {
+    return request(`/runs/${run.value.id}/steps/${step}`, {});
   }
 
   async function start(plan, target) {
@@ -79,20 +84,17 @@ export function useScenarioReview() {
     });
   }
 
-  function selectStep(step, { evidenceOnly, manual, prepareOnly }) {
+  function selectStep(step, { evidenceOnly, prepareOnly }) {
     if (busy.value) return;
     selected.value = step;
     if (evidenceOnly) return;
+    const plan = plans.value.find((entry) => entry.id === planId.value);
+    const action = reviewAction(plan, run.value, step, prepareOnly);
+    if (!action) return;
     return act(async () => {
-      if (
-        prepareOnly ||
-        run.value?.plan !== planId.value ||
-        run.value?.nextStep !== step
-      ) {
+      if (action === "replay") {
         await start(planId.value, step);
-        const prefix = plans.value.find(
-          (plan) => plan.id === planId.value,
-        ).steps;
+        const prefix = plan.steps;
         while (run.value.nextStep && run.value.nextStep !== step) {
           const index = prefix.indexOf(run.value.nextStep);
           if (index < 0 || index >= prefix.indexOf(step))
@@ -111,9 +113,50 @@ export function useScenarioReview() {
         );
       }
       if (!prepareOnly && !controller.signal.aborted) {
-        run.value = await advance(step, manual);
+        run.value = await advance(step);
         await snapshot();
       }
+    });
+  }
+
+  function loadHistory() {
+    return act(async () => {
+      history.value = (await request("/history")).runs;
+      savedRun.value = null;
+    });
+  }
+
+  function openSavedRun(id) {
+    if (!history.value?.some((entry) => entry.id === id)) return;
+    return act(async () => {
+      savedRun.value = await request(`/runs/${encodeURIComponent(id)}`);
+    });
+  }
+
+  async function finishReset() {
+    run.value = null;
+    history.value = null;
+    savedRun.value = null;
+    uncertainStart = undefined;
+    playback.value = null;
+    resetDone.value = true;
+    await snapshot();
+  }
+
+  function resetCurrent() {
+    if (!run.value) return;
+    return act(async () => {
+      await request(`/runs/${encodeURIComponent(run.value.id)}/reset`, {});
+      await finishReset();
+    });
+  }
+
+  function resetHistory(confirm) {
+    return act(async () => {
+      const { history: counts } = await request();
+      if (!counts.runs || !confirm(counts)) return;
+      await request("/history/reset", counts);
+      await finishReset();
     });
   }
 
@@ -129,8 +172,15 @@ export function useScenarioReview() {
     busy,
     error,
     mapError,
+    history,
+    savedRun,
+    resetDone,
     load,
     newRun,
     selectStep,
+    loadHistory,
+    openSavedRun,
+    resetCurrent,
+    resetHistory,
   };
 }

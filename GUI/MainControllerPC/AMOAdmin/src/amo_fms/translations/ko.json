@@ -1,4 +1,8 @@
 {
+  "camera_connect": "연결",
+  "camera_disconnect": "연결 해제",
+  "camera_connecting": "연결 중 · 취소",
+  "camera_retry": "연결 실패 · 다시 연결",
   "camera_faces_masked": "얼굴 가림 · {count}개 영역",
   "camera_no_faces": "얼굴 미검출 · 로컬 시험",
   "camera_test_image": "시험 이미지",

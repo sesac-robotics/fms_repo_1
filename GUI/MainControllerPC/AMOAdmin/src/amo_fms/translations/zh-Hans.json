@@ -1,4 +1,8 @@
 {
+  "camera_connect": "连接",
+  "camera_disconnect": "断开连接",
+  "camera_connecting": "连接中 · 取消",
+  "camera_retry": "连接失败 · 重试",
   "camera_faces_masked": "面部已遮挡 · {count} 个区域",
   "camera_no_faces": "未检测到面部 · 本地测试",
   "camera_test_image": "测试图像",

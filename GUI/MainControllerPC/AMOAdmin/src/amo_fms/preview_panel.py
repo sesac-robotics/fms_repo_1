@@ -12,10 +12,12 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtWidgets import QDialog, QGridLayout, QVBoxLayout, QWidget
 
+from .camera_connections import CameraConnections
 from .i18n import Text
 from .local_preview_source import LocalPreviewSource
 from .models import Vehicle
 from .preview_card import PreviewCard, PreviewSurface
+from .widgets import button
 
 _NUMBERS = tuple(f'PINKY-{number:02d}' for number in range(1, 5))
 _COLORS = ('#234751', '#465573', '#38564e', '#654956')
@@ -51,6 +53,9 @@ class PreviewPanel(QWidget):
         self._vehicles: dict[str, Vehicle] = {}
         self._cards: dict[str, PreviewCard] = {}
         self._test_frames: dict[str, QPixmap] = {}
+        self._connections = CameraConnections(self)
+        self._connections.changed.connect(self._update_images)
+        self._buttons = {}
         layout = QGridLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
@@ -60,7 +65,18 @@ class PreviewPanel(QWidget):
             card.enlarge_requested.connect(lambda key=number: self._enlarge(key))
             if test_images:
                 self._test_frames[number] = _test_image(number, index)
-            layout.addWidget(card, index // 2, index % 2)
+            tile = QWidget(self)
+            column = QVBoxLayout(tile)
+            column.setContentsMargins(0, 0, 0, 0)
+            column.setSpacing(3)
+            column.addWidget(card, 1)
+            connect = button(tr('camera_connect'))
+            connect.clicked.connect(
+                lambda _checked, key=number: self._connections.toggle(key)
+            )
+            column.addWidget(connect)
+            self._buttons[number] = connect
+            layout.addWidget(tile, index // 2, index % 2)
             self._cards[number] = card
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(1, 1)
@@ -123,9 +139,24 @@ class PreviewPanel(QWidget):
             vehicle = self._vehicles.get(number)
             state = self._tr.status(vehicle.status) if vehicle else self._tr('unknown')
             card.present(frame, state, status)
+            self._update_connection(number, not frame.isNull())
 
             if number == self._expanded_number:
                 self._viewer_surface.set_frame(frame)
+
+    def _update_connection(self, number: str, has_frame: bool) -> None:
+        button = self._buttons[number]
+        active = self._connections.active(number)
+        available = self._source is not None and self._connections.available(number)
+        button.setEnabled(active or (available and number in self._vehicles))
+        key = 'camera_connect'
+        if active:
+            key = 'camera_disconnect' if has_frame else 'camera_connecting'
+        elif self._connections.failed(number):
+            key = 'camera_retry'
+        title = self._tr(key)
+        button.setText(title)
+        button.setAccessibleName(f'{number} · {title}')
 
     def _enlarge(self, number: str) -> None:
         self._choose(number)

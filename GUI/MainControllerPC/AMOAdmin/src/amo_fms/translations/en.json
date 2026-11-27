@@ -1,4 +1,8 @@
 {
+  "camera_connect": "Connect",
+  "camera_disconnect": "Disconnect",
+  "camera_connecting": "Connecting · cancel",
+  "camera_retry": "Connection failed · retry",
   "camera_faces_masked": "Faces masked · {count} regions",
   "camera_no_faces": "No faces detected · local test",
   "camera_test_image": "Test image",

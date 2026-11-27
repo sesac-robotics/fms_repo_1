@@ -1,7 +1,7 @@
 """Paint a camera frame independently of its selectable card caption."""
 
-from PyQt6.QtCore import QRect, QSize, Qt
-from PyQt6.QtGui import QColor, QPainter, QPaintEvent, QPixmap
+from PyQt6.QtCore import QRect, QSize, Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QMouseEvent, QPainter, QPaintEvent, QPixmap
 from PyQt6.QtWidgets import QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 
@@ -50,6 +50,8 @@ class PreviewSurface(QWidget):
 class PreviewCard(QPushButton):
     """Keep the vehicle caption outside the video and preserve keyboard selection."""
 
+    enlarge_requested = pyqtSignal()
+
     def __init__(self, number: str, waiting: str, parent: QWidget) -> None:
         """Create a dedicated image surface followed by one status caption."""
         super().__init__(parent)
@@ -76,6 +78,19 @@ class PreviewCard(QPushButton):
         text = f'{self._number} · {status}'
         self._caption.setText(text)
         self.setAccessibleName(text)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent | None) -> None:
+        """Enlarge only a double-click on a populated video surface."""
+        if (
+            event is not None
+            and event.button() == Qt.MouseButton.LeftButton
+            and self.surface.geometry().contains(event.position().toPoint())
+            and not self.surface.frame_rect().isEmpty()
+        ):
+            self.enlarge_requested.emit()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 
     def set_viewport_height(self, height: int) -> None:
         """Reserve the requested viewport height and keep the caption below it."""

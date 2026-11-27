@@ -5,8 +5,9 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
-from PyQt6.QtCore import QBuffer, QIODevice, QSettings
+from PyQt6.QtCore import QBuffer, QIODevice, QSettings, Qt
 from PyQt6.QtGui import QImage
+from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication, QPushButton, QSplitter
 
 from amo_fms.config import DEFAULT_MAP_ROOT, Config, Preferences
@@ -78,7 +79,7 @@ class CameraPreviewPanelTest(TestCase):
             monitor._list.setCurrentRow(1)
             self.assertEqual(selections[-1], '2')
             self.assertTrue(cards[1].isChecked())
-            monitor._previews._expand.click()
+            QTest.mouseDClick(cards[1], Qt.MouseButton.LeftButton)
             self.assertEqual(
                 [card.isVisible() for card in cards], [False, True, False, False]
             )
@@ -86,7 +87,8 @@ class CameraPreviewPanelTest(TestCase):
             app.processEvents()
             self.assertGreaterEqual(cards[1].surface.height(), 220)
             self.assertTrue(cards[1].rect().contains(cards[1]._caption.geometry()))
-            monitor._previews._expand.click()
+            QTest.keyClick(cards[1], Qt.Key.Key_Escape)
+            app.processEvents()
             self.assertTrue(all(card.isVisible() for card in cards))
             monitor.close()
 
@@ -136,4 +138,6 @@ class CameraPreviewPanelTest(TestCase):
                 monitor.show_snapshot(snapshot, '1')
                 self.assertIn('Waiting for video', card.accessibleName())
                 self.assertTrue(card.surface.frame_rect().isEmpty())
+                QTest.mouseDClick(card, Qt.MouseButton.LeftButton)
+                self.assertEqual(monitor._previews._layout_selection, (False, ''))
                 monitor.close()

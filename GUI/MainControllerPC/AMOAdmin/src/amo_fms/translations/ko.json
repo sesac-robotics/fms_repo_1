@@ -119,6 +119,7 @@
   "status_boarded": "탑승 확인",
   "status_parked": "주차 중",
   "status_active": "활성",
+  "default_admin": "기본 관리자",
   "role_admin": "관리자",
   "role_operator": "운영자",
   "status_acknowledged": "요청 확인",

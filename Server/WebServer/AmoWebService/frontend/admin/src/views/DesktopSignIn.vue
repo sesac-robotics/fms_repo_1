@@ -3,7 +3,7 @@ import { onMounted, ref } from "vue";
 import { api } from "../api";
 import { isStaff } from "../browserSession";
 import { desktopCallback, desktopRequest } from "../desktopSignIn";
-import { t } from "../i18n";
+import { staffLabel, t } from "../i18n";
 import { preferences } from "../preferences";
 import LoginView from "./LoginView.vue";
 
@@ -64,8 +64,7 @@ function cancel() {
       <template v-if="request">
         <p class="muted">{{ t("desktopConnectHelp") }}</p>
         <p>
-          <strong>{{ account.name }}</strong
-          ><br /><small>{{ account.email }}</small>
+          <strong>{{ staffLabel(account.role) }}</strong>
         </p>
         <p v-if="error" role="alert">{{ t(error) }}</p>
         <button class="primary" type="button" :disabled="busy" @click="connect">

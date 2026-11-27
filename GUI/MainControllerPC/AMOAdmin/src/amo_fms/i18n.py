@@ -81,6 +81,13 @@ class Text:
         key = ALIAS.get(code, f'status_{code.lower()}')
         return self(key) if key in catalog('en') else value
 
+    def staff_label(self, role: str) -> str:
+        """Translate a staff role for display, with a generic unknown-role fallback."""
+        key = {'ADMIN': 'default_admin', 'OPERATOR': 'role_operator'}.get(
+            role, 'unknown'
+        )
+        return self(key)
+
     def event_detail(self, raw: str) -> str:
         """Localize known server messages and retain unknown evidence verbatim."""
         key = EVENT_DETAILS.get(raw)

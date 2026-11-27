@@ -119,6 +119,7 @@
   "status_boarded": "已确认上车",
   "status_parked": "停车中",
   "status_active": "启用",
+  "default_admin": "默认管理员",
   "role_admin": "管理员",
   "role_operator": "操作员",
   "status_acknowledged": "已确认",

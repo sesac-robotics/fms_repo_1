@@ -112,6 +112,7 @@ export default {
   unitMs: "ms",
   tenant: "AMoDE test site",
   accountState: "Account status",
+  defaultAdmin: "Default Administrator",
   ADMIN: "Administrator",
   OPERATOR: "Operator",
   PASSENGER: "Passenger",

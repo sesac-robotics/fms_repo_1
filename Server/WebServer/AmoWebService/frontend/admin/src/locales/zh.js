@@ -108,6 +108,7 @@ export default {
   unitMs: "毫秒",
   tenant: "AMoDE 实训场地",
   accountState: "账户状态",
+  defaultAdmin: "默认管理员",
   ADMIN: "管理员",
   OPERATOR: "调度员",
   PASSENGER: "乘客",

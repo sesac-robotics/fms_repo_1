@@ -12,7 +12,7 @@ from uuid import uuid4
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-MODES = ('baseline', 'web', 'standalone', 'combined')
+MODES = ('baseline', 'web', 'standalone')
 
 
 def tick(mark: float) -> None:
@@ -48,6 +48,8 @@ def process_load(roots: dict[str, int]) -> dict:
 
 def run_trial(mode: str, directory: Path, psql: list[str], duration: int) -> None:
     """Replay identical telemetry while exercising the selected native clients."""
+    if mode not in MODES:
+        raise ValueError(f'Unsupported benchmark mode: {mode}')
     directory.mkdir()
     epoch = f'{directory.name}-{uuid4().hex[:10]}'
     manifest = {'epoch': epoch, 'duration_seconds': duration, 'mode': mode}
@@ -70,7 +72,6 @@ def run_trial(mode: str, directory: Path, psql: list[str], duration: int) -> Non
 
     db_stats('db-before.json')
     env = dict(os.environ, AMO_FMS_TRACE=str(directory / 'qt.jsonl'))
-    qt_mode = 'combined' if mode == 'combined' else 'baseline'
     qt_dir = ROOT / 'GUI/MainControllerPC/AMOAdmin'
 
     def qt_driver(name: str, role: str) -> tuple[str, list[str], Path]:
@@ -90,7 +91,7 @@ def run_trial(mode: str, directory: Path, psql: list[str], duration: int) -> Non
             qt_dir,
         )
 
-    drivers = [qt_driver('qt', qt_mode)]
+    drivers = [qt_driver('qt', 'baseline')]
     if mode == 'standalone':
         drivers.append(qt_driver('admin', 'admin'))
     if mode == 'web':

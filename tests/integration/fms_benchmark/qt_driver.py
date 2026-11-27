@@ -8,7 +8,6 @@ from pathlib import Path
 from time import time
 
 from amo_fms.admin import AdminApplication
-from amo_fms.comparison import ComparisonApplication
 from amo_fms.comparison_history import HistoryPanel
 from amo_fms.comparison_members import MembersPanel
 from amo_fms.config import Config, Preferences
@@ -20,9 +19,9 @@ SEARCHES = ('bench-passenger-999', 'ONE_WAY', 'Benchmark')
 
 
 def main() -> int:
-    """Open a visible fleet, combined, or independent admin window and run the timed schedule."""
+    """Open a visible fleet or admin window and run the timed schedule."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=('baseline', 'combined', 'admin'))
+    parser.add_argument('mode', choices=('baseline', 'admin'))
     parser.add_argument('directory', type=Path)
     parser.add_argument('start', type=float)
     parser.add_argument('duration', type=float)
@@ -33,21 +32,17 @@ def main() -> int:
     )
     settings.setValue('walkthrough/enabled', False)
     settings.setValue('language', 'en')
-    client = {
-        'baseline': Application,
-        'combined': ComparisonApplication,
-        'admin': AdminApplication,
-    }[args.mode]
+    client = AdminApplication if args.mode == 'admin' else Application
     window = client(
         Config.from_environment(fleet=args.mode != 'admin'), Preferences(settings)
     )
-    window.resize(1650 if args.mode == 'combined' else 990, 800)
+    window.resize(990, 800)
     window.show()
 
     def exercise(index: int) -> None:
         tabs = window.centralWidget().findChild(QTabWidget)
         if tabs is None:
-            raise RuntimeError('Comparison workspace was not created.')
+            raise RuntimeError('Admin workspace was not created.')
         key = ('members', 'trips', 'tests')[index]
         navigation = tabs.tabBar()
         position = next(i for i in range(tabs.count()) if navigation.tabData(i) == key)

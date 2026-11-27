@@ -1,9 +1,8 @@
 # AMO FMS 관리자 조회 비교
 
-기존 `amo-fms`의 관제와 `amo-fms-comparison`의 관제·관리자 병행 실행을
-별도 관리자 PyQt 구성을 포함해 같은 가상 차량 입력과 PostgreSQL 데이터로
-비교합니다. 개발용 화면과
-읽기 전용 IF-03을 사용합니다.
+별도 PyQt FMS를 실행하고, 관리자 조회를 함께 실행하는 조건에서는 Admin(PyQt)
+또는 Admin(Web)을 사용합니다. 같은 가상 차량 입력, PostgreSQL 데이터,
+읽기 전용 IF-03으로 비교합니다.
 
 ## 준비
 
@@ -54,24 +53,34 @@ python3 tests/integration/fms_benchmark/run.py --repeats 3 --duration 45 \
 python3 tests/integration/fms_benchmark/summarize.py /path/to/evidence > /path/to/summary.json
 ```
 
-각 반복에서 다음 네 조건의 실행 순서를 회전합니다.
+각 반복에서 다음 세 조건의 실행 순서를 회전합니다.
 
 | 조건 | 관제 | 관리자 |
 | --- | --- | --- |
 | baseline | 기존 PyQt FMS | 검색 없음 |
 | web | 기존 PyQt FMS | 별도 관리자 Web |
 | standalone | 기존 PyQt FMS | 별도 관리자 PyQt |
-| combined | 통합 PyQt | 관제와 같은 PyQt 프로세스 |
 
 독립 관리자 PyQt의 HTTP 응답은 `admin.jsonl`에 따로 기록합니다.
-기존 3조건 보고서는 당시 실측이며, 네 조건 비교는 새 출력 경로를 사용합니다.
+이전 통합 모드의 측정값을 포함한 보고서는 당시 실측 기록으로 보존합니다.
+새 실행에는 별도 출력 경로를 사용합니다.
 차량 4대의 1초 간격 표본과 기존 7.5초 폴링을 사용합니다.
 관리자 부하 조건은 45초 동안 회원·운행·시험 검색을 각각 2회, 페이지당 50건,
 동시 검색 1건으로 실행합니다. 실제 Web 메뉴 이동은 메뉴별 자동 조회를
 동반할 수 있으며 Web 기록에는 검색 요청과 자동 조회가 모두 남습니다.
 검색 비교에는 같은 입력의 명시적 검색만 포함합니다.
 서버 인증과 활성 세션은 계속 적용되며, Qt 자동 드라이버는 개발용 직접
-로그인을 사용합니다. 사용자 화면의 브라우저 로그인은 별도 회귀 대상입니다.
+로그인을 사용합니다.
+
+아래 명령을 저장소 루트에서 실행하면 FMS와 Admin의 브라우저 로그인과 첫
+화면을 격리된 시험 환경의 별도 프로세스에서 검증합니다.
+
+```sh
+uv run --locked --project GUI/MainControllerPC/AMOAdmin \
+  python tests/integration/fms_benchmark/desktop_smoke.py /path/to/evidence
+```
+
+`--client fms` 또는 `--client admin`을 지정하면 한 앱만 검증합니다.
 
 ## 지표
 

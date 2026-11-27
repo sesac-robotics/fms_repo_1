@@ -9,9 +9,11 @@ from pathlib import Path
 
 def build_table(data: dict, repeats: int) -> str:
     """Validate all expected runs and return ranges across repetitions."""
-    modes = ('baseline', 'web', 'standalone', 'combined')
-    if not any(key.endswith('-standalone') for key in data):
-        modes = ('baseline', 'web', 'combined')
+    modes = ('baseline', 'web', 'standalone')
+    if any(key.endswith('-combined') for key in data):
+        modes = (*modes, 'combined')
+        if not any(key.endswith('-standalone') for key in data):
+            modes = ('baseline', 'web', 'combined')
     expected = {f'r{index}-{mode}' for index in range(1, repeats + 1) for mode in modes}
     if set(data) != expected:
         raise ValueError(f'Expected {sorted(expected)}, got {sorted(data)}.')

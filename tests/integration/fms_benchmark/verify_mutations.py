@@ -10,7 +10,7 @@ from unittest.mock import patch
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
-from amo_fms.comparison import ComparisonApplication
+from amo_fms.admin import AdminApplication
 from amo_fms.comparison_members import MembersPanel
 from amo_fms.comparison_menus import MenuPanel
 from amo_fms.config import Config, Preferences
@@ -39,14 +39,14 @@ def main() -> int:
     parser.add_argument('output', type=Path)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
-    config = Config.from_environment()
+    config = Config.from_environment(fleet=False)
     password = os.environ['AMO_BENCH_DEMO_PASSWORD']
     email = f'bench-staff-{uuid4().hex[:12]}@example.invalid'
     register_fixture(config.endpoint, email, password)
     app = QApplication([])
     settings = QSettings(str(args.output / 'mutations.ini'), QSettings.Format.IniFormat)
     settings.setValue('walkthrough/enabled', False)
-    window = ComparisonApplication(config, Preferences(settings))
+    window = AdminApplication(config, Preferences(settings))
     window.show()
     state = 'load-members'
     original = ''

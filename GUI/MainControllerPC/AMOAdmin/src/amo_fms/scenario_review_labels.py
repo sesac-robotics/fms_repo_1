@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from .fleet_visibility import is_scenario_vehicle, scenario_vehicle
 from .i18n import Text, display_time
-from .models import Event, Snapshot
+from .models import Event, Snapshot, Vehicle
 from .review_playback import Playback
 
 EXPECTED: dict[str, tuple[str, str]] = {
@@ -88,21 +89,17 @@ def observed_text(tr: Text, evidence: dict[str, Any]) -> str:
     return '\n'.join(values)
 
 
-def latest_review_stage(snapshot: Snapshot) -> Event | None:
-    """Read the latest committed review stage carried by IF-03."""
-    return next((e for e in snapshot.events if e.type.startswith('DEMO_REVIEW_')), None)
-
-
 def review_vehicle(snapshot: Snapshot, selected: str, follow_review: bool) -> str:
     """Prefer the current demo vehicle in review mode and otherwise keep fleet selection."""
-    stage = latest_review_stage(snapshot) if follow_review else None
-    if stage is not None:
-        selected = next(
-            (v.id for v in snapshot.vehicles if v.number == stage.vehicle), selected
-        )
-    if any(v.id == selected for v in snapshot.vehicles):
+    scenario = scenario_vehicle(snapshot) if follow_review else None
+    if scenario is not None and selected == scenario.id:
         return selected
-    return snapshot.vehicles[0].id if snapshot.vehicles else ''
+    vehicles = tuple(v for v in snapshot.vehicles if not is_scenario_vehicle(v.number))
+    if any(v.id == selected for v in vehicles):
+        return selected
+    if scenario is not None and snapshot.review is not None:
+        return scenario.id
+    return vehicles[0].id if vehicles else scenario.id if scenario else ''
 
 
 def review_stage_text(tr: Text, review: Playback | None, legacy: Event | None) -> str:
@@ -125,3 +122,14 @@ def review_stage_text(tr: Text, review: Playback | None, legacy: Event | None) -
         return ''
     title = step_title(tr, legacy.type.removeprefix('DEMO_REVIEW_'))
     return f'{tr("review_tab")} · {legacy.vehicle} · {title}'
+
+
+def scenario_card_text(tr: Text, vehicle: Vehicle | None) -> str:
+    """Label the current synthetic vehicle and its camera availability."""
+    if vehicle is None:
+        return ''
+    return tr(
+        'scenario_vehicle_card',
+        vehicle=vehicle.number,
+        status=tr.status(vehicle.status),
+    )

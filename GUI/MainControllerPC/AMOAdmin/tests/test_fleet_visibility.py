@@ -13,7 +13,8 @@ from amo_fms.config import DEFAULT_MAP_ROOT, Config, Preferences
 from amo_fms.fleet_visibility import visible_fleet
 from amo_fms.i18n import Text
 from amo_fms.models import Event, Operator, Snapshot, Vehicle
-from amo_fms.review_playback import Playback
+from amo_fms.review_playback import Checkpoint, Playback
+from amo_fms.theme import palette, stylesheet
 from amo_fms.workspace import Workspace
 
 
@@ -43,9 +44,11 @@ class FleetVisibilityTest(TestCase):
         app = QApplication.instance() or QApplication([])
         app.processEvents()
         real = tuple(vehicle(f'PINKY-{n:02d}') for n in range(1, 5))
-        synthetic = vehicle('DEMO-REVIEW-123')
-        playback = Playback(UUID(int=1), synthetic.number, ())
-        source = Snapshot(vehicles=(*real, synthetic), demo=True, review=playback)
+        legacy = vehicle('DEMO-REPLAY-01')
+        playback = Playback(
+            UUID(int=1), 'DEMO-REVIEW-123', (Checkpoint('STOP_WAIT', 'STOPPED', ''),)
+        )
+        source = Snapshot(vehicles=(*real, legacy), demo=True, review=playback)
         with (
             TemporaryDirectory() as path,
             patch.dict(
@@ -64,28 +67,43 @@ class FleetVisibilityTest(TestCase):
                 Operator('1', 'Operator', '', 'OPERATOR'),
                 'monitor',
             )
+            workspace.setStyleSheet(stylesheet(palette(prefs.theme)))
+            workspace.resize(1220, 855)
+            workspace.show()
             monitor = workspace._monitor
 
-            workspace.show_snapshot(source, synthetic.id)
+            workspace.show_snapshot(source, real[0].id)
             self.assertFalse(workspace.scenario_demo)
             self.assertEqual(monitor._count.text(), tr('fleet_count', count=4))
-            self.assertEqual(monitor._list.count(), 4)
+            self.assertFalse(monitor._scenario_card.isVisible())
             self.assertIsNone(monitor._map._confirmed._review)
             self.assertEqual(monitor._values['vehicle_no'].text(), real[0].number)
 
             workspace._review_mode.click()
             self.assertEqual(monitor._count.text(), tr('fleet_count', count=5))
-            self.assertEqual(monitor._list.count(), 5)
-            self.assertIn(synthetic.number, monitor._list.item(4).text())
+            self.assertTrue(monitor._scenario_card.isVisible())
+            self.assertIn('No camera', monitor._scenario_card.text())
+            self.assertIn(playback.vehicle, monitor._scenario_card.text())
+            self.assertNotIn(legacy.number, monitor._scenario_card.text())
             self.assertIs(monitor._map._confirmed._review, playback)
-            workspace.show_snapshot(source, real[0].id)
-            self.assertEqual(monitor._list.count(), 5)
-            monitor._list.setCurrentRow(4)
-            self.assertEqual(monitor._values['vehicle_no'].text(), synthetic.number)
+            self.assertFalse(monitor._map._confirmed._selected)
+            monitor._scenario_card.click()
+            self.assertTrue(monitor._map._confirmed._selected)
+            self.assertEqual(monitor._values['vehicle_no'].text(), playback.vehicle)
+            self.assertEqual(monitor._values['status'].text(), tr.status('STOPPED'))
+            self.assertTrue(monitor._detail_stage.isVisible())
+            self.assertFalse(monitor._actions.isEnabled())
 
             workspace._review_mode.click()
             self.assertEqual(monitor._count.text(), tr('fleet_count', count=4))
-            self.assertEqual(monitor._list.count(), 4)
+            self.assertFalse(monitor._scenario_card.isVisible())
             self.assertIsNone(monitor._map._confirmed._review)
+            self.assertFalse(monitor._detail_stage.isVisible())
             self.assertEqual(monitor._values['vehicle_no'].text(), real[0].number)
+
+            workspace.show_snapshot(Snapshot(vehicles=(*real, legacy)), real[0].id)
+            workspace._review_mode.click()
+            self.assertIn(legacy.number, monitor._scenario_card.text())
+            monitor._scenario_card.click()
+            self.assertEqual(monitor._values['vehicle_no'].text(), legacy.number)
             workspace.close()

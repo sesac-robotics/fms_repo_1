@@ -1,4 +1,4 @@
-"""Verify the FMS map-area, fleet, and camera selections with synthetic images."""
+"""Verify the FMS map-area and camera selections with synthetic images."""
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -8,7 +8,7 @@ from unittest.mock import patch
 from PyQt6.QtCore import QBuffer, QIODevice, QSettings, Qt
 from PyQt6.QtGui import QImage
 from PyQt6.QtTest import QTest
-from PyQt6.QtWidgets import QApplication, QPushButton, QSplitter
+from PyQt6.QtWidgets import QApplication, QListWidget, QPushButton, QSplitter
 
 from amo_fms.config import DEFAULT_MAP_ROOT, Config, Preferences
 from amo_fms.i18n import Text
@@ -18,11 +18,11 @@ from amo_fms.theme import palette, stylesheet
 
 
 class CameraPreviewPanelTest(TestCase):
-    def test_four_images_share_selection_with_the_map_area_and_fleet(self) -> None:
+    def test_four_images_share_selection_with_the_map_area(self) -> None:
         app = QApplication.instance() or QApplication([])
         numbers = tuple(f'PINKY-{index:02d}' for index in range(1, 5))
         vehicles = [
-            {'id': index, 'vehicleNo': number}
+            {'id': index, 'vehicleNo': number, 'status': 'IDLE'}
             for index, number in enumerate(numbers, 1)
         ]
         snapshot = Snapshot.parse({'vehicles': vehicles, 'requests': [], 'events': []})
@@ -75,11 +75,12 @@ class CameraPreviewPanelTest(TestCase):
             cards[3].click()
             self.assertEqual(selections[-1], '4')
             self.assertTrue(map_buttons[3].isChecked())
-            self.assertEqual(monitor._list.currentRow(), 3)
-            monitor._list.setCurrentRow(1)
+            self.assertEqual(monitor._values['vehicle_no'].text(), 'PINKY-04')
+            self.assertIn(Text('en').status('IDLE'), cards[3]._caption.text())
+            self.assertFalse(monitor.findChildren(QListWidget))
+            QTest.mouseDClick(cards[1], Qt.MouseButton.LeftButton)
             self.assertEqual(selections[-1], '2')
             self.assertTrue(cards[1].isChecked())
-            QTest.mouseDClick(cards[1], Qt.MouseButton.LeftButton)
             self.assertEqual(
                 [card.isVisible() for card in cards], [False, True, False, False]
             )

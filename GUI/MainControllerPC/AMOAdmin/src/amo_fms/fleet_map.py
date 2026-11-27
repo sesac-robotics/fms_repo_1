@@ -53,6 +53,10 @@ class FleetMap(QWidget):
         if review is not None:
             self._replay.setChecked(False)
 
+    def highlight_review(self, selected: bool) -> None:
+        """Highlight the confirmed-map marker for the selected scenario vehicle."""
+        self._confirmed.highlight(selected)
+
     def set_replay_available(self, available: bool) -> None:
         """Offer the legacy frame without switching away from the confirmed map."""
         if not available:

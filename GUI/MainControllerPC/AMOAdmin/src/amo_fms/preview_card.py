@@ -72,12 +72,16 @@ class PreviewCard(QPushButton):
         layout.addWidget(self._caption)
         self.set_viewport_height(112)
 
-    def present(self, frame: QPixmap, status: str) -> None:
+    def present(self, frame: QPixmap, state: str, camera_status: str) -> None:
         """Render the frame and expose the vehicle and state to accessibility tools."""
         self.surface.set_frame(frame)
-        text = f'{self._number} · {status}'
-        self._caption.setText(text)
-        self.setAccessibleName(text)
+        text = f'{self._number} · {state}'
+        description = f'{text} · {camera_status}'
+        self._caption.setText(text if frame.isNull() else f'{text}\n{camera_status}')
+        self.setAccessibleName(description)
+        self.setToolTip(description)
+        if self.height() != self.sizeHint().height():
+            self.setFixedHeight(self.sizeHint().height())
 
     def mouseDoubleClickEvent(self, event: QMouseEvent | None) -> None:
         """Enlarge only a double-click on a populated video surface."""

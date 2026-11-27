@@ -24,6 +24,7 @@ class ConfirmedReviewMap(FitImage):
         """Load the shared map and allocate the animation timer."""
         super().__init__(source, description, unavailable)
         self._review: Playback | None = None
+        self._selected = False
         self._point = DEPOT
         self._pending: deque[LanePath] = deque()
         self._started = 0.0
@@ -56,6 +57,12 @@ class ConfirmedReviewMap(FitImage):
                 self._started = monotonic()
                 self._clock.start()
         self.update()
+
+    def highlight(self, selected: bool) -> None:
+        """Repaint the marker with the current scenario selection."""
+        if self._selected != selected:
+            self._selected = selected
+            self.update()
 
     def _reset_animation(self) -> None:
         self._clock.stop()
@@ -96,6 +103,6 @@ class ConfirmedReviewMap(FitImage):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setBrush(QColor('#a94712' if stopped else '#036e60'))
-        painter.setPen(QPen(QColor('#ffffff'), 2.5))
+        painter.setPen(QPen(QColor('#7FE2BB' if self._selected else '#ffffff'), 3))
         painter.drawEllipse(point, 10, 10)
         painter.end()

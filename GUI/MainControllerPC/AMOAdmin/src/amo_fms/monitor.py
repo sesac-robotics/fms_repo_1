@@ -10,12 +10,11 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
-    QListWidget,
-    QListWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
+from . import fleet_visibility
 from .config import Config, Preferences
 from .fleet_map import FleetMap
 from .i18n import Text, display_time
@@ -23,7 +22,7 @@ from .map_vehicle_selector import MapVehicleSelector
 from .models import Snapshot, Vehicle
 from .monitor_layout import map_and_cameras
 from .preview_panel import PreviewPanel
-from .scenario_review_labels import latest_review_stage, review_stage_text
+from .scenario_review_labels import review_stage_text, scenario_card_text
 from .vehicle_details import vehicle_details
 from .vision_readings import VisionReading
 from .widgets import button, label, panel
@@ -46,7 +45,7 @@ class FleetMonitor(QWidget):
         self._select = selection
         self._vehicles: tuple[Vehicle, ...] = ()
         self._vision: tuple[VisionReading, ...] = ()
-        self._selected_id = ''
+        self._scenario: Vehicle | None = None
         self._review_vehicle = ''
         content = QHBoxLayout(self)
         content.setContentsMargins(0, 0, 0, 0)
@@ -73,23 +72,21 @@ class FleetMonitor(QWidget):
             local_directory=getenv('AMO_FMS_PREVIEW_DIRECTORY'),
         )
         right.addWidget(self._previews)
-        fleet, fleet_layout = panel()
-        fleet_layout.addWidget(label(tr('fleet'), 'heading'))
+        self._scenario_card = button('')
+        self._scenario_card.setCheckable(True)
+        self._scenario_card.clicked.connect(self._choose_scenario)
+        self._scenario_card.hide()
+        right.addWidget(self._scenario_card)
         self._count = label(tr('fleet_count', count=0), 'secondary')
-        fleet_layout.addWidget(self._count)
-        self._list = QListWidget()
-        self._list.setAccessibleName(tr('fleet'))
-        self._list.setAlternatingRowColors(True)
-        self._list.setMaximumHeight(138)
-        self._list.currentItemChanged.connect(self._changed)
-        fleet_layout.addWidget(self._list, 1)
-        fleet_layout.addWidget(label(tr('latest_event'), 'heading'))
-        self._recent = label(tr('empty'), 'secondary')
-        fleet_layout.addWidget(self._recent)
-        right.addWidget(fleet, 3)
+        right.addWidget(self._count)
+        self._recent = label('', 'secondary')
+        right.addWidget(self._recent)
 
         details, detail_layout = panel()
         detail_layout.addWidget(label(tr('selected'), 'heading'))
+        self._detail_stage = label('', 'secondary')
+        self._detail_stage.hide()
+        detail_layout.addWidget(self._detail_stage)
         grid = QGridLayout()
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(9)
@@ -129,66 +126,70 @@ class FleetMonitor(QWidget):
         """Update the fleet while preserving the selected vehicle's service ID."""
         self._vision = snapshot.vision
         review = snapshot.review
-        current = None if review else latest_review_stage(snapshot)
+        current = None if review else fleet_visibility.latest_review_stage(snapshot)
         self._review_vehicle = current.vehicle if snapshot.demo and current else ''
         self._map.set_replay_available(bool(self._review_vehicle))
         self._map.show_review(review)
         title = review_stage_text(self._tr, review, current)
         self._stage.setVisible(bool(title))
         self._stage.setText(title)
-        if snapshot.events:
-            event = snapshot.events[0]
-            parts = (
-                display_time(event.time),
-                event.vehicle,
-                self._tr.status(event.type),
-            )
-            self._recent.setText(' · '.join(part for part in parts if part))
-        else:
-            self._recent.setText(self._tr('empty'))
-        if self._vehicles != snapshot.vehicles:
-            self._vehicles = snapshot.vehicles
-            self._map_selection.set_vehicles(self._vehicles)
-            self._list.blockSignals(True)
-            self._list.clear()
-            for vehicle in self._vehicles:
-                item = QListWidgetItem(
-                    f'{vehicle.number}  ·  {self._tr.status(vehicle.status)}'
-                )
-                item.setData(Qt.ItemDataRole.UserRole, vehicle.id)
-                self._list.addItem(item)
-            self._list.blockSignals(False)
-            self._count.setText(self._tr('fleet_count', count=len(self._vehicles)))
+        self._scenario = fleet_visibility.scenario_vehicle(snapshot)
+        self._scenario_card.setText(scenario_card_text(self._tr, self._scenario))
+        self._scenario_card.setVisible(self._scenario is not None)
+        vehicles = tuple(
+            v
+            for v in snapshot.vehicles
+            if not fleet_visibility.is_scenario_vehicle(v.number)
+        )
+        if self._vehicles != vehicles:
+            self._vehicles = vehicles
+            self._map_selection.set_vehicles(vehicles)
+        count = len(vehicles) + int(self._scenario is not None)
+        self._count.setText(self._tr('fleet_count', count=count))
+        recent = snapshot.events[0] if snapshot.events else None
+        self._recent.setText(
+            f'{display_time(recent.time)} · {recent.vehicle} · {self._tr.status(recent.type)}'
+            if recent
+            else ''
+        )
+        self._recent.setVisible(recent is not None)
         self.select(selected_id)
 
     def select(self, vehicle_id: str) -> None:
         """Select a known vehicle by its server ID, with no fallback assumption."""
-        self._selected_id = vehicle_id
-        selected = next((v for v in self._vehicles if v.id == vehicle_id), None)
-        row = next((i for i, v in enumerate(self._vehicles) if v.id == vehicle_id), -1)
-        self._list.blockSignals(True)
-        self._list.setCurrentRow(row)
+        is_scenario = self._scenario is not None and self._scenario.id == vehicle_id
+        selected = (
+            self._scenario
+            if is_scenario
+            else next((v for v in self._vehicles if v.id == vehicle_id), None)
+        )
+        self._scenario_card.setChecked(is_scenario)
         self._map_selection.highlight(vehicle_id)
         self._previews.present(self._vehicles, vehicle_id)
-        self._list.blockSignals(False)
-        markers = tuple(v for v in self._vehicles if v.number == self._review_vehicle)
+        markers = (
+            (self._scenario,)
+            if self._scenario is not None
+            and self._scenario.number == self._review_vehicle
+            else ()
+        )
         self._map.show_samples(markers, vehicle_id)
+        self._map.highlight_review(is_scenario)
+        self._detail_stage.setText(self._stage.text() if is_scenario else '')
+        self._detail_stage.setVisible(bool(self._detail_stage.text()))
         if selected is None:
             for field in self._values.values():
                 field.setText('—')
             self._actions.setEnabled(False)
             return
-        for key, value in vehicle_details(selected, self._vision, self._tr).items():
+        for key, value in vehicle_details(
+            selected, () if is_scenario else self._vision, self._tr
+        ).items():
             self._values[key].setText(value)
-        self._actions.setEnabled(True)
+        self._actions.setEnabled(not is_scenario)
 
-    def _changed(
-        self,
-        current: QListWidgetItem | None,
-        _previous: QListWidgetItem | None,
-    ) -> None:
-        selected_id = str(current.data(Qt.ItemDataRole.UserRole)) if current else ''
-        self._choose_vehicle(selected_id)
+    def _choose_scenario(self) -> None:
+        if self._scenario is not None:
+            self._choose_vehicle(self._scenario.id)
 
     def _choose_vehicle(self, vehicle_id: str) -> None:
         self.select(vehicle_id)

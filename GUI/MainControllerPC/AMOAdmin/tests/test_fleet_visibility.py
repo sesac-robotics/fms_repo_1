@@ -7,7 +7,7 @@ from unittest.mock import patch
 from uuid import UUID
 
 from PyQt6.QtCore import QSettings
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QScrollArea
 
 from amo_fms.config import DEFAULT_MAP_ROOT, Config, Preferences
 from amo_fms.fleet_visibility import visible_fleet
@@ -92,6 +92,20 @@ class FleetVisibilityTest(TestCase):
             self.assertEqual(monitor._values['vehicle_no'].text(), playback.vehicle)
             self.assertEqual(monitor._values['status'].text(), tr.status('STOPPED'))
             self.assertTrue(monitor._detail_stage.isVisible())
+            app.processEvents()
+            self.assertFalse(monitor.findChildren(QScrollArea))
+            self.assertTrue(monitor._map.isVisible())
+            for card in monitor._previews._cards.values():
+                self.assertTrue(card.isVisible())
+                self.assertGreaterEqual(card.surface.height(), 48)
+                self.assertTrue(
+                    monitor.rect().contains(
+                        card.mapTo(monitor, card.rect().bottomRight())
+                    )
+                )
+            self.assertGreater(
+                monitor._values['position'].x(), monitor._values['status'].x()
+            )
             self.assertFalse(monitor._actions.isEnabled())
 
             workspace._review_mode.click()

@@ -8,7 +8,13 @@ from unittest.mock import patch
 from PyQt6.QtCore import QBuffer, QIODevice, QSettings, Qt
 from PyQt6.QtGui import QImage
 from PyQt6.QtTest import QTest
-from PyQt6.QtWidgets import QApplication, QListWidget, QPushButton, QSplitter
+from PyQt6.QtWidgets import (
+    QApplication,
+    QListWidget,
+    QPushButton,
+    QScrollArea,
+    QSplitter,
+)
 
 from amo_fms.config import DEFAULT_MAP_ROOT, Config, Preferences
 from amo_fms.i18n import Text
@@ -52,7 +58,8 @@ class CameraPreviewPanelTest(TestCase):
                 all(not card.surface.frame_rect().isEmpty() for card in cards)
             )
             self.assertTrue(cards[0].isChecked())
-            self.assertTrue(all(card.surface.height() >= 180 for card in cards))
+            self.assertTrue(all(card.surface.height() >= 48 for card in cards))
+            self.assertFalse(monitor.findChildren(QScrollArea))
             split = monitor.findChild(QSplitter)
             previous_width = cards[0].surface.width()
             split.setSizes([480, 960])
@@ -81,15 +88,17 @@ class CameraPreviewPanelTest(TestCase):
             QTest.mouseDClick(cards[1], Qt.MouseButton.LeftButton)
             self.assertEqual(selections[-1], '2')
             self.assertTrue(cards[1].isChecked())
-            self.assertEqual(
-                [card.isVisible() for card in cards], [False, True, False, False]
-            )
+            viewer = monitor._previews._viewer
+            self.assertTrue(viewer.isVisible())
+            self.assertTrue(all(card.isVisible() for card in cards))
             self.assertTrue(monitor._map.isVisible())
             app.processEvents()
-            self.assertGreaterEqual(cards[1].surface.height(), 220)
-            self.assertTrue(cards[1].rect().contains(cards[1]._caption.geometry()))
-            QTest.keyClick(cards[1], Qt.Key.Key_Escape)
-            app.processEvents()
+            enlarged = monitor._previews._viewer_surface
+            self.assertGreater(
+                enlarged.frame_rect().height(), cards[1].surface.frame_rect().height()
+            )
+            QTest.keyClick(viewer, Qt.Key.Key_Escape)
+            self.assertFalse(viewer.isVisible())
             self.assertTrue(all(card.isVisible() for card in cards))
             monitor.close()
 
@@ -140,5 +149,5 @@ class CameraPreviewPanelTest(TestCase):
                 self.assertIn('Waiting for video', card.accessibleName())
                 self.assertTrue(card.surface.frame_rect().isEmpty())
                 QTest.mouseDClick(card, Qt.MouseButton.LeftButton)
-                self.assertEqual(monitor._previews._layout_selection, (False, ''))
+                self.assertFalse(monitor._previews._viewer.isVisible())
                 monitor.close()

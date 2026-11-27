@@ -5,11 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from os import getenv
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QGridLayout,
     QHBoxLayout,
-    QLabel,
     QVBoxLayout,
     QWidget,
 )
@@ -20,7 +17,7 @@ from .fleet_map import FleetMap
 from .i18n import Text, display_time
 from .map_vehicle_selector import MapVehicleSelector
 from .models import Snapshot, Vehicle
-from .monitor_layout import map_and_cameras
+from .monitor_layout import detail_grid, map_and_cameras
 from .preview_panel import PreviewPanel
 from .scenario_review_labels import review_stage_text, scenario_card_text
 from .vehicle_details import vehicle_details
@@ -64,14 +61,14 @@ class FleetMonitor(QWidget):
         sidebar = QWidget()
         right = QVBoxLayout(sidebar)
         right.setContentsMargins(0, 0, 0, 0)
-        right.setSpacing(12)
+        right.setSpacing(6)
         self._previews = PreviewPanel(
             tr,
             self._choose_vehicle,
             test_images=getenv('AMO_FMS_TEST_IMAGES') == '1',
             local_directory=getenv('AMO_FMS_PREVIEW_DIRECTORY'),
         )
-        right.addWidget(self._previews)
+        right.addWidget(self._previews, 1)
         self._scenario_card = button('')
         self._scenario_card.setCheckable(True)
         self._scenario_card.clicked.connect(self._choose_scenario)
@@ -79,7 +76,7 @@ class FleetMonitor(QWidget):
         right.addWidget(self._scenario_card)
         self._count = label(tr('fleet_count', count=0), 'secondary')
         right.addWidget(self._count)
-        self._recent = label('', 'secondary')
+        self._recent = label('', 'secondary', wrap=False)
         right.addWidget(self._recent)
 
         details, detail_layout = panel()
@@ -87,39 +84,13 @@ class FleetMonitor(QWidget):
         self._detail_stage = label('', 'secondary')
         self._detail_stage.hide()
         detail_layout.addWidget(self._detail_stage)
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(9)
-        self._values: dict[str, QLabel] = {}
-        fields = (
-            'vehicle_no',
-            'status',
-            'battery',
-            'connection',
-            'stop_reason',
-            'vision_reading',
-            'dispatch_setting',
-            'dispatch_eligibility',
-            'observation_received_at',
-            'position',
-            'reported_yaw',
-            'reported_speed',
-        )
-        for row, key in enumerate(fields):
-            name = label(tr(key), 'secondary', wrap=False)
-            value = label('—')
-            value.setTextFormat(Qt.TextFormat.PlainText)
-            grid.addWidget(name, row, 0)
-            grid.addWidget(value, row, 1)
-            self._values[key] = value
-        grid.setColumnMinimumWidth(1, 104)
-        grid.setColumnStretch(1, 1)
+        grid, self._values = detail_grid(tr)
         detail_layout.addLayout(grid)
         self._actions = button(tr('commands'), 'primary')
         self._actions.setEnabled(False)
         self._actions.clicked.connect(open_actions)
         detail_layout.addWidget(self._actions)
-        right.addWidget(details, 2)
+        right.addWidget(details)
         content.addWidget(map_and_cameras(body, sidebar))
 
     def show_snapshot(self, snapshot: Snapshot, selected_id: str) -> None:
@@ -179,12 +150,14 @@ class FleetMonitor(QWidget):
         if selected is None:
             for field in self._values.values():
                 field.setText('—')
+                field.setToolTip('')
             self._actions.setEnabled(False)
             return
         for key, value in vehicle_details(
             selected, () if is_scenario else self._vision, self._tr
         ).items():
             self._values[key].setText(value)
+            self._values[key].setToolTip(value)
         self._actions.setEnabled(not is_scenario)
 
     def _choose_scenario(self) -> None:

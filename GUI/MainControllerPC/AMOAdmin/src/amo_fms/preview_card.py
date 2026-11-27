@@ -14,12 +14,17 @@ class PreviewSurface(QWidget):
         self._waiting = waiting
         self._frame = QPixmap()
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def set_frame(self, frame: QPixmap) -> None:
         """Replace the current frame, or show the waiting state for a null pixmap."""
         self._frame = frame
         self.update()
+
+    @property
+    def frame(self) -> QPixmap:
+        """Return the displayed frame, or a null pixmap while waiting."""
+        return self._frame
 
     def frame_rect(self) -> QRect:
         """Return the centered, aspect-preserving frame rectangle in widget pixels."""
@@ -57,7 +62,7 @@ class PreviewCard(QPushButton):
         super().__init__(parent)
         self._number = number
         self.setCheckable(True)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.surface = PreviewSurface(waiting, self)
         self._caption = QLabel(self)
         self._caption.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
@@ -70,7 +75,7 @@ class PreviewCard(QPushButton):
         layout.setSpacing(5)
         layout.addWidget(self.surface)
         layout.addWidget(self._caption)
-        self.set_viewport_height(112)
+        self.surface.setMinimumHeight(48)
 
     def present(self, frame: QPixmap, state: str, camera_status: str) -> None:
         """Render the frame and expose the vehicle and state to accessibility tools."""
@@ -80,8 +85,6 @@ class PreviewCard(QPushButton):
         self._caption.setText(text if frame.isNull() else f'{text}\n{camera_status}')
         self.setAccessibleName(description)
         self.setToolTip(description)
-        if self.height() != self.sizeHint().height():
-            self.setFixedHeight(self.sizeHint().height())
 
     def mouseDoubleClickEvent(self, event: QMouseEvent | None) -> None:
         """Enlarge only a double-click on a populated video surface."""
@@ -95,12 +98,6 @@ class PreviewCard(QPushButton):
             event.accept()
             return
         super().mouseDoubleClickEvent(event)
-
-    def set_viewport_height(self, height: int) -> None:
-        """Reserve the requested viewport height and keep the caption below it."""
-        if self.surface.minimumHeight() != height:
-            self.surface.setFixedHeight(height)
-            self.setFixedHeight(self.sizeHint().height())
 
     def sizeHint(self) -> QSize:
         """Keep the image and caption reachable at the application's minimum width."""

@@ -7,18 +7,15 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import (
     QColor,
     QImage,
-    QKeySequence,
     QPainter,
     QPixmap,
-    QResizeEvent,
-    QShortcut,
 )
-from PyQt6.QtWidgets import QGridLayout, QWidget
+from PyQt6.QtWidgets import QDialog, QGridLayout, QVBoxLayout, QWidget
 
 from .i18n import Text
 from .local_preview_source import LocalPreviewSource
 from .models import Vehicle
-from .preview_card import PreviewCard
+from .preview_card import PreviewCard, PreviewSurface
 
 _NUMBERS = tuple(f'PINKY-{number:02d}' for number in range(1, 5))
 _COLORS = ('#234751', '#465573', '#38564e', '#654956')
@@ -50,13 +47,11 @@ class PreviewPanel(QWidget):
         self._tr = tr
         self._select = select
         self._test_images = test_images
-        self._selected = ''
-        self._layout_selection: tuple[bool, str] | None = None
+        self._expanded_number = ''
         self._vehicles: dict[str, Vehicle] = {}
         self._cards: dict[str, PreviewCard] = {}
         self._test_frames: dict[str, QPixmap] = {}
-        self._grid = QGridLayout(self)
-        layout = self._grid
+        layout = QGridLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
         for index, number in enumerate(_NUMBERS):
@@ -69,9 +64,13 @@ class PreviewPanel(QWidget):
             self._cards[number] = card
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(1, 1)
-        escape = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
-        escape.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        escape.activated.connect(lambda: self._show_selection(False))
+        layout.setRowStretch(0, 1)
+        layout.setRowStretch(1, 1)
+        self._viewer = QDialog(self)
+        self._viewer.resize(720, 480)
+        self._viewer.finished.connect(self._close_viewer)
+        self._viewer_surface = PreviewSurface(tr('camera_waiting'), self._viewer)
+        QVBoxLayout(self._viewer).addWidget(self._viewer_surface)
         self._source = (
             LocalPreviewSource(Path(local_directory))
             if local_directory and not test_images
@@ -91,16 +90,13 @@ class PreviewPanel(QWidget):
             for vehicle in vehicles
             if vehicle.number in self._cards
         }
-        self._selected = selected
         for number, card in self._cards.items():
             vehicle = self._vehicles.get(number)
             card.setEnabled(vehicle is not None)
             card.setChecked(vehicle is not None and vehicle.id == selected)
 
-        if self._layout_selection != (True, selected) or not any(
-            vehicle.id == selected for vehicle in self._vehicles.values()
-        ):
-            self._show_selection(False)
+        if self._expanded_number and self._expanded_number not in self._vehicles:
+            self._viewer.close()
         self._update_images()
 
     def _update_images(self) -> None:
@@ -128,43 +124,21 @@ class PreviewPanel(QWidget):
             state = self._tr.status(vehicle.status) if vehicle else self._tr('unknown')
             card.present(frame, state, status)
 
-    def _show_selection(self, expanded: bool) -> None:
-        layout_selection = (expanded, self._selected if expanded else '')
-        if self._layout_selection == layout_selection:
-            return
-        self._layout_selection = layout_selection
-        for index, (number, card) in enumerate(self._cards.items()):
-            self._grid.removeWidget(card)
-            vehicle = self._vehicles.get(number)
-            visible = not expanded or (
-                vehicle is not None and vehicle.id == self._selected
-            )
-            card.setVisible(visible)
-            if expanded and visible:
-                self._grid.addWidget(card, 0, 0, 2, 2)
-            elif not expanded:
-                self._grid.addWidget(card, index // 2, index % 2)
-        self._resize_cards()
-
-    def resizeEvent(self, event: QResizeEvent | None) -> None:
-        """Scale all visible viewports with the available camera column width."""
-        super().resizeEvent(event)
-        self._resize_cards()
-
-    def _resize_cards(self) -> None:
-        expanded = bool(self._layout_selection and self._layout_selection[0])
-        width = self.width() if expanded else (self.width() - self._grid.spacing()) // 2
-        height = max(112, (width - 12) * 9 // 16)
-        if expanded:
-            height = min(430, height)
-        for card in self._cards.values():
-            card.set_viewport_height(height)
+            if number == self._expanded_number:
+                self._viewer_surface.set_frame(frame)
 
     def _enlarge(self, number: str) -> None:
         self._choose(number)
-        vehicle = self._vehicles.get(number)
-        if vehicle is not None and vehicle.id == self._selected:
-            self._show_selection(True)
+        card = self._cards[number]
+        self._expanded_number = number
+        self._viewer.setWindowTitle(card.accessibleName())
+        self._viewer_surface.set_frame(card.surface.frame)
+        self._viewer.show()
+        self._viewer.raise_()
+
+    def _close_viewer(self) -> None:
+        self._expanded_number = ''
+        self._viewer_surface.set_frame(QPixmap())
 
     def _choose(self, number: str) -> None:
         vehicle = self._vehicles.get(number)

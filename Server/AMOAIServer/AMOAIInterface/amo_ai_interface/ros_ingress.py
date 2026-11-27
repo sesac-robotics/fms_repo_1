@@ -3,7 +3,9 @@
 import argparse
 import logging
 from collections.abc import Callable
+from contextlib import nullcontext
 from functools import partial
+from pathlib import Path
 
 import rclpy
 from rclpy.executors import ExternalShutdownException
@@ -19,6 +21,7 @@ from amo_ai_interface.frame import (
     is_jpeg,
     validate_robot_id,
 )
+from amo_ai_interface.local_preview import configure_preview
 from amo_ai_interface.vision_http import SERVICES, VisionTarget
 
 
@@ -64,7 +67,7 @@ def _receive(
     offer(frame)
 
 
-def _spin(robot_ids: frozenset[str], delivery: FrameDelivery) -> None:
+def _spin(robot_ids: frozenset[str], offer: Callable[[Frame], None]) -> None:
     qos = QoSProfile(
         depth=1,
         reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -79,7 +82,7 @@ def _spin(robot_ids: frozenset[str], delivery: FrameDelivery) -> None:
                 node.create_subscription(
                     CompressedImage,
                     topic,
-                    partial(_receive, robot_id=robot_id, offer=delivery.offer),
+                    partial(_receive, robot_id=robot_id, offer=offer),
                     qos,
                 )
                 logging.info('camera_ingress_ready robot=%s topic=%s', robot_id, topic)
@@ -101,6 +104,8 @@ def main() -> int:
     parser.add_argument('--driving-perception-url')
     parser.add_argument('--traffic-rules-url')
     parser.add_argument('--direction-recognition-url')
+    parser.add_argument('--local-preview-directory', type=Path)
+    parser.add_argument('--local-preview-map')
     add_detector_arguments(parser)
     arguments = parser.parse_args()
     try:
@@ -115,15 +120,33 @@ def main() -> int:
         if arguments.detector_service is None and len(targets) != len(SERVICES):
             raise ValueError('Supply all three Vision URLs in receipt diagnostics mode')
         operations = configure_targets(arguments, targets, robot_ids)
+        directory, mapping = (
+            arguments.local_preview_directory,
+            arguments.local_preview_map,
+        )
+        if bool(directory) != bool(mapping):
+            raise ValueError('Supply both local preview options together')
+        preview = (
+            configure_preview(mapping, directory, robot_ids) if directory else None
+        )
     except ValueError as error:
         parser.error(str(error))
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
     try:
-        with FrameDelivery(
-            robot_ids, operations, arguments.detector_service
-        ) as delivery:
-            _spin(robot_ids, delivery)
+        with (
+            preview or nullcontext(),
+            FrameDelivery(
+                robot_ids, operations, arguments.detector_service
+            ) as delivery,
+        ):
+
+            def offer(frame: Frame) -> None:
+                delivery.offer(frame)
+                if preview is not None:
+                    preview.offer(frame)
+
+            _spin(robot_ids, offer)
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
     return 0

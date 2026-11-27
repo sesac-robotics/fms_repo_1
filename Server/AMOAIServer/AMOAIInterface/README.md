@@ -93,3 +93,18 @@ docker compose -f compose.yaml -f docker/vision.compose.yaml config --quiet
 검증용 프로젝트에서 판정기를 먼저 실행한 뒤 같은 Compose 명령에
 `up -d --build main-control ai-interface`를 사용합니다. 강의실은 기존 실행 구성과
 같은 프로젝트에 적용하고, 기존 데이터베이스와 로그인 설정을 유지합니다.
+
+## 로컬 FMS 가림 영상 시험
+
+시험용으로만 기존 AI Interface 실행 명령에 아래 옵션을 추가합니다.
+시스템 Python에서 OpenCV와 NumPy를 불러올 수 있어야 합니다. 노트북에서
+`preview_dir=$(mktemp -d)`로 현재 사용자 전용 폴더를 만들고, 송신기와
+같은 로봇 ID를 지정합니다. 예시는 00001 시험에 한정한 차량 지정입니다.
+
+```bash
+--local-preview-directory "$preview_dir" --local-preview-map pinky_example=PINKY-01
+```
+
+AI Interface는 16×12칸, 네 단계 밝기의 회색 전체 화면 모자이크만
+차량별 최신 파일에 씁니다. 원본 JPEG는 미리보기 파일에 저장하지 않습니다.
+이 시험은 실차 영상 연결을 확인하며 운영용 얼굴 가림 성능 검증과 배포는 별도입니다.

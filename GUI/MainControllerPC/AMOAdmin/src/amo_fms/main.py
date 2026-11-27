@@ -81,7 +81,7 @@ class Application(QMainWindow):
         else:
             self._login = None
             self._workspace = Workspace(
-                tr, self._config, self._prefs, self._operator, self._page
+                tr, self._config, self._prefs, self._operator, self._page, self._api
             )
             self._workspace.request_settings.connect(self._settings)
             self._workspace.request_logout.connect(self._api.logout)

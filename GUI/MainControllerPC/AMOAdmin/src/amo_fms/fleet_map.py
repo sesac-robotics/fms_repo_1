@@ -1,21 +1,30 @@
 """Keep confirmed road artwork separate from v0.2 replay coordinates."""
 
+from collections.abc import Callable
+
 from PyQt6.QtWidgets import QCheckBox, QStackedWidget, QVBoxLayout, QWidget
 
 from .config import Config, Preferences
-from .confirmed_review_map import ConfirmedReviewMap
 from .i18n import Text
 from .map_preview import MapPreview
 from .models import Vehicle
 from .review_playback import Playback
+from .signal_map import SignalMap
+from .signal_readings import SignalReading
 from .widgets import label
 
 
 class FleetMap(QWidget):
     """Show the confirmed board or the matching map for demo replay."""
 
-    def __init__(self, tr: Text, config: Config, prefs: Preferences) -> None:
-        """Load both map assets and select the confirmed road layout initially."""
+    def __init__(
+        self,
+        tr: Text,
+        config: Config,
+        prefs: Preferences,
+        open_signal: Callable[[str], None],
+    ) -> None:
+        """Load both maps; ``open_signal(id)`` runs when a map signal is clicked."""
         super().__init__()
         self._tr = tr
         self._caption = label(tr('map_caption'), 'secondary')
@@ -28,10 +37,11 @@ class FleetMap(QWidget):
         self._selected = ''
         self._maps = QStackedWidget()
         self._maps.setMinimumHeight(330)
-        self._confirmed = ConfirmedReviewMap(
+        self._confirmed = SignalMap(
             config.asset('map', prefs.language, prefs.theme),
             tr('map_caption'),
             tr('map_missing'),
+            open_signal,
         )
         self._legacy = MapPreview(
             config.asset('legacy_map', prefs.language, prefs.theme),
@@ -47,8 +57,11 @@ class FleetMap(QWidget):
         layout.addWidget(self._maps, 1)
         layout.addWidget(self._legend)
 
-    def show_review(self, review: Playback | None) -> None:
-        """Render on the confirmed map independently of the regular vehicle feed."""
+    def show_board(
+        self, review: Playback | None, signals: tuple[SignalReading, ...]
+    ) -> None:
+        """Render review playback and live signal lamps on the confirmed map."""
+        self._confirmed.show_signals(signals)
         self._confirmed.present(review)
         if review is not None:
             self._replay.setChecked(False)

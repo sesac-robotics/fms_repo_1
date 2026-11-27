@@ -1,9 +1,10 @@
-"""Verify SignalKit rows decode safely and render on the read-only FMS page."""
+"""Verify SignalKit rows decode safely and render on the FMS signals page."""
 
 from __future__ import annotations
 
 import os
 import unittest
+from collections.abc import Callable
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
@@ -84,35 +85,51 @@ class SignalReadingsTest(unittest.TestCase):
             self.assertLessEqual(keys, set(catalog(language)), language)
 
 
+def visible_texts(page: SignalsPage) -> set[str]:
+    """Return the text of every label the page currently shows."""
+    return {w.text() for w in page.findChildren(QLabel) if w.isVisibleTo(page)}
+
+
+class FakeSender:
+    """Records commands instead of calling the gateway."""
+
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, str]] = []
+
+    def send(self, signal_id: str, command: str, done: Callable[[str], None]) -> None:
+        self.sent.append((signal_id, command))
+        done('signal_queued')
+
+
 class SignalsPageTest(unittest.TestCase):
     """Render the page offscreen and read back the labels."""
 
-    def test_shows_one_card_per_signal_with_localized_values(self) -> None:
-        app = QApplication.instance() or QApplication([])
+    def setUp(self) -> None:
+        self.app = QApplication.instance() or QApplication([])
+
+    def test_groups_boards_by_intersection(self) -> None:
         page = SignalsPage(Text('en'), lambda: None)
         page.show_snapshot(snapshot(), '')
-        texts = {w.text() for w in page.findChildren(QLabel) if w.isVisibleTo(page)}
-        self.assertIn(Text('en')('signal_none'), texts)
-
-        held = row(
-            mode='HOLD',
-            holdTarget='NORTH_GREEN',
-            remainingMs=0,
-            planPending=True,
-            lastCommand='HOLD NORTH_GREEN',
-            commandResult='ACCEPTED',
-        )
-        page.show_snapshot(snapshot(held), '')
-        page.show_snapshot(snapshot(held), '')
-        app.processEvents()
-        texts = {w.text() for w in page.findChildren(QLabel) if w.isVisibleTo(page)}
+        self.assertIn(Text('en')('signal_none'), visible_texts(page))
+        held = row(mode='HOLD', holdTarget='NORTH_GREEN', remainingMs=0)
+        boards = (held, row(signalId='SIG-02'), row(signalId='SIG-03'))
+        page.show_snapshot(snapshot(*boards), '')
+        self.app.processEvents()
+        texts = visible_texts(page)
         self.assertNotIn(Text('en')('signal_none'), texts)
-        self.assertIn('SIG-01', texts)
-        self.assertIn('North green', texts)
-        self.assertIn('Manual hold · North green', texts)
+        self.assertIn('North T-junction', texts)
+        self.assertIn('Centre crossroads', texts)
+        self.assertNotIn('Other signals', texts)
+        self.assertEqual(
+            set(page.cards['signal_junction_plus'].blocks), {'SIG-01', 'SIG-02'}
+        )
+        self.assertEqual(set(page.cards['signal_junction_t'].blocks), {'SIG-03'})
+        self.assertIn('a · Northbound', texts)
+        self.assertIn('b · Westbound', texts)
+        self.assertIn('a · Pedestrians', texts)
         self.assertIn('Holding', texts)
-        self.assertIn('10s / 10s / 3s / 2s (from the next phase)', texts)
-        self.assertIn('HOLD NORTH_GREEN · Accepted', texts)
+        self.assertIn('Next change in 7.3 s', texts)
+        self.assertIn('● Receiving from the server', texts)
 
 
 if __name__ == '__main__':

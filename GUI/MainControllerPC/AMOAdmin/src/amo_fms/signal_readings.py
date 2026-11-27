@@ -7,6 +7,8 @@ from dataclasses import dataclass
 PHASES = ('NORTH_GREEN', 'NORTH_YELLOW', 'ALL_RED', 'EAST_GREEN', 'EAST_YELLOW')
 _HOLD_TARGETS = {'NORTH_GREEN', 'EAST_GREEN', 'ALL_RED'}
 _PLAN_KEYS = ('northGreenMs', 'eastGreenMs', 'yellowMs', 'allRedMs')
+# Added with the six-number PLAN; older servers omit them.
+_EAST_KEYS = ('eastYellowMs', 'partnerEastMs')
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,7 +20,8 @@ class SignalReading:
     mode: str
     hold_target: str
     remaining_ms: int
-    plan_ms: tuple[int, int, int, int]
+    # north green, east green, north yellow, all red, east yellow, partner east
+    plan_ms: tuple[int, int, int, int, int, int]
     plan_pending: bool
     last_command: str
     command_result: str
@@ -31,8 +34,8 @@ class SignalReading:
         return north, east
 
     def plan_text(self) -> str:
-        """Show the plan as seconds: north green / east green / yellow / all red."""
-        return ' / '.join(f'{value / 1000:g}s' for value in self.plan_ms)
+        """Show the first four durations as seconds: greens, yellow, all red."""
+        return ' / '.join(f'{value / 1000:g}s' for value in self.plan_ms[:4])
 
 
 def parse_signals(value: object) -> tuple[SignalReading, ...]:
@@ -55,6 +58,8 @@ def _reading(row: object) -> SignalReading | None:
     if not isinstance(plan, dict):
         return None
     plan_ms = tuple(plan.get(key) for key in _PLAN_KEYS)
+    defaults = (plan.get('yellowMs'), 0)
+    plan_ms += tuple(plan.get(k, d) for k, d in zip(_EAST_KEYS, defaults, strict=True))
     texts = (
         state.get('signalId'),
         state.get('phase'),

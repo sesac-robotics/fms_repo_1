@@ -18,7 +18,9 @@ from .i18n import Text
 from .models import Operator, Snapshot
 from .monitor import FleetMonitor
 from .operations_pages import ActionsPage, RecordsPage
+from .signal_commands import SignalCommandSender
 from .signal_page import SignalsPage
+from .staff_api import StaffApi
 from .widgets import brand, button, label
 
 PAGE_KEYS = ('monitor', 'signals', 'queue', 'events', 'commands')
@@ -40,8 +42,9 @@ class Workspace(QWidget):
         prefs: Preferences,
         operator: Operator,
         initial_page: str,
+        api: StaffApi | None = None,
     ) -> None:
-        """Construct the live-view shell and preserve navigational state."""
+        """Construct the shell; ``api`` enables signal plan changes over IF-02."""
         super().__init__()
         self._tr = tr
         self._page_keys = (
@@ -68,10 +71,12 @@ class Workspace(QWidget):
             prefs,
             self.vehicle_selected.emit,
             lambda: self.navigate('commands'),
+            lambda _signal_id: self.navigate('signals'),
         )
+        sender = SignalCommandSender(api, self) if api is not None else None
         self._pages = (
             self._monitor,
-            SignalsPage(tr, self.request_refresh.emit),
+            SignalsPage(tr, self.request_refresh.emit, sender),
             RecordsPage(tr, 'queue'),
             RecordsPage(tr, 'events'),
             ActionsPage(tr, self.vehicle_selected.emit),

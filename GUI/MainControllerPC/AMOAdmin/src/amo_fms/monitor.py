@@ -34,6 +34,7 @@ class FleetMonitor(QWidget):
         prefs: Preferences,
         selection: Callable[[str], None],
         open_actions: Callable[[], None],
+        open_signal: Callable[[str], None],
     ) -> None:
         """Build the localized monitoring view from the approved Figma palette."""
         super().__init__()
@@ -52,7 +53,7 @@ class FleetMonitor(QWidget):
         self._stage = label('', 'heading')
         self._stage.hide()
         body_layout.addWidget(self._stage)
-        self._map = FleetMap(tr, config, prefs)
+        self._map = FleetMap(tr, config, prefs, open_signal)
         body_layout.addWidget(self._map, 1)
         content.addWidget(body, 4)
 
@@ -114,7 +115,7 @@ class FleetMonitor(QWidget):
         current = None if review else latest_review_stage(snapshot)
         self._review_vehicle = current.vehicle if snapshot.demo and current else ''
         self._map.set_replay_available(bool(self._review_vehicle))
-        self._map.show_review(review)
+        self._map.show_board(review, snapshot.signals)
         title = review_stage_text(self._tr, review, current)
         self._stage.setVisible(bool(title))
         self._stage.setText(title)

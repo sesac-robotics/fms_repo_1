@@ -1,150 +1,64 @@
-"""Read-only FMS page that draws each SignalKit traffic light and its latest report."""
+"""FMS signals page: one card per intersection, with a timing editor behind each."""
 
 from __future__ import annotations
 
-import time
 from collections.abc import Callable
 
-from PyQt6.QtCore import QRectF, Qt, QTimer
-from PyQt6.QtGui import QColor, QPainter, QPaintEvent, QShowEvent
-from PyQt6.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtCore import QTimer
+from PyQt6.QtGui import QShowEvent
+from PyQt6.QtWidgets import QFrame, QScrollArea, QStackedWidget, QVBoxLayout, QWidget
 
-from .i18n import Text, display_time
+from .i18n import Text
 from .models import Snapshot
+from .signal_commands import SignalCommandSender
+from .signal_detail import JunctionDetail
+from .signal_directions import COORDINATED, JUNCTIONS, OTHER_JUNCTION, junction_key
+from .signal_junction_card import JunctionCard
+from .signal_plan_editor import junction_agrees
 from .signal_readings import SignalReading
-from .widgets import label, panel
-
-_LIT = {'R': '#e5484d', 'Y': '#f5b400', 'G': '#2fbf71'}
-_OFF = '#3a3f45'
-_STALE_S = 5.0
-_FIELDS = ('signal_phase', 'signal_remaining', 'signal_mode', 'signal_plan')
-_FIELDS += ('signal_last_command', 'signal_received')
-
-
-class SignalHead(QWidget):
-    """Paint one vertical red, yellow and green head with a single lit lamp."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._lit = 'R'
-        self.setFixedSize(64, 172)
-
-    def set_lit(self, lamp: str) -> None:
-        if lamp != self._lit:
-            self._lit = lamp
-            self.update()
-
-    def paintEvent(self, _event: QPaintEvent | None) -> None:
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor('#1f2328'))
-        painter.drawRoundedRect(QRectF(0, 0, 64, 172), 14, 14)
-        for row, lamp in enumerate('RYG'):
-            painter.setBrush(QColor(_LIT[lamp] if lamp == self._lit else _OFF))
-            painter.drawEllipse(QRectF(10, 10 + row * 52, 44, 44))
-        painter.end()
-
-
-class SignalCard(QWidget):
-    """One signal: north and east heads beside its reported values."""
-
-    def __init__(self, tr: Text) -> None:
-        super().__init__()
-        self._tr = tr
-        self._reading: SignalReading | None = None
-        self._seen = 0.0
-        self._changed = 0.0
-        card, layout = panel()
-        self._title = label('', 'heading')
-        layout.addWidget(self._title)
-        row = QHBoxLayout()
-        row.setSpacing(18)
-        self._heads: list[SignalHead] = []
-        for key in ('signal_north', 'signal_east'):
-            column = QVBoxLayout()
-            head = SignalHead()
-            self._heads.append(head)
-            column.addWidget(head, 0, Qt.AlignmentFlag.AlignHCenter)
-            caption = label(tr(key), 'secondary', wrap=False)
-            caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            column.addWidget(caption)
-            row.addLayout(column)
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(14)
-        grid.setVerticalSpacing(9)
-        self._values: dict[str, QLabel] = {}
-        for index, key in enumerate(_FIELDS):
-            grid.addWidget(label(tr(key), 'secondary', wrap=False), index, 0)
-            self._values[key] = label('—')
-            grid.addWidget(self._values[key], index, 1)
-        grid.setColumnStretch(1, 1)
-        row.addLayout(grid, 1)
-        layout.addLayout(row)
-        self._stale = label('', 'warning')
-        layout.addWidget(self._stale)
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        outer.addWidget(card)
-
-    def show_reading(self, reading: SignalReading) -> None:
-        now = time.monotonic()
-        previous = self._reading
-        if previous is None or previous.received_at != reading.received_at:
-            self._changed = now
-        self._reading, self._seen = reading, now
-        tr = self._tr
-        north, east = reading.lamps()
-        self._heads[0].set_lit(north)
-        self._heads[1].set_lit(east)
-        self._title.setText(reading.signal_id)
-        self._values['signal_phase'].setText(tr(f'phase_{reading.phase}'))
-        mode = tr(f'signal_mode_{reading.mode}')
-        if reading.hold_target:
-            mode += f' · {tr(f"phase_{reading.hold_target}")}'
-        self._values['signal_mode'].setText(mode)
-        plan = reading.plan_text()
-        if reading.plan_pending:
-            plan += f' ({tr("signal_pending")})'
-        self._values['signal_plan'].setText(plan)
-        command = reading.last_command or '—'
-        self._values['signal_last_command'].setText(
-            f'{command} · {tr.status(reading.command_result)}'
-        )
-        self._values['signal_received'].setText(display_time(reading.received_at))
-        self.tick()
-
-    def tick(self) -> None:
-        """Count the remaining time down locally between snapshots."""
-        reading = self._reading
-        if reading is None:
-            return
-        now = time.monotonic()
-        if reading.mode == 'HOLD' and reading.remaining_ms == 0:
-            text = self._tr('signal_holding')
-        else:
-            left = max(0.0, reading.remaining_ms / 1000 - (now - self._seen))
-            text = f'{left:.1f}s'
-        self._values['signal_remaining'].setText(text)
-        quiet = now - self._changed
-        self._stale.setText(
-            self._tr('signal_stale', seconds=int(quiet)) if quiet > _STALE_S else ''
-        )
+from .widgets import label
 
 
 class SignalsPage(QWidget):
-    """List every reporting signal; refresh every second while the page is shown."""
+    """Overview of the intersections; each card's details button opens its timing editor."""
 
-    def __init__(self, tr: Text, refresh: Callable[[], None]) -> None:
+    def __init__(
+        self,
+        tr: Text,
+        refresh: Callable[[], None],
+        sender: SignalCommandSender | None = None,
+    ) -> None:
+        """Poll through ``refresh``; send plan changes through ``sender`` if given."""
         super().__init__()
-        self._tr = tr
-        self._cards: dict[str, SignalCard] = {}
-        self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(12)
+        self._readings: dict[str, SignalReading] = {}
+        overview = QWidget()
+        listing = QVBoxLayout(overview)
+        listing.setContentsMargins(0, 0, 0, 0)
+        listing.setSpacing(12)
         self._empty = label(tr('signal_none'), 'secondary')
-        self._layout.addWidget(self._empty)
-        self._layout.addStretch(1)
+        listing.addWidget(self._empty)
+        self.cards: dict[str, JunctionCard] = {}
+        for key in (*(key for key, _members in JUNCTIONS), OTHER_JUNCTION):
+            card = JunctionCard(tr, key, self._open)
+            card.setVisible(False)
+            self.cards[key] = card
+            listing.addWidget(card)
+        listing.addStretch(1)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet('QScrollArea { background: transparent; }')
+        scroll.viewport().setAutoFillBackground(False)  # type: ignore[union-attr]
+        overview.setAutoFillBackground(False)
+        scroll.setWidget(overview)
+        self.detail = JunctionDetail(tr, sender, self._tell)
+        self.stack = QStackedWidget()
+        self.stack.addWidget(scroll)
+        self.stack.addWidget(self.detail)
+        self.detail.closed.connect(lambda: self.stack.setCurrentIndex(0))
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.stack)
         self._poll = QTimer(self)
         self._poll.setInterval(1000)
         self._poll.timeout.connect(refresh)
@@ -153,15 +67,22 @@ class SignalsPage(QWidget):
         self._clock.timeout.connect(self._tick)
 
     def show_snapshot(self, snapshot: Snapshot, _selected_id: str) -> None:
-        """Add a card for each new signal and update the existing ones."""
+        """Route each board's report to its intersection card and the editor."""
         for reading in snapshot.signals:
-            card = self._cards.get(reading.signal_id)
-            if card is None:
-                card = SignalCard(self._tr)
-                self._cards[reading.signal_id] = card
-                self._layout.insertWidget(self._layout.count() - 1, card)
-            card.show_reading(reading)
-        self._empty.setVisible(not self._cards)
+            self._readings[reading.signal_id] = reading
+        for key, card in self.cards.items():
+            members = self._members(key)
+            card.setVisible(bool(members))
+            card.show_readings(members)
+            # Coordinated boards must fit one cycle, or their phases drift apart.
+            plans = [reading.plan_ms for reading in members]
+            rule = COORDINATED.get(key)
+            card.mismatch.setVisible(
+                rule is not None
+                and not junction_agrees(plans, rule.linked, rule.east_turns)
+            )
+        self._empty.setVisible(not self._readings)
+        self.detail.show_readings(snapshot.signals)
 
     def showEvent(self, event: QShowEvent | None) -> None:
         self._poll.start()
@@ -171,8 +92,22 @@ class SignalsPage(QWidget):
     def hideEvent(self, event: object) -> None:
         self._poll.stop()
         self._clock.stop()
+        self.stack.setCurrentIndex(0)
         super().hideEvent(event)  # type: ignore[arg-type]
 
+    def _members(self, key: str) -> list[SignalReading]:
+        return sorted(
+            (r for r in self._readings.values() if junction_key(r.signal_id) == key),
+            key=lambda reading: reading.signal_id,
+        )
+
+    def _open(self, key: str) -> None:
+        self.detail.open(key, self._members(key))
+        self.stack.setCurrentIndex(1)
+
+    def _tell(self, key: str, text: str) -> None:
+        self.cards[key].tell(text)
+
     def _tick(self) -> None:
-        for card in self._cards.values():
+        for card in self.cards.values():
             card.tick()

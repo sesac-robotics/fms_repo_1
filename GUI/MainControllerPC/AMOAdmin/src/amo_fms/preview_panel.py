@@ -3,13 +3,14 @@
 from collections.abc import Callable
 from pathlib import Path
 
-from PyQt6.QtCore import QSize, Qt, QTimer
-from PyQt6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap
-from PyQt6.QtWidgets import QGridLayout, QPushButton, QSizePolicy, QWidget
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QColor, QImage, QPainter, QPixmap
+from PyQt6.QtWidgets import QGridLayout, QPushButton, QWidget
 
 from .i18n import Text
 from .local_preview_source import LocalPreviewSource
 from .models import Vehicle
+from .preview_card import PreviewCard
 
 _NUMBERS = tuple(f'PINKY-{number:02d}' for number in range(1, 5))
 _COLORS = ('#234751', '#465573', '#38564e', '#654956')
@@ -42,21 +43,23 @@ class PreviewPanel(QWidget):
         self._select = select
         self._test_images = test_images
         self._selected = ''
+        self._layout_selection: tuple[bool, str] | None = None
         self._vehicles: dict[str, str] = {}
-        self._cards: dict[str, QPushButton] = {}
-        layout = QGridLayout(self)
+        self._cards: dict[str, PreviewCard] = {}
+        self._test_frames: dict[str, QPixmap] = {}
+        self._grid = QGridLayout(self)
+        layout = self._grid
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
         for index, number in enumerate(_NUMBERS):
-            card = QPushButton(self)
-            card.setCheckable(True)
-            card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            card = PreviewCard(number, tr('camera_waiting'), self)
             card.clicked.connect(lambda _checked, key=number: self._choose(key))
             if test_images:
-                card.setIcon(QIcon(_test_image(number, index)))
-                card.setIconSize(QSize(100, 56))
+                self._test_frames[number] = _test_image(number, index)
             layout.addWidget(card, index // 2, index % 2)
             self._cards[number] = card
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(1, 1)
         self._expand = QPushButton(tr('camera_expand'), self)
         self._expand.setCheckable(True)
         self._expand.toggled.connect(self._show_selection)
@@ -97,28 +100,31 @@ class PreviewPanel(QWidget):
             )
             if cells is not None:
                 image = QImage(cells, 16, 12, 16, QImage.Format.Format_Grayscale8)
-                pixmap = QPixmap.fromImage(image).scaled(
-                    256,
-                    192,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.FastTransformation,
-                )
-                card.setIcon(QIcon(pixmap))
+                frame = QPixmap.fromImage(image)
                 status = 'camera_masked_live'
             elif self._test_images:
+                frame = self._test_frames[number]
                 status = 'camera_test_image'
             else:
-                card.setIcon(QIcon())
+                frame = QPixmap()
                 status = 'camera_waiting'
-            card.setText(f'{number}\n{self._tr(status)}')
+            card.present(frame, self._tr(status))
 
     def _show_selection(self, expanded: bool) -> None:
         self._expand.setText(self._tr('camera_grid' if expanded else 'camera_expand'))
-        for number, card in self._cards.items():
-            card.setVisible(
-                not expanded or self._vehicles.get(number) == self._selected
-            )
-            card.setIconSize(QSize(160, 90) if expanded else QSize(100, 56))
+        layout_selection = (expanded, self._selected if expanded else '')
+        if self._layout_selection == layout_selection:
+            return
+        self._layout_selection = layout_selection
+        for index, (number, card) in enumerate(self._cards.items()):
+            self._grid.removeWidget(card)
+            visible = not expanded or self._vehicles.get(number) == self._selected
+            card.setVisible(visible)
+            card.set_expanded(expanded)
+            if expanded and visible:
+                self._grid.addWidget(card, 0, 0, 2, 2)
+            elif not expanded:
+                self._grid.addWidget(card, index // 2, index % 2)
 
     def _choose(self, number: str) -> None:
         vehicle_id = self._vehicles.get(number)

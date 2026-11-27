@@ -12,6 +12,7 @@ from amo_fms.config import DEFAULT_MAP_ROOT, Config, Preferences
 from amo_fms.i18n import Text
 from amo_fms.models import Snapshot
 from amo_fms.monitor import FleetMonitor
+from amo_fms.theme import palette, stylesheet
 
 
 class CameraPreviewPanelTest(TestCase):
@@ -38,13 +39,23 @@ class CameraPreviewPanelTest(TestCase):
                 selections.append,
                 lambda: None,
             )
+            monitor.setStyleSheet(stylesheet(palette(prefs.theme)))
+            monitor.resize(1440, 850)
             monitor.show()
             monitor.show_snapshot(snapshot, '1')
             app.processEvents()
             cards = list(monitor._previews._cards.values())
             self.assertEqual(len(cards), 4)
-            self.assertTrue(all(not card.icon().isNull() for card in cards))
+            self.assertTrue(
+                all(not card.surface.frame_rect().isEmpty() for card in cards)
+            )
             self.assertTrue(cards[0].isChecked())
+            for card in cards:
+                self.assertTrue(card.rect().contains(card.surface.geometry()))
+                self.assertTrue(card.rect().contains(card._caption.geometry()))
+                self.assertLess(
+                    card.surface.geometry().bottom(), card._caption.geometry().top()
+                )
             map_buttons = monitor._map_selection.findChildren(QPushButton)
             map_buttons[2].click()
             self.assertEqual(selections[-1], '3')
@@ -62,6 +73,9 @@ class CameraPreviewPanelTest(TestCase):
                 [card.isVisible() for card in cards], [False, True, False, False]
             )
             self.assertTrue(monitor._map.isVisible())
+            app.processEvents()
+            self.assertGreaterEqual(cards[1].surface.height(), 220)
+            self.assertTrue(cards[1].rect().contains(cards[1]._caption.geometry()))
             monitor._previews._expand.click()
             self.assertTrue(all(card.isVisible() for card in cards))
             monitor.close()

@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -62,7 +63,9 @@ class FleetMonitor(QWidget):
         body_layout.addWidget(self._map_selection)
         content.addWidget(body, 4)
 
-        right = QVBoxLayout()
+        sidebar = QWidget()
+        right = QVBoxLayout(sidebar)
+        right.setContentsMargins(0, 0, 0, 0)
         right.setSpacing(12)
         self._previews = PreviewPanel(
             tr,
@@ -78,6 +81,7 @@ class FleetMonitor(QWidget):
         self._list = QListWidget()
         self._list.setAccessibleName(tr('fleet'))
         self._list.setAlternatingRowColors(True)
+        self._list.setMaximumHeight(138)
         self._list.currentItemChanged.connect(self._changed)
         fleet_layout.addWidget(self._list, 1)
         fleet_layout.addWidget(label(tr('latest_event'), 'heading'))
@@ -120,7 +124,11 @@ class FleetMonitor(QWidget):
         self._actions.clicked.connect(open_actions)
         detail_layout.addWidget(self._actions)
         right.addWidget(details, 2)
-        content.addLayout(right, 2)
+        scroll = QScrollArea()
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(sidebar)
+        content.addWidget(scroll, 2)
 
     def show_snapshot(self, snapshot: Snapshot, selected_id: str) -> None:
         """Update the fleet while preserving the selected vehicle's service ID."""

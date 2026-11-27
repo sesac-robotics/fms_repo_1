@@ -11,6 +11,7 @@ from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import CompressedImage
 
 from amo_ai_interface.deliver_frames import FrameDelivery
+from amo_ai_interface.detector_config import add_detector_arguments, configure_targets
 from amo_ai_interface.frame import (
     MAX_JPEG_BYTES,
     NS_PER_SECOND,
@@ -18,7 +19,7 @@ from amo_ai_interface.frame import (
     is_jpeg,
     validate_robot_id,
 )
-from amo_ai_interface.vision_http import VisionTarget, confirm_receipt
+from amo_ai_interface.vision_http import SERVICES, VisionTarget
 
 
 def frame_from_message(robot_id: str, message: CompressedImage) -> Frame:
@@ -90,35 +91,38 @@ def _spin(robot_ids: frozenset[str], delivery: FrameDelivery) -> None:
 
 
 def main() -> int:
-    """Run one receipt-only AI Interface process on ROS 2 Jazzy.
+    """Run diagnostics or one enabled detector on ROS 2 Jazzy.
 
-    Configure at most 16 distinct robot IDs and three HTTP /infer URLs.
+    Configure at most 16 distinct robot IDs and the applicable /infer URLs.
     The process owns the ROS node and HTTP worker for its lifetime.
     """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--robot-id', action='append', required=True)
-    parser.add_argument('--driving-perception-url', required=True)
-    parser.add_argument('--traffic-rules-url', required=True)
-    parser.add_argument('--direction-recognition-url', required=True)
+    parser.add_argument('--driving-perception-url')
+    parser.add_argument('--traffic-rules-url')
+    parser.add_argument('--direction-recognition-url')
+    add_detector_arguments(parser)
     arguments = parser.parse_args()
     try:
         robot_ids = frozenset(map(validate_robot_id, arguments.robot_id))
         if len(robot_ids) != len(arguments.robot_id) or len(robot_ids) > 16:
             raise ValueError('Supply 1–16 distinct robot IDs')
-        targets = (
-            VisionTarget(1, arguments.driving_perception_url),
-            VisionTarget(2, arguments.traffic_rules_url),
-            VisionTarget(3, arguments.direction_recognition_url),
+        targets = tuple(
+            VisionTarget(vision_id, url)
+            for vision_id, service in SERVICES.items()
+            if (url := getattr(arguments, f'{service.replace("-", "_")}_url'))
         )
+        if arguments.detector_service is None and len(targets) != len(SERVICES):
+            raise ValueError('Supply all three Vision URLs in receipt diagnostics mode')
+        operations = configure_targets(arguments, targets, robot_ids)
     except ValueError as error:
         parser.error(str(error))
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
     try:
-        receipts = {
-            target.service: partial(confirm_receipt, target) for target in targets
-        }
-        with FrameDelivery(robot_ids, receipts) as delivery:
+        with FrameDelivery(
+            robot_ids, operations, arguments.detector_service
+        ) as delivery:
             _spin(robot_ids, delivery)
     except (KeyboardInterrupt, ExternalShutdownException):
         pass

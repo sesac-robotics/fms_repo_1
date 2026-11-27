@@ -1,4 +1,4 @@
-"""HTTP adapter for the delivered Vision image-receipt contract."""
+"""HTTP adapter for diagnostic and detector-mode Vision endpoints."""
 
 import json
 from dataclasses import dataclass
@@ -15,7 +15,7 @@ _MAX_RESPONSE_BYTES = 4096
 
 @dataclass(frozen=True, slots=True)
 class VisionTarget:
-    """One named Vision receipt service with an explicit HTTP endpoint."""
+    """One named Vision service with an explicit HTTP endpoint."""
 
     vision_id: int
     endpoint: str
@@ -42,11 +42,11 @@ class VisionTarget:
             raise ValueError('Expected a known Vision service and HTTP /infer URL')
 
 
-def confirm_receipt(target: VisionTarget, frame: Frame) -> None:
-    """POST a JPEG once and require the exact test receipt for that JPEG.
+def request_inference(target: VisionTarget, frame: Frame) -> object:
+    """Send one JPEG and return its bounded JSON response.
 
-    Close the connection on success and on failure. Socket operations time out
-    after three seconds. Raise on transport errors or a mismatched receipt.
+    Close the connection on success and failure. Socket operations time out
+    after three seconds. Propagate transport errors or malformed JSON.
     """
     url = urlsplit(target.endpoint)
     connection = HTTPConnection(
@@ -59,6 +59,7 @@ def confirm_receipt(target: VisionTarget, frame: Frame) -> None:
             body=frame.jpeg,
             headers={
                 'Content-Type': 'image/jpeg',
+                'Accept': 'application/json',
                 'X-Frame-Id': frame.frame_id,
                 'X-Vision-Id': str(target.vision_id),
                 'X-Robot-Id': frame.robot_id,
@@ -67,12 +68,23 @@ def confirm_receipt(target: VisionTarget, frame: Frame) -> None:
         with connection.getresponse() as response:
             if response.status != 200:
                 raise ValueError(f'Vision returned HTTP {response.status}')
+            if response.headers.get_content_type() != 'application/json':
+                raise ValueError('Vision must return application/json')
             payload = response.read(_MAX_RESPONSE_BYTES + 1)
     finally:
         connection.close()
 
     if len(payload) > _MAX_RESPONSE_BYTES:
-        raise ValueError('Vision receipt exceeds the response limit')
+        raise ValueError('Vision JSON exceeds the response limit')
+    try:
+        return json.loads(payload)
+    except RecursionError as error:
+        raise ValueError('Vision JSON nesting exceeds the limit') from error
+
+
+def confirm_receipt(target: VisionTarget, frame: Frame) -> None:
+    """Require the exact diagnostic receipt for the transmitted JPEG."""
+    receipt = request_inference(target, frame)
     expected = {
         'frame_id': frame.frame_id,
         'vision_id': target.vision_id,
@@ -81,10 +93,6 @@ def confirm_receipt(target: VisionTarget, frame: Frame) -> None:
         'sha256': sha256(frame.jpeg).hexdigest(),
         'mock': True,
     }
-    try:
-        receipt = json.loads(payload)
-    except RecursionError as error:
-        raise ValueError('Vision receipt nesting exceeds the JSON limit') from error
     if receipt != expected or any(
         type(receipt[key]) is not type(value) for key, value in expected.items()
     ):
